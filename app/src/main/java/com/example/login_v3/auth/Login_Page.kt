@@ -45,6 +45,7 @@ import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.text.input.VisualTransformation
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.navigation.NavBackStackEntry
 import coil.ImageLoader
 import coil.compose.AsyncImage
 import coil.decode.SvgDecoder
@@ -84,7 +85,10 @@ fun SvgImage(
 
 
 @Composable
-fun LoginScreen(paddingValues: PaddingValues){
+fun LoginScreen(
+    paddingValues: PaddingValues,
+    onLoginSuccess: () -> Unit
+){
 
     var email by remember { mutableStateOf("") }
     var password by remember { mutableStateOf("") }
