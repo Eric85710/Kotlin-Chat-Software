@@ -1,5 +1,25 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
+    <style name="Theme.MyApp.Splash"
+        parent="Theme.Material3.DayNight.NoActionBar">
 
-    <style name="Theme.Login_V3" parent="android:Theme.Material.Light.NoActionBar" />
+        <!-- Splash 背景色 -->
+        <item name="android:windowSplashScreenBackground">
+            @color/black
+        </item>
+
+        <!-- Splash 中央 icon（Animated 或靜態都可以） -->
+        <item name="android:windowSplashScreenAnimatedIcon">
+            @drawable/tg_logo_zoom_v1
+        </item>
+
+
+        <!-- Splash 結束後切換到的主題（很重要） -->
+        <item name="postSplashScreenTheme">
+            @style/Theme.Login_V3
+        </item>
+
+    </style>
+
+    <style name="Theme.Login_V3" parent="Theme.Material3.DayNight.NoActionBar" />
 </resources>

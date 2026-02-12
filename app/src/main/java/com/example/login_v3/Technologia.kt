@@ -21,32 +21,16 @@ fun Technologia() {
     val isLoggedIn = false // 從 ViewModel 也可以
 
 
-    Login_V3Theme {
-        Box(
-            modifier = Modifier
-                .fillMaxSize()
-                .background(
-                    brush = Brush.linearGradient(
-                        colors = listOf(
-                            Color(0xFFDA7029),
-                            Color(0xFF777777),
-                            Color(0xFFB34800)
-                        )
-                    )
-                )
-        ) {
-            Scaffold(
-                modifier = Modifier.fillMaxSize(),
-                containerColor = Color.Transparent
-            ) { padding ->
-                AppNavGraph(
-                    navController = navController,
-                    isLoggedIn = isLoggedIn,
-                    paddingValues = padding
-                )
+    Scaffold(
+        modifier = Modifier.fillMaxSize(),
+        containerColor = Color.Transparent
+    ) { padding ->
+        AppNavGraph(
+            navController = navController,
+            isLoggedIn = isLoggedIn,
+            paddingValues = padding
+        )
 
-            }
-        }
     }
 }
 
