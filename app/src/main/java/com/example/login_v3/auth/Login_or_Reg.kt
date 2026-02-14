@@ -28,7 +28,8 @@ import com.example.login_v3.ui.theme.main_orange
 
 @Composable
 fun Login_or_Reg_page(
-    paddingValues: PaddingValues
+    paddingValues: PaddingValues,
+    onLoginClick: () -> Unit
 ){
     Column(
         modifier = Modifier
@@ -68,6 +69,7 @@ fun Login_or_Reg_page(
         ) {
 
 
+            //login_button
             Button(
                 modifier = Modifier
                     .weight(1f)
@@ -78,11 +80,12 @@ fun Login_or_Reg_page(
                     containerColor = Color.Gray,  // 背景顏色
                     contentColor = Color.White      // 文字顏色
                 ),
-                onClick = {}
+                onClick = onLoginClick
             ) {
                 Text( text = "Login",
                     fontSize = 20.sp)
             }
+
 
             Button(
                 modifier = Modifier

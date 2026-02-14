@@ -35,8 +35,10 @@ fun AppNavGraph(
 
         composable("pre_reg") {
             Login_or_Reg_page(
-                paddingValues = paddingValues
-
+                paddingValues = paddingValues,
+                onLoginClick = {
+                    navController.navigate("login")
+                }
             )
         }
 
