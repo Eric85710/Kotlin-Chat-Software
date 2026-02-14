@@ -9,6 +9,7 @@ import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
 import com.example.login_v3.auth.LoginScreen
 import com.example.login_v3.auth.Login_or_Reg_page
+import com.example.login_v3.auth.Register_Screen
 import com.example.login_v3.home.HomeScreen
 
 @Composable
@@ -38,6 +39,9 @@ fun AppNavGraph(
                 paddingValues = paddingValues,
                 onLoginClick = {
                     navController.navigate("login")
+                },
+                onRegClick = {
+                    navController.navigate("Reg")
                 }
             )
         }
@@ -51,6 +55,13 @@ fun AppNavGraph(
                         popUpTo("home") { inclusive = true }
                     }
                 }
+            )
+        }
+
+
+        composable("Reg") {
+            Register_Screen(
+                paddingValues = paddingValues
             )
         }
 

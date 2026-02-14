@@ -29,7 +29,8 @@ import com.example.login_v3.ui.theme.main_orange
 @Composable
 fun Login_or_Reg_page(
     paddingValues: PaddingValues,
-    onLoginClick: () -> Unit
+    onLoginClick: () -> Unit,
+    onRegClick: () -> Unit
 ){
     Column(
         modifier = Modifier
@@ -97,7 +98,7 @@ fun Login_or_Reg_page(
                     containerColor = light_orange,  // 背景顏色
                     contentColor = Color.White      // 文字顏色
                 ),
-                onClick = {}
+                onClick = onRegClick
             ) {
                 Text( text = "Register",
                     fontSize = 20.sp)
