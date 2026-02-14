@@ -128,8 +128,14 @@ fun LoginScreen(
         )
 
 
+        //title
+        Text(text = "Login",
+            fontSize = 32.sp,
+            fontWeight = FontWeight.Bold,
+            color = Color.White
+        )
 
-
+        Spacer(modifier = Modifier.height(16.dp))
 
         //login Box
         Box(
@@ -170,12 +176,6 @@ fun LoginScreen(
                     .padding(8.dp),
                 horizontalAlignment = Alignment.CenterHorizontally
             ) {
-
-                Text(text = "Login",
-                    fontSize = 24.sp,
-                    fontWeight = FontWeight.ExtraBold,
-                    modifier = Modifier
-                        .padding(8.dp))
 
                 Spacer(modifier = Modifier.height(16.dp))
 

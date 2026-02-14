@@ -110,39 +110,76 @@ fun Register_Screen(
 
 
 
-            //input_username
-            TextField(
-                value = user_name,
-                onValueChange = { user_name = it},
-                label = {
-                    Text(
-                        user_name_Error.ifEmpty { "username" },
-                        color = if (user_name_Error.isNotEmpty()) Red else androidx.compose.ui.graphics.Color.Unspecified
-                    )
-                },
-
-                leadingIcon = {
-                    Icon(
-                        Icons.Rounded.Person,
-                        contentDescription = ""
-                    )
-                },
-                shape = RoundedCornerShape(8.dp),
-
+            Column(
                 modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(vertical = 4.dp, horizontal = 16.dp),
+                    .fillMaxSize()
+                    .padding(8.dp),
+                horizontalAlignment = Alignment.CenterHorizontally
+            ) {
+                //input_username
+                TextField(
+                    value = user_name,
+                    onValueChange = { user_name = it},
+                    label = {
+                        Text(
+                            user_name_Error.ifEmpty { "username" },
+                            color = if (user_name_Error.isNotEmpty()) Red else androidx.compose.ui.graphics.Color.Unspecified
+                        )
+                    },
 
-                colors = TextFieldDefaults.colors(
-                    focusedContainerColor = Transparent,
-                    unfocusedIndicatorColor = Transparent
+                    leadingIcon = {
+                        Icon(
+                            Icons.Rounded.Person,
+                            contentDescription = ""
+                        )
+                    },
+                    shape = RoundedCornerShape(8.dp),
+
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(vertical = 4.dp, horizontal = 16.dp),
+
+                    colors = TextFieldDefaults.colors(
+                        focusedContainerColor = Transparent,
+                        unfocusedIndicatorColor = Transparent
+                    )
                 )
-            )
+
+                //email
+                TextField(
+                    value = email,
+                    onValueChange = { email = it},
+                    label = {
+                        Text(
+                            emailError.ifEmpty { "Email" },
+                            color = if (emailError.isNotEmpty()) Red else androidx.compose.ui.graphics.Color.Unspecified
+                        )
+                    },
+
+                    leadingIcon = {
+                        Icon(
+                            Icons.Rounded.AccountCircle,
+                            contentDescription = ""
+                        )
+                    },
+                    shape = RoundedCornerShape(8.dp),
+
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(vertical = 4.dp, horizontal = 16.dp),
+
+                    colors = TextFieldDefaults.colors(
+                        focusedContainerColor = Transparent,
+                        unfocusedIndicatorColor = Transparent
+                    )
+                )
+            }
+
+
+
+
 
         }
-
-
-
 
     }
 
