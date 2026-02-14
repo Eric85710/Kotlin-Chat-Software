@@ -84,8 +84,9 @@ fun Register_Screen(
         //Reg_box
         Box(
             modifier = Modifier
-                .size(360.dp)
-                .padding(8.dp),
+                .height(360.dp)
+                .fillMaxWidth()
+                .padding(start = 34.dp, end = 34.dp, top = 20.dp),
             contentAlignment = Alignment.Center
         ){
 
