@@ -19,6 +19,8 @@ import androidx.compose.material.icons.rounded.Lock
 import androidx.compose.material.icons.rounded.Person
 import androidx.compose.material.icons.rounded.Visibility
 import androidx.compose.material.icons.rounded.VisibilityOff
+import androidx.compose.material3.Button
+import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.Text
@@ -43,6 +45,7 @@ import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.text.input.VisualTransformation
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.example.login_v3.ui.theme.main_orange
 import kotlin.text.ifEmpty
 
 @Composable
@@ -123,6 +126,8 @@ fun Register_Screen(
                     .padding(8.dp),
                 horizontalAlignment = Alignment.CenterHorizontally
             ) {
+
+                Spacer(modifier = Modifier.height(10.dp))
 
                 //input_username
                 TextField(
@@ -225,6 +230,29 @@ fun Register_Screen(
                         unfocusedIndicatorColor = Transparent
                     )
                 )
+
+
+                Spacer(modifier = Modifier.height(20.dp))
+
+                //Reg_button
+                Button(
+                    shape = RoundedCornerShape(8.dp),
+                    onClick = {
+                        user_name_Error = if(user_name.isBlank()) "password is required" else ""
+                        emailError = if(email.isBlank()) "Email is required" else ""
+                        passwordError = if(password.isBlank()) "password is required" else ""
+                        if (user_name_Error.isEmpty() && emailError.isEmpty() && passwordError.isEmpty()){
+                            //login auth logic
+                        }
+                    },
+                    colors = ButtonDefaults.buttonColors(
+                        containerColor = main_orange,  // 背景顏色
+                        contentColor = Color.White      // 文字顏色
+                    )
+
+                ) {
+                    Text( text = "Login")
+                }
 
                 //input_block_end
             }
