@@ -238,7 +238,7 @@ fun Register_Screen(
                 Button(
                     shape = RoundedCornerShape(8.dp),
                     onClick = {
-                        user_name_Error = if(user_name.isBlank()) "password is required" else ""
+                        user_name_Error = if(user_name.isBlank()) "username is required" else ""
                         emailError = if(email.isBlank()) "Email is required" else ""
                         passwordError = if(password.isBlank()) "password is required" else ""
                         if (user_name_Error.isEmpty() && emailError.isEmpty() && passwordError.isEmpty()){
