@@ -15,8 +15,12 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.rounded.AccountCircle
+import androidx.compose.material.icons.rounded.Lock
 import androidx.compose.material.icons.rounded.Person
+import androidx.compose.material.icons.rounded.Visibility
+import androidx.compose.material.icons.rounded.VisibilityOff
 import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextField
 import androidx.compose.material3.TextFieldDefaults
@@ -35,6 +39,8 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.Color.Companion.Red
 import androidx.compose.ui.graphics.Color.Companion.Transparent
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.input.PasswordVisualTransformation
+import androidx.compose.ui.text.input.VisualTransformation
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import kotlin.text.ifEmpty
@@ -117,6 +123,7 @@ fun Register_Screen(
                     .padding(8.dp),
                 horizontalAlignment = Alignment.CenterHorizontally
             ) {
+
                 //input_username
                 TextField(
                     value = user_name,
@@ -146,7 +153,9 @@ fun Register_Screen(
                     )
                 )
 
-                //email
+                Spacer(modifier = Modifier.height(10.dp))
+
+                //input_email
                 TextField(
                     value = email,
                     onValueChange = { email = it},
@@ -174,6 +183,50 @@ fun Register_Screen(
                         unfocusedIndicatorColor = Transparent
                     )
                 )
+
+                Spacer(modifier = Modifier.height(10.dp))
+
+                //input_password
+                TextField(
+                    value = password,
+                    onValueChange = { password = it },
+                    label = {
+                        Text(
+                            passwordError.ifEmpty { "Password" },
+                            color = if (passwordError.isNotEmpty()) Red else androidx.compose.ui.graphics.Color.Unspecified
+                        )
+                    },
+                    leadingIcon = {
+                        Icon(Icons.Rounded.Lock, contentDescription = "")
+                    },
+
+                    visualTransformation = if (passwordVisible) VisualTransformation.None else PasswordVisualTransformation(),
+
+                    trailingIcon = {
+                        val image = if (passwordVisible) {
+                            Icons.Rounded.Visibility
+                        } else {
+                            Icons.Rounded.VisibilityOff
+                        }
+
+                        IconButton(onClick = { passwordVisible = !passwordVisible }) {
+                            Icon(imageVector = image, contentDescription = if (passwordVisible) "Hide password" else "Show password")
+                        }
+                    },
+
+                    shape = RoundedCornerShape(8.dp),
+
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(vertical = 4.dp, horizontal = 16.dp),
+
+                    colors = TextFieldDefaults.colors(
+                        focusedContainerColor = Transparent,
+                        unfocusedIndicatorColor = Transparent
+                    )
+                )
+
+                //input_block_end
             }
 
 
