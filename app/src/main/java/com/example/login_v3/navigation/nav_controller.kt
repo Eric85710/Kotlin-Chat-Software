@@ -51,7 +51,7 @@ fun AppNavGraph(
             HomeScreen(
                 paddingValues = paddingValues,
                 onLogout = {
-                    navController.navigate("login") {
+                    navController.navigate("pre_reg") {
                         popUpTo("home") { inclusive = true }
                     }
                 }
