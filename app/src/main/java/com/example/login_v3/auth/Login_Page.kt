@@ -139,9 +139,9 @@ fun LoginScreen(
         //login Box
         Box(
             modifier = Modifier
-                .height(360.dp)
+                .height(340.dp)
                 .fillMaxWidth()
-                .padding(start = 34.dp, end = 34.dp, top = 20.dp),
+                .padding(start = 24.dp, end = 24.dp, top = 20.dp),
             contentAlignment = Alignment.Center
         ){
 
@@ -254,6 +254,7 @@ fun LoginScreen(
 
 
                 Button(
+                    shape = RoundedCornerShape(8.dp),
                     onClick = {
                         emailError = if(email.isBlank()) "Email is required" else ""
                         passwordError = if(password.isBlank()) "password is required" else ""
