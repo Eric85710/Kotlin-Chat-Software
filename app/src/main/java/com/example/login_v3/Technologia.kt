@@ -18,7 +18,7 @@ import com.example.login_v3.ui.theme.Login_V3Theme
 fun Technologia() {
 
     val navController = rememberNavController()
-    val isLoggedIn = false // 從 ViewModel 也可以
+    val isLoggedIn = true // 從 ViewModel 也可以
 
 
     Scaffold(

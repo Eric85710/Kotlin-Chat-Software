@@ -127,7 +127,7 @@ fun Register_Screen(
                 horizontalAlignment = Alignment.CenterHorizontally
             ) {
 
-                Spacer(modifier = Modifier.height(10.dp))
+                Spacer(modifier = Modifier.height(20.dp))
 
                 //input_username
                 TextField(
