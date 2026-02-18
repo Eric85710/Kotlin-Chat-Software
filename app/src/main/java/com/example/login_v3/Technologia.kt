@@ -31,7 +31,8 @@ fun Technologia() {
         AppNavGraph(
             navController = navController,
             isLoggedIn = isLoggedIn,
-            paddingValues = padding
+            paddingValues = padding,
+            mainViewModel = mainViewModel
         )
 
     }
