@@ -7,10 +7,10 @@ import androidx.lifecycle.ViewModel
 
 class MainViewModel : ViewModel() {
 
-    var selectedTab by mutableStateOf("home")
+    var selectedTab by mutableStateOf(1)
         private set
 
-    fun selectTab(route: String) {
-        selectedTab = route
+    fun selectTab(index: Int) {
+        selectedTab = index
     }
 }

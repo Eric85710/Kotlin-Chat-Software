@@ -21,7 +21,7 @@ fun AppNavGraph(
 ) {
     NavHost(
         navController = navController,
-        startDestination = if (isLoggedIn) "home" else "pre_reg"
+        startDestination = if (isLoggedIn) "nav_Wheel" else "pre_reg"
     ) {
 
         composable("login") {
@@ -63,6 +63,11 @@ fun AppNavGraph(
         composable("Reg") {
             Register_Screen(
                 paddingValues = paddingValues
+            )
+        }
+
+        composable("nav_Wheel") {
+            NavWheelUI(
             )
         }
 
