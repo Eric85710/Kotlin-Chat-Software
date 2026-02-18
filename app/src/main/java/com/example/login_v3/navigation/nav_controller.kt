@@ -14,9 +14,10 @@ import com.example.login_v3.home.HomeScreen
 
 @Composable
 fun AppNavGraph(
-    navController: NavHostController = rememberNavController(),
+    navController: NavHostController,
     paddingValues: PaddingValues,
-    isLoggedIn: Boolean
+    isLoggedIn: Boolean,
+    mainViewModel: MainViewModel
 ) {
     NavHost(
         navController = navController,
