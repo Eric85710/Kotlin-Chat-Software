@@ -9,8 +9,10 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.compose.rememberNavController
 import com.example.login_v3.navigation.AppNavGraph
+import com.example.login_v3.navigation.MainViewModel
 import com.example.login_v3.ui.theme.Login_V3Theme
 
 
@@ -19,6 +21,7 @@ fun Technologia() {
 
     val navController = rememberNavController()
     val isLoggedIn = true // 從 ViewModel 也可以
+    val mainViewModel: MainViewModel = viewModel()
 
 
     Scaffold(
