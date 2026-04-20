@@ -18,11 +18,18 @@ object NetworkModule {
 
     @Provides
     @Singleton
-    fun provideTecnologiaApi(): TecnologiaApi { // 補上函數宣告
+    fun provideRetrofit(): Retrofit {
         return Retrofit.Builder()
-            .baseUrl("https://192.168.0.217:8443") // 記得最後面通常要有斜槓 /
+            // 關鍵：一定要以 / 結尾
+            .baseUrl("http://192.168.0.217/")
             .addConverterFactory(MoshiConverterFactory.create())
             .build()
-            .create(TecnologiaApi::class.java) // 這裡要對應你的 Api 介面類別
+    }
+
+    @Provides
+    @Singleton
+    fun provideTecnologiaApi(retrofit: Retrofit): TecnologiaApi {
+        // 直接使用上面提供的 retrofit 實體
+        return retrofit.create(TecnologiaApi::class.java)
     }
 }
