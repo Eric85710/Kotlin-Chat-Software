@@ -115,7 +115,7 @@ fun Tg_Message() {
                                 modifier = Modifier
                                     .matchParentSize()
                                     .background(
-                                        Color.White.copy(alpha = 0.08f),
+                                        color = MaterialTheme.colorScheme.primary,
                                         RoundedCornerShape(16.dp)
                                     )
                                     .border(
