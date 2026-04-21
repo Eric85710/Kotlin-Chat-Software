@@ -1,4 +1,4 @@
-package com.example.login_v3.home.setting.setting_detail_page
+package com.example.login_v3.home.setting.setting_detail_page.detail_UI
 
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background

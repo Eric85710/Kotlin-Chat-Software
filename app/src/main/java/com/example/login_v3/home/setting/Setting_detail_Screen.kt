@@ -13,12 +13,10 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.filled.Help
 import androidx.compose.material.icons.filled.Devices
 import androidx.compose.material.icons.filled.Help
 import androidx.compose.material.icons.filled.Palette
 import androidx.compose.material.icons.filled.Person
-import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material.icons.filled.Subscriptions
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
@@ -32,13 +30,15 @@ import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
-import com.example.login_v3.home.setting.setting_detail_page.setting_devices_page
-import com.example.login_v3.home.setting.setting_detail_page.setting_profile_page
-import com.example.login_v3.home.setting.setting_detail_page.setting_subscription_page
-import com.example.login_v3.home.setting.setting_detail_page.setting_theme_page
+import com.example.login_v3.home.setting.setting_detail_page.detail_UI.setting_devices_page
+import com.example.login_v3.home.setting.setting_detail_page.detail_UI.setting_profile_page
+import com.example.login_v3.home.setting.setting_detail_page.detail_UI.setting_subscription_page
+import com.example.login_v3.home.setting.setting_detail_page.detail_UI.setting_theme_page
+import com.example.login_v3.home.setting.setting_detail_page.viewmodel.Theme_ViewModel
 import com.example.login_v3.navigation.BottomBarViewModel
 
 @Composable
@@ -113,12 +113,17 @@ fun SharedTransitionScope.setting_detail_Screen(
         //spacing between content and title
         Spacer(modifier = Modifier.height(26.dp))
 
+
         NavHost(
             navController = setting_detail_page_navController,
             startDestination = startRoute
         ) {
+
             composable("setting_Profile") { setting_profile_page() }
-            composable("setting_Theme") { setting_theme_page() }
+            composable("setting_Theme") {
+                val ThemeViewModel: Theme_ViewModel = viewModel()
+                setting_theme_page(ThemeViewModel)
+            }
             composable("setting_Devices") { setting_devices_page() }
             composable("setting_Subscription") { setting_subscription_page() }
         }
