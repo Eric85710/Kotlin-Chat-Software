@@ -24,7 +24,11 @@ fun setting_theme_page(
     val selectedTheme = viewModel.currentTheme.value
 
     Column(modifier = Modifier.padding(16.dp)) {
-        Text(text = "主題設定", style = MaterialTheme.typography.headlineMedium)
+        Text(
+            text = "主題設定",
+            style = MaterialTheme.typography.headlineMedium,
+            color = MaterialTheme.colorScheme.primary
+        )
 
         Spacer(modifier = Modifier.height(8.dp))
 

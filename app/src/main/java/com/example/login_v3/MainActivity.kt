@@ -6,6 +6,8 @@ import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
 import androidx.core.splashscreen.SplashScreen.Companion.installSplashScreen
 import com.example.login_v3.auth.HealthCheckScreen
+import com.example.login_v3.ui.theme.AppTheme
+import com.example.login_v3.ui.theme.Login_V3Theme
 import dagger.hilt.android.AndroidEntryPoint
 
 @AndroidEntryPoint
@@ -16,7 +18,9 @@ class MainActivity : ComponentActivity() {
 
         installSplashScreen()
         setContent {
-            Technologia()
+            Login_V3Theme(appTheme = AppTheme.DARK) {
+                Technologia()
+            }
         }
     }
 }
