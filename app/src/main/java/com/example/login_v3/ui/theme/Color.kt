@@ -12,3 +12,5 @@ val Pink40 = Color(0xFF7D5260)
 
 val main_orange = Color(0xFFFF6700)
 val light_orange = Color(0xFFFFAD00)
+
+val WhiteGlass = Color(0x14FFFFFF)

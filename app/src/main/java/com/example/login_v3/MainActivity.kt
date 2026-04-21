@@ -16,7 +16,7 @@ class MainActivity : ComponentActivity() {
 
         installSplashScreen()
         setContent {
-            HealthCheckScreen()
+            Technologia()
         }
     }
 }
