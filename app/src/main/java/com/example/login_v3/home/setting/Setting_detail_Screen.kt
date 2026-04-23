@@ -121,8 +121,8 @@ fun SharedTransitionScope.setting_detail_Screen(
 
             composable("setting_Profile") { setting_profile_page() }
             composable("setting_Theme") {
-                val ThemeViewModel: Theme_ViewModel = viewModel()
-                setting_theme_page(ThemeViewModel)
+                val themeViewModel: Theme_ViewModel = viewModel()
+                setting_theme_page(viewModel = themeViewModel)
             }
             composable("setting_Devices") { setting_devices_page() }
             composable("setting_Subscription") { setting_subscription_page() }
