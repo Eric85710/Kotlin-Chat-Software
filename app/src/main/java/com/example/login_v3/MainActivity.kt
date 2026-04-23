@@ -24,9 +24,7 @@ class MainActivity : ComponentActivity() {
 
         installSplashScreen()
         setContent {
-            val currentAppTheme = themeViewModel.currentTheme.value
-
-            Login_V3Theme(appTheme = currentAppTheme) {
+            Login_V3Theme(appTheme = themeViewModel.currentTheme) {
                 Technologia()
             }
         }

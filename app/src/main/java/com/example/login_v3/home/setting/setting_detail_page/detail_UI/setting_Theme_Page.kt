@@ -21,7 +21,8 @@ import com.example.login_v3.ui.theme.AppTheme
 fun setting_theme_page(
     viewModel: Theme_ViewModel
 ){
-    val selectedTheme = viewModel.currentTheme.value
+    // 直接讀取，不需要 .value
+    val selectedTheme = viewModel.currentTheme
 
     Column(modifier = Modifier.padding(16.dp)) {
         Text(
