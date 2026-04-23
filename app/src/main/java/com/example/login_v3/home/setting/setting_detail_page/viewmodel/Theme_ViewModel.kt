@@ -7,7 +7,7 @@ import androidx.lifecycle.ViewModel
 import com.example.login_v3.ui.theme.AppTheme
 
 class Theme_ViewModel : ViewModel() {
-    var currentTheme by mutableStateOf(AppTheme.DARK)
+    var currentTheme by mutableStateOf(AppTheme.SYSTEM)
         private set
 
     fun updateTheme(newTheme: AppTheme) {
