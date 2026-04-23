@@ -50,9 +50,9 @@ fun setting_theme_page(
                 )
                 Text(
                     text = when(theme) {
-                        AppTheme.SYSTEM -> "跟隨系統設定"
-                        AppTheme.LIGHT -> "淺色模式"
-                        AppTheme.DARK -> "深色模式"
+                        AppTheme.SYSTEM -> "follow"
+                        AppTheme.LIGHT -> "dark"
+                        AppTheme.DARK -> "light"
                     },
                     modifier = Modifier.padding(start = 8.dp)
                 )
