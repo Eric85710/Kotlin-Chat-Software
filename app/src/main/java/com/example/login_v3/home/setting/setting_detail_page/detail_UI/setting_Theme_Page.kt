@@ -51,8 +51,8 @@ fun setting_theme_page(
                 Text(
                     text = when(theme) {
                         AppTheme.SYSTEM -> "follow"
-                        AppTheme.LIGHT -> "dark"
-                        AppTheme.DARK -> "light"
+                        AppTheme.LIGHT -> "light"
+                        AppTheme.DARK -> "dark"
                     },
                     modifier = Modifier.padding(start = 8.dp)
                 )
