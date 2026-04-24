@@ -37,12 +37,23 @@ fun setting_theme_page(
             .padding(10.dp)
     ) {
         //glass effect
-        Box(modifier = Modifier.matchParentSize().blur(10.dp))
         Box(
             modifier = Modifier
                 .matchParentSize()
-                .background(Color.White.copy(alpha = 0.08f), RoundedCornerShape(16.dp))
-                .border(1.dp, Color.White.copy(alpha = 0.3f), RoundedCornerShape(16.dp))
+                .blur(10.dp)
+        )
+        Box(
+            modifier = Modifier
+                .matchParentSize()
+                .background(
+                    color = MaterialTheme.colorScheme.primary,
+                    RoundedCornerShape(16.dp)
+                )
+                .border(
+                    1.dp,
+                    Color.White.copy(alpha = 0.3f),
+                    RoundedCornerShape(16.dp)
+                )
         )
 
 
@@ -51,7 +62,7 @@ fun setting_theme_page(
             Text(
                 text = "主題設定",
                 style = MaterialTheme.typography.headlineMedium,
-                color = MaterialTheme.colorScheme.primary
+                color = MaterialTheme.colorScheme.onBackground
             )
 
             Spacer(modifier = Modifier.height(8.dp))

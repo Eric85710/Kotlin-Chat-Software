@@ -14,4 +14,7 @@ val main_orange = Color(0xFFFF6700)
 val light_orange = Color(0xFFFFAD00)
 
 val WhiteGlass = Color(0x14FFFFFF)
-val DarkGlass = Color(0x14FFFFFF)
+val DarkGlass = Color(0x14000000)
+
+val WhiteText = Color(0xFFFFFFFF)
+val DarkText = Color(0xFF000000)

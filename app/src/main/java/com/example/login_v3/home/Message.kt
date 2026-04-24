@@ -68,7 +68,7 @@ fun Tg_Message() {
                 ),
                 modifier = Modifier
                     .background(
-                        color = Color.White.copy(alpha = 0.2f), // ⭐ 調低透明度
+                        color = MaterialTheme.colorScheme.primary, // ⭐ 調低透明度
                         shape = RoundedCornerShape(0.dp)
                     )
                     .border(
