@@ -1,5 +1,6 @@
 package com.example.login_v3.home.setting.setting_detail_page.detail_UI
 
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
@@ -26,39 +27,44 @@ fun setting_theme_page(
     // 直接讀取，不需要 .value
     val selectedTheme by viewModel.currentTheme.collectAsState()
 
-    Column(modifier = Modifier.padding(16.dp)) {
-        Text(
-            text = "主題設定",
-            style = MaterialTheme.typography.headlineMedium,
-            color = MaterialTheme.colorScheme.primary
-        )
+    Box(
+        modifier = Modifier
+            .padding(10.dp)
+    ) {
+        Column(modifier = Modifier.padding(16.dp)) {
+            Text(
+                text = "主題設定",
+                style = MaterialTheme.typography.headlineMedium,
+                color = MaterialTheme.colorScheme.primary
+            )
 
-        Spacer(modifier = Modifier.height(8.dp))
+            Spacer(modifier = Modifier.height(8.dp))
 
-        // 遍歷所有 Enum 選項
-        AppTheme.entries.forEach { theme ->
-            Row(
-                verticalAlignment = Alignment.CenterVertically,
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .selectable(
+            // 遍歷所有 Enum 選項
+            AppTheme.entries.forEach { theme ->
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .selectable(
+                            selected = (theme == selectedTheme),
+                            onClick = { viewModel.updateTheme(theme) }
+                        )
+                        .padding(8.dp)
+                ) {
+                    RadioButton(
                         selected = (theme == selectedTheme),
                         onClick = { viewModel.updateTheme(theme) }
                     )
-                    .padding(8.dp)
-            ) {
-                RadioButton(
-                    selected = (theme == selectedTheme),
-                    onClick = { viewModel.updateTheme(theme) }
-                )
-                Text(
-                    text = when(theme) {
-                        AppTheme.SYSTEM -> "follow"
-                        AppTheme.LIGHT -> "light"
-                        AppTheme.DARK -> "dark"
-                    },
-                    modifier = Modifier.padding(start = 8.dp)
-                )
+                    Text(
+                        text = when(theme) {
+                            AppTheme.SYSTEM -> "follow"
+                            AppTheme.LIGHT -> "light"
+                            AppTheme.DARK -> "dark"
+                        },
+                        modifier = Modifier.padding(start = 8.dp)
+                    )
+                }
             }
         }
     }
