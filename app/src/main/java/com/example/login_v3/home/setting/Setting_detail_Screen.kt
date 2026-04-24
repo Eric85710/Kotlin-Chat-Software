@@ -1,6 +1,8 @@
 package com.example.login_v3.home.setting
 
 import android.net.Uri
+import androidx.activity.ComponentActivity
+import androidx.activity.compose.LocalActivity
 import androidx.compose.animation.AnimatedVisibilityScope
 import androidx.compose.animation.SharedTransitionScope
 import androidx.compose.animation.core.tween
@@ -27,9 +29,11 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
@@ -121,8 +125,9 @@ fun SharedTransitionScope.setting_detail_Screen(
 
             composable("setting_Profile") { setting_profile_page() }
             composable("setting_Theme") {
-                val themeViewModel: Theme_ViewModel = viewModel()
-                setting_theme_page(viewModel = themeViewModel)
+                val activity = LocalActivity.current as ComponentActivity
+                val vm: Theme_ViewModel = hiltViewModel(viewModelStoreOwner = activity)
+                setting_theme_page(viewModel = vm)
             }
             composable("setting_Devices") { setting_devices_page() }
             composable("setting_Subscription") { setting_subscription_page() }
