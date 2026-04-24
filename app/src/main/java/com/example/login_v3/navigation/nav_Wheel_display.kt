@@ -47,6 +47,7 @@ import androidx.compose.ui.unit.Dp
 import kotlinx.coroutines.flow.filter
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.material3.Icon
+import androidx.compose.material3.MaterialTheme
 import androidx.navigation.NavHostController
 
 
@@ -144,13 +145,19 @@ fun HorizontalWheelPicker(
                 .width(itemWidth)
                 .fillMaxHeight()
         ) {
+            //glass effect
             Box(
                 modifier = Modifier
                     .matchParentSize()
-                    .clip(RoundedCornerShape(16.dp))
-                    .blur(10.dp, edgeTreatment = BlurredEdgeTreatment.Unbounded)
-                    .background(Color.White.copy(alpha = 0.18f))
-                    .border(1.dp, Color.White.copy(alpha = 0.35f), RoundedCornerShape(16.dp))
+                    .blur(10.dp)
+            )
+            Box(
+                modifier = Modifier
+                    .matchParentSize()
+                    .background(
+                        color = MaterialTheme.colorScheme.primary,
+                        RoundedCornerShape(16.dp)
+                    )
             )
         }
     }

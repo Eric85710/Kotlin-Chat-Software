@@ -30,6 +30,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material3.Divider
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Brush
@@ -123,12 +124,17 @@ fun Tg_Server(
                         Box(modifier = Modifier
                             .fillMaxSize()
                         ){
-                            //glass effect for server function_block
+                            //glass effect
+                            Box(
+                                modifier = Modifier
+                                    .matchParentSize()
+                                    .blur(10.dp)
+                            )
                             Box(
                                 modifier = Modifier
                                     .matchParentSize()
                                     .background(
-                                        Color.White.copy(alpha = 0.08f),
+                                        color = MaterialTheme.colorScheme.primary,
                                         RoundedCornerShape(16.dp)
                                     )
                                     .border(
