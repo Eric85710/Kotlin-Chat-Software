@@ -17,6 +17,7 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Divider
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
@@ -43,12 +44,23 @@ fun setting_profile_page(){
 
         Box() {
             //glass effect
-            Box(modifier = Modifier.matchParentSize().blur(10.dp))
             Box(
                 modifier = Modifier
                     .matchParentSize()
-                    .background(Color.White.copy(alpha = 0.08f), RoundedCornerShape(16.dp))
-                    .border(1.dp, Color.White.copy(alpha = 0.3f), RoundedCornerShape(16.dp))
+                    .blur(10.dp)
+            )
+            Box(
+                modifier = Modifier
+                    .matchParentSize()
+                    .background(
+                        color = MaterialTheme.colorScheme.primary,
+                        RoundedCornerShape(16.dp)
+                    )
+                    .border(
+                        1.dp,
+                        Color.White.copy(alpha = 0.3f),
+                        RoundedCornerShape(16.dp)
+                    )
             )
 
             Column() {
@@ -115,12 +127,23 @@ fun setting_profile_page(){
         //user detail
         Box(){
             //glass effect
-            Box(modifier = Modifier.matchParentSize().blur(10.dp))
             Box(
                 modifier = Modifier
                     .matchParentSize()
-                    .background(Color.White.copy(alpha = 0.08f), RoundedCornerShape(16.dp))
-                    .border(1.dp, Color.White.copy(alpha = 0.3f), RoundedCornerShape(16.dp))
+                    .blur(10.dp)
+            )
+            Box(
+                modifier = Modifier
+                    .matchParentSize()
+                    .background(
+                        color = MaterialTheme.colorScheme.primary,
+                        RoundedCornerShape(16.dp)
+                    )
+                    .border(
+                        1.dp,
+                        Color.White.copy(alpha = 0.3f),
+                        RoundedCornerShape(16.dp)
+                    )
             )
 
             //intro
@@ -131,6 +154,7 @@ fun setting_profile_page(){
                 // mutual friends
                 Text(text = "258 mutual friends",
                     fontSize = 20.sp,
+                    color = MaterialTheme.colorScheme.onBackground
                 )
                 Divider(
                     color = Color.White.copy(alpha = 0.4f),
@@ -141,6 +165,7 @@ fun setting_profile_page(){
                 //mutual server
                 Text(text = "25 servers",
                     fontSize = 20.sp,
+                    color = MaterialTheme.colorScheme.onBackground
                 )
                 Divider(
                     color = Color.White.copy(alpha = 0.4f),
@@ -151,7 +176,8 @@ fun setting_profile_page(){
                 //gender
                 Text(
                     text = "male",
-                    fontSize = 22.sp
+                    fontSize = 22.sp,
+                    color = MaterialTheme.colorScheme.onBackground
                 )
                 Divider(
                     color = Color.White.copy(alpha = 0.4f),
@@ -162,7 +188,8 @@ fun setting_profile_page(){
                 //location
                 Text(
                     text = "Taiwan",
-                    fontSize = 22.sp
+                    fontSize = 22.sp,
+                    color = MaterialTheme.colorScheme.onBackground
                 )
                 Divider(
                     color = Color.White.copy(alpha = 0.4f),
@@ -173,7 +200,8 @@ fun setting_profile_page(){
                 //intro
                 Text(
                     text = "Founder of JFF studios，Software Dev Guy，3D Artist",
-                    fontSize = 16.sp
+                    fontSize = 16.sp,
+                    color = MaterialTheme.colorScheme.onBackground
                 )
             }
         }
