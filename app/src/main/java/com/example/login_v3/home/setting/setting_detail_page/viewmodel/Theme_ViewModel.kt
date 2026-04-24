@@ -5,12 +5,15 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
 import androidx.lifecycle.ViewModel
 import com.example.login_v3.ui.theme.AppTheme
+import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.asStateFlow
 
 class Theme_ViewModel : ViewModel() {
-    var currentTheme by mutableStateOf(AppTheme.SYSTEM)
-        private set
+    private val _currentTheme = MutableStateFlow(AppTheme.DARK)
+    val currentTheme: StateFlow<AppTheme> = _currentTheme.asStateFlow()
 
     fun updateTheme(newTheme: AppTheme) {
-        currentTheme = newTheme
+        _currentTheme.value = newTheme
     }
 }
