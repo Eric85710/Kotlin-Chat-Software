@@ -87,5 +87,6 @@ dependencies {
     //加入 Compose 專用的 Hilt 導覽支援 (這對導覽注入非常重要)
     implementation(libs.hilt.navigation.compose)
 
+    implementation("androidx.datastore:datastore-preferences:1.2.1")
 
 }
