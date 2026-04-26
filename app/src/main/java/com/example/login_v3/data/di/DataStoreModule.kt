@@ -21,6 +21,7 @@ private val Context.dataStore: DataStore<Preferences> by preferencesDataStore(na
 // 修正 2: 移除 private，讓 Hilt 可以訪問這個模組
 object DataStoreModule {
 
+    //UserPreferencesRepository
     @Provides
     @Singleton
     fun provideUserPreferencesRepository(
