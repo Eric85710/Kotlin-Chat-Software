@@ -1,7 +1,8 @@
-package com.example.login_v3.auth
+package com.example.login_v3.auth.login
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -16,7 +17,6 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.rounded.AccountCircle
 import androidx.compose.material.icons.rounded.Lock
-import androidx.compose.material.icons.rounded.Person
 import androidx.compose.material.icons.rounded.Visibility
 import androidx.compose.material.icons.rounded.VisibilityOff
 import androidx.compose.material3.Button
@@ -40,29 +40,37 @@ import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.Color.Companion.Red
 import androidx.compose.ui.graphics.Color.Companion.Transparent
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.text.input.VisualTransformation
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import androidx.hilt.navigation.compose.hiltViewModel
-import com.example.login_v3.data.health.HealthCheckViewModel
+import coil.ImageLoader
+import coil.compose.AsyncImage
+import coil.decode.SvgDecoder
+import coil.request.ImageRequest
+import com.example.login_v3.R
+import com.example.login_v3.ui.theme.light_orange
 import com.example.login_v3.ui.theme.main_orange
 import kotlin.text.ifEmpty
 
-@Composable
-fun Register_Screen(
-    paddingValues: PaddingValues,
 
+@Composable
+fun LoginScreen(
+    paddingValues: PaddingValues,
+    onLoginSuccess: () -> Unit
 ){
-    var user_name by remember { mutableStateOf("") }
+
     var email by remember { mutableStateOf("") }
     var password by remember { mutableStateOf("") }
     var passwordVisible by remember { mutableStateOf(false) }
 
     var emailError by remember { mutableStateOf("") }
-    var user_name_Error by remember { mutableStateOf("") }
     var passwordError by remember { mutableStateOf("") }
+
+
+
 
     Column(
         modifier = Modifier
@@ -82,23 +90,31 @@ fun Register_Screen(
     ) {
 
 
-        Text(text = "Register",
+
+
+        //Motion_logo
+        SvgImage(
+            resId = R.raw.tg_chat_v3,
+            modifier = Modifier.size(180.dp)
+        )
+
+
+        //title
+        Text(text = "Login",
             fontSize = 32.sp,
             fontWeight = FontWeight.Bold,
             color = Color.White
         )
 
-
-        Spacer(modifier = Modifier.height(10.dp))
-
-        //Reg_box
+        //login Box
         Box(
             modifier = Modifier
-                .height(360.dp)
+                .height(340.dp)
                 .fillMaxWidth()
-                .padding(start = 34.dp, end = 34.dp, top = 20.dp),
+                .padding(start = 24.dp, end = 24.dp, top = 20.dp),
             contentAlignment = Alignment.Center
         ){
+
 
             //glass effect
             Box(
@@ -121,6 +137,9 @@ fun Register_Screen(
 
 
 
+
+
+
             Column(
                 modifier = Modifier
                     .fillMaxSize()
@@ -130,45 +149,14 @@ fun Register_Screen(
 
                 Spacer(modifier = Modifier.height(20.dp))
 
-                //input_username
-                TextField(
-                    value = user_name,
-                    onValueChange = { user_name = it},
-                    label = {
-                        Text(
-                            user_name_Error.ifEmpty { "username" },
-                            color = if (user_name_Error.isNotEmpty()) Red else androidx.compose.ui.graphics.Color.Unspecified
-                        )
-                    },
 
-                    leadingIcon = {
-                        Icon(
-                            Icons.Rounded.Person,
-                            contentDescription = ""
-                        )
-                    },
-                    shape = RoundedCornerShape(8.dp),
-
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(vertical = 4.dp, horizontal = 16.dp),
-
-                    colors = TextFieldDefaults.colors(
-                        focusedContainerColor = Transparent,
-                        unfocusedIndicatorColor = Transparent
-                    )
-                )
-
-                Spacer(modifier = Modifier.height(10.dp))
-
-                //input_email
                 TextField(
                     value = email,
                     onValueChange = { email = it},
                     label = {
                         Text(
                             emailError.ifEmpty { "Email" },
-                            color = if (emailError.isNotEmpty()) Red else androidx.compose.ui.graphics.Color.Unspecified
+                            color = if (emailError.isNotEmpty()) Red else Color.Unspecified
                         )
                     },
 
@@ -192,14 +180,14 @@ fun Register_Screen(
 
                 Spacer(modifier = Modifier.height(10.dp))
 
-                //input_password
+
                 TextField(
                     value = password,
                     onValueChange = { password = it },
                     label = {
                         Text(
                             passwordError.ifEmpty { "Password" },
-                            color = if (passwordError.isNotEmpty()) Red else androidx.compose.ui.graphics.Color.Unspecified
+                            color = if (passwordError.isNotEmpty()) Red else Color.Unspecified
                         )
                     },
                     leadingIcon = {
@@ -232,17 +220,15 @@ fun Register_Screen(
                     )
                 )
 
-
                 Spacer(modifier = Modifier.height(20.dp))
 
-                //Reg_button
+
                 Button(
                     shape = RoundedCornerShape(8.dp),
                     onClick = {
-                        user_name_Error = if(user_name.isBlank()) "username is required" else ""
                         emailError = if(email.isBlank()) "Email is required" else ""
                         passwordError = if(password.isBlank()) "password is required" else ""
-                        if (user_name_Error.isEmpty() && emailError.isEmpty() && passwordError.isEmpty()){
+                        if (emailError.isEmpty() && passwordError.isEmpty()){
                             //login auth logic
                         }
                     },
@@ -255,15 +241,43 @@ fun Register_Screen(
                     Text( text = "Login")
                 }
 
-                //input_block_end
+
+                Spacer(modifier = Modifier.height(16.dp))
+
+                Text( text = "forget password?",
+                    color = light_orange,
+                    modifier = Modifier
+                        .clickable{}
+                )
             }
-
-
-
-
 
         }
 
     }
+}
 
+
+@Composable
+fun SvgImage(
+    resId: Int,
+    modifier: Modifier = Modifier
+) {
+    val context = LocalContext.current
+    val imageLoader = ImageLoader.Builder(context)
+        .components {
+            add(SvgDecoder.Factory())
+        }
+        .build()
+
+    val imageRequest = ImageRequest.Builder(context)
+        .data("android.resource://${context.packageName}/$resId")
+        .decoderFactory(SvgDecoder.Factory())
+        .build()
+
+    AsyncImage(
+        model = imageRequest,
+        contentDescription = null,
+        modifier = modifier,
+        imageLoader = imageLoader
+    )
 }
