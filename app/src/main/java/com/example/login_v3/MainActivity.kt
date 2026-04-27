@@ -31,7 +31,7 @@ class MainActivity : ComponentActivity() {
             val currentAppTheme by themeViewModel.currentTheme.collectAsState()
 
             Login_V3Theme(appTheme = currentAppTheme) {
-                Technologia()
+                HealthCheckScreen()
             }
         }
     }
