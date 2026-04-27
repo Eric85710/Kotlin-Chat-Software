@@ -1,11 +1,7 @@
 package com.example.login_v3.data.api
 
-import com.example.login_v3.data.api.api_class.ApiResponse
-import com.example.login_v3.data.api.api_class.FriendRequest
-import com.example.login_v3.data.api.api_class.LoginRequest
-import com.example.login_v3.data.api.api_class.LoginResponse
+import com.example.login_v3.data.api.api_class.*
 import retrofit2.Response
-import com.example.login_v3.data.api.api_class.User
 import retrofit2.http.Body
 import retrofit2.http.GET
 import retrofit2.http.Header
@@ -14,20 +10,24 @@ import retrofit2.http.POST
 interface TecnologiaApi {
 
     @GET("api/health")
-    // 必須包裹在 Response<> 裡面，才能呼叫 .isSuccessful
     suspend fun checkHealth(): Response<Unit>
 
+    // 註冊：建議路徑 api/auth/register
+    @POST("api/auth/register")
+    suspend fun register(@Body body: RegisterRequest): Response<ApiResponse>
+
+    // 登入：將回傳值包裹在 Response 中
     @POST("api/auth/login")
-    suspend fun login(@Body body: LoginRequest): LoginResponse
+    suspend fun login(@Body body: LoginRequest): Response<LoginResponse>
 
+    // 取得個人資料：通常需要 Token
     @GET("api/me")
-    suspend fun getMe(@Header("Authorization") token: String): User
+    suspend fun getMe(@Header("Authorization") token: String): Response<User>
 
+    // 發送好友請求
     @POST("api/friends/request")
     suspend fun sendFriendRequest(
         @Header("Authorization") token: String,
         @Body body: FriendRequest
-    ): ApiResponse
-
-    // 其他 endpoint 一樣加
+    ): Response<ApiResponse>
 }
