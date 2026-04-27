@@ -24,7 +24,7 @@ enum class AppScreen {
 }
 
 class AppViewModel : ViewModel() {
-    private val _currentScreen = MutableStateFlow<AppScreen>(AppScreen.ScreensTab)
+    private val _currentScreen = MutableStateFlow<AppScreen>(AppScreen.PreReg)
     val currentScreen: StateFlow<AppScreen> = _currentScreen
 
     fun goTo(screen: AppScreen) {

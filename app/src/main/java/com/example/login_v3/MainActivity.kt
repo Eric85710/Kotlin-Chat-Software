@@ -26,6 +26,8 @@ class MainActivity : ComponentActivity() {
 
         installSplashScreen()
         setContent {
+
+            //theme mode data
             val currentAppTheme by themeViewModel.currentTheme.collectAsState()
 
             Login_V3Theme(appTheme = currentAppTheme) {

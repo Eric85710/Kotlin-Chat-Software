@@ -8,6 +8,7 @@ import androidx.compose.runtime.getValue
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.example.login_v3.auth.login.LoginScreen
 import com.example.login_v3.auth.Login_or_Reg_page
+import com.example.login_v3.auth.reg.RegisterScreen
 import com.example.login_v3.auth.reg.Register_Screen
 import com.example.login_v3.home.HomeScreen
 
@@ -35,7 +36,7 @@ fun AppNavGraph(
             BackHandler {
                 appViewModel.goTo(AppScreen.PreReg)
             }
-            Register_Screen(paddingValues = paddingValues)
+            RegisterScreen()
         }
 
         AppScreen.Home -> HomeScreen(

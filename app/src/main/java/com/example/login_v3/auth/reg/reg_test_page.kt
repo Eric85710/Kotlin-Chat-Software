@@ -1,5 +1,6 @@
 package com.example.login_v3.auth.reg
 
+import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Spacer
@@ -27,7 +28,9 @@ import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 
 @Composable
-fun RegisterScreen(viewModel: RegisterViewModel = hiltViewModel()) {
+fun RegisterScreen(
+    viewModel: RegisterViewModel = hiltViewModel()
+) {
     // 監聽狀態
     val uiState by viewModel.uiState.collectAsState()
 
@@ -48,9 +51,21 @@ fun RegisterScreen(viewModel: RegisterViewModel = hiltViewModel()) {
 
         Spacer(modifier = Modifier.height(16.dp))
 
-        OutlinedTextField(value = displayName, onValueChange = { displayName = it }, label = { Text("顯示名稱") })
-        OutlinedTextField(value = email, onValueChange = { email = it }, label = { Text("電子信箱") })
-        OutlinedTextField(value = username, onValueChange = { username = it }, label = { Text("帳號") })
+        OutlinedTextField(
+            value = displayName,
+            onValueChange = { displayName = it },
+            label = { Text("顯示名稱") }
+        )
+        OutlinedTextField(
+            value = email,
+            onValueChange = { email = it },
+            label = { Text("電子信箱") }
+        )
+        OutlinedTextField(
+            value = username,
+            onValueChange = { username = it },
+            label = { Text("帳號") }
+        )
         OutlinedTextField(
             value = password,
             onValueChange = { password = it },
@@ -65,7 +80,9 @@ fun RegisterScreen(viewModel: RegisterViewModel = hiltViewModel()) {
         } else {
             Button(
                 onClick = { viewModel.handleRegister(displayName, email, password, username) },
-                modifier = Modifier.fillMaxWidth()
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .background(color = Color.Gray)
             ) {
                 Text("註冊")
             }
