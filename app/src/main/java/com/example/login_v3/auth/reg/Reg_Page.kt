@@ -64,8 +64,9 @@ fun Register_Screen(
     var password by remember { mutableStateOf("") }
     var passwordVisible by remember { mutableStateOf(false) }
 
-    var emailError by remember { mutableStateOf("") }
+    var display_name_Error by remember { mutableStateOf("") }
     var user_name_Error by remember { mutableStateOf("") }
+    var emailError by remember { mutableStateOf("") }
     var passwordError by remember { mutableStateOf("") }
 
     Column(
@@ -98,7 +99,7 @@ fun Register_Screen(
         //Reg_box
         Box(
             modifier = Modifier
-                .height(360.dp)
+                .height(460.dp)
                 .fillMaxWidth()
                 .padding(start = 34.dp, end = 34.dp, top = 20.dp),
             contentAlignment = Alignment.Center
@@ -133,6 +134,35 @@ fun Register_Screen(
             ) {
 
                 Spacer(modifier = Modifier.height(20.dp))
+
+                //input_display name
+                TextField(
+                    value = displayName,
+                    onValueChange = { displayName = it},
+                    label = {
+                        Text(
+                            display_name_Error.ifEmpty { "displayName" },
+                            color = if (display_name_Error.isNotEmpty()) Red else Color.Unspecified
+                        )
+                    },
+
+                    leadingIcon = {
+                        Icon(
+                            Icons.Rounded.Person,
+                            contentDescription = ""
+                        )
+                    },
+                    shape = RoundedCornerShape(8.dp),
+
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(vertical = 4.dp, horizontal = 16.dp),
+
+                    colors = TextFieldDefaults.colors(
+                        focusedContainerColor = Transparent,
+                        unfocusedIndicatorColor = Transparent
+                    )
+                )
 
                 //input_username
                 TextField(
@@ -249,8 +279,9 @@ fun Register_Screen(
                             user_name_Error = if(username.isBlank()) "username is required" else ""
                             emailError = if(email.isBlank()) "Email is required" else ""
                             passwordError = if(password.isBlank()) "password is required" else ""
+                            display_name_Error = if(displayName.isBlank()) "Name is required" else ""
                             //not empty do the auth
-                            if (user_name_Error.isEmpty() && emailError.isEmpty() && passwordError.isEmpty()){
+                            if (user_name_Error.isEmpty() && emailError.isEmpty() && passwordError.isEmpty() && display_name_Error.isEmpty() ){
                                 viewModel.handleRegister(displayName, email, password, username)
                             }
                         },
@@ -266,9 +297,6 @@ fun Register_Screen(
 
                 //input_block_end
             }
-
-
-
 
 
         }
