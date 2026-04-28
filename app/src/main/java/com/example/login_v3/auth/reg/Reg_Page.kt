@@ -20,6 +20,7 @@ import androidx.compose.material.icons.rounded.Visibility
 import androidx.compose.material.icons.rounded.VisibilityOff
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
+import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.Text
@@ -238,25 +239,30 @@ fun Register_Screen(
 
                 Spacer(modifier = Modifier.height(20.dp))
 
-                //Reg_button
-                Button(
-                    shape = RoundedCornerShape(8.dp),
-                    onClick = {
-                        user_name_Error = if(user_name.isBlank()) "username is required" else ""
-                        emailError = if(email.isBlank()) "Email is required" else ""
-                        passwordError = if(password.isBlank()) "password is required" else ""
-                        if (user_name_Error.isEmpty() && emailError.isEmpty() && passwordError.isEmpty()){
-                            //login auth logic
-                        }
-                    },
-                    colors = ButtonDefaults.buttonColors(
-                        containerColor = main_orange,  // 背景顏色
-                        contentColor = Color.White      // 文字顏色
-                    )
-
-                ) {
-                    Text( text = "Login")
+                if (uiState.isLoading) {
+                    CircularProgressIndicator() // 顯示載入圈圈
+                } else {
+                    //Reg_button
+                    Button(
+                        shape = RoundedCornerShape(8.dp),
+                        onClick = {
+                            user_name_Error = if(username.isBlank()) "username is required" else ""
+                            emailError = if(email.isBlank()) "Email is required" else ""
+                            passwordError = if(password.isBlank()) "password is required" else ""
+                            //not empty do the auth
+                            if (user_name_Error.isEmpty() && emailError.isEmpty() && passwordError.isEmpty()){
+                                viewModel.handleRegister(displayName, email, password, username)
+                            }
+                        },
+                        colors = ButtonDefaults.buttonColors(
+                            containerColor = main_orange,  // 背景顏色
+                            contentColor = Color.White      // 文字顏色
+                        )
+                    ) {
+                        Text( text = "Register")
+                    }
                 }
+
 
                 //input_block_end
             }

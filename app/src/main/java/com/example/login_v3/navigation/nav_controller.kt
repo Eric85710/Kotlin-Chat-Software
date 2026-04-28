@@ -36,7 +36,9 @@ fun AppNavGraph(
             BackHandler {
                 appViewModel.goTo(AppScreen.PreReg)
             }
-            RegisterScreen()
+            Register_Screen(
+                paddingValues = paddingValues
+            )
         }
 
         AppScreen.Home -> HomeScreen(
