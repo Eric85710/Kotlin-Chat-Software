@@ -15,7 +15,7 @@ data class LoginResponse(
 
 @JsonClass(generateAdapter = true)
 data class RegisterRequest(
-    @field:Json(name = "display_name") val displayName: String,
+    val displayName: String,
     val email: String,
     val password: String,
     val username: String
