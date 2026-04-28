@@ -2,6 +2,8 @@ package com.example.login_v3.data.di
 
 import androidx.lifecycle.ViewModel
 import com.example.login_v3.data.api.TecnologiaApi
+import com.squareup.moshi.Moshi
+import com.squareup.moshi.kotlin.reflect.KotlinJsonAdapterFactory
 import dagger.Module
 import dagger.Provides
 import dagger.hilt.InstallIn
@@ -18,18 +20,25 @@ object NetworkModule {
 
     @Provides
     @Singleton
-    fun provideRetrofit(): Retrofit {
+    fun provideMoshi(): Moshi {
+        return Moshi.Builder()
+            // 如果未來需要加入自定義的 Adapter (例如處理 Date)，在這裡加
+            .addLast(KotlinJsonAdapterFactory())
+            .build()
+    }
+
+    @Provides
+    @Singleton
+    fun provideRetrofit(moshi: Moshi): Retrofit { // 注入 moshi
         return Retrofit.Builder()
-            // 關鍵：一定要以 / 結尾
             .baseUrl("http://192.168.0.217/")
-            .addConverterFactory(MoshiConverterFactory.create())
+            .addConverterFactory(MoshiConverterFactory.create(moshi)) // 使用配置好的 moshi
             .build()
     }
 
     @Provides
     @Singleton
     fun provideTecnologiaApi(retrofit: Retrofit): TecnologiaApi {
-        // 直接使用上面提供的 retrofit 實體
         return retrofit.create(TecnologiaApi::class.java)
     }
 }
