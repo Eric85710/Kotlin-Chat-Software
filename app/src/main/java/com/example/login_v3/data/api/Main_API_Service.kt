@@ -14,7 +14,7 @@ interface TecnologiaApi {
 
     // 註冊：建議路徑 api/auth/register
     @POST("api/auth/register")
-    suspend fun register(@Body body: RegisterRequest): Response<ApiResponse>
+    suspend fun register(@Body body: RegisterRequest): Response<RegisterResponse>
 
     // 登入：將回傳值包裹在 Response 中
     @POST("api/auth/login")

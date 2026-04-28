@@ -15,7 +15,7 @@ data class LoginResponse(
 
 @JsonClass(generateAdapter = true)
 data class RegisterRequest(
-    @Json(name = "display_name") val displayName: String, // 將 JSON 的底線對應到 Kotlin 的駝峰
+    @field:Json(name = "display_name") val displayName: String,
     val email: String,
     val password: String,
     val username: String
