@@ -27,8 +27,8 @@ class RegisterViewModel @Inject constructor(
     private val _uiState = MutableStateFlow(RegisterUiState())
     val uiState: StateFlow<RegisterUiState> = _uiState.asStateFlow()
 
-    fun handleRegister(displayName: String, email: String, pass: String, user: String) {
-        val request = RegisterRequest(displayName, email, pass, user)
+    fun handleRegister(display_name: String, email: String, pass: String, user: String) {
+        val request = RegisterRequest(display_name, email, pass, user)
 
         viewModelScope.launch {
             _uiState.value = RegisterUiState(isLoading = true) // 開始載入
