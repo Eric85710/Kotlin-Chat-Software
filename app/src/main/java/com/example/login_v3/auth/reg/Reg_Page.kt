@@ -26,6 +26,7 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.TextField
 import androidx.compose.material3.TextFieldDefaults
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -44,16 +45,21 @@ import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.text.input.VisualTransformation
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.hilt.navigation.compose.hiltViewModel
 import com.example.login_v3.ui.theme.main_orange
 import kotlin.text.ifEmpty
 
 @Composable
 fun Register_Screen(
     paddingValues: PaddingValues,
-
+    viewModel: RegisterViewModel = hiltViewModel()
 ){
-    var user_name by remember { mutableStateOf("") }
+    val uiState by viewModel.uiState.collectAsState()
+
+    // 這裡定義 TextField 的輸入狀態
+    var displayName by remember { mutableStateOf("") }
     var email by remember { mutableStateOf("") }
+    var username by remember { mutableStateOf("") }
     var password by remember { mutableStateOf("") }
     var passwordVisible by remember { mutableStateOf(false) }
 
@@ -129,8 +135,8 @@ fun Register_Screen(
 
                 //input_username
                 TextField(
-                    value = user_name,
-                    onValueChange = { user_name = it},
+                    value = username,
+                    onValueChange = { username = it},
                     label = {
                         Text(
                             user_name_Error.ifEmpty { "username" },
