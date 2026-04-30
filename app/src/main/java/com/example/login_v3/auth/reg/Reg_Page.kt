@@ -27,6 +27,7 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.TextField
 import androidx.compose.material3.TextFieldDefaults
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -291,6 +292,14 @@ fun Register_Screen(
                         )
                     ) {
                         Text( text = "Register")
+                    }
+                }
+
+
+                LaunchedEffect(uiState.isSuccess) {
+                    if (uiState.isSuccess) {
+                        // 這裡執行導向登入頁面或是主頁面的動作
+                        println("導航至登入頁面")
                     }
                 }
 
