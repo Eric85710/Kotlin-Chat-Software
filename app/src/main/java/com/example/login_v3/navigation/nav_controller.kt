@@ -37,7 +37,11 @@ fun AppNavGraph(
                 appViewModel.goTo(AppScreen.PreReg)
             }
             Register_Screen(
-                paddingValues = paddingValues
+                paddingValues = paddingValues,
+                onRegisterSuccess = {
+                    // 🟢 註冊成功後，切換到登入畫面
+                    appViewModel.goTo(AppScreen.Login)
+                }
             )
         }
 
