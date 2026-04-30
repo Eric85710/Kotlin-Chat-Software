@@ -25,9 +25,9 @@ data class UserInfo(
     val username: String,
     val display_name: String,
     val email: String,
-    val avatar_url: String,
-    val banner_url: String,
-    val bio: String,
+    val avatar_url: String?,
+    val banner_url: String?,
+    val bio: String?,
     val status: String,
     val is_verified: Boolean,
     val created_at: String
