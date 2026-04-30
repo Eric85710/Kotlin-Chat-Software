@@ -28,6 +28,7 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.TextField
 import androidx.compose.material3.TextFieldDefaults
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -67,6 +68,7 @@ fun LoginScreen(
 ){
 
     val uiState by viewModel.loginState.collectAsStateWithLifecycle()
+    val isLoading = uiState is LoginUiState.Loading
     var username by remember { mutableStateOf("") }
     var password by remember { mutableStateOf("") }
     var passwordVisible by remember { mutableStateOf(false) }
@@ -240,22 +242,33 @@ fun LoginScreen(
                     else -> {}
                 }
 
-                Button(
-                    shape = RoundedCornerShape(8.dp),
-                    onClick = {
-                        usernameError = if(username.isBlank()) "Email is required" else ""
-                        passwordError = if(password.isBlank()) "password is required" else ""
-                        if (usernameError.isEmpty() && passwordError.isEmpty()){
-                            viewModel.login(username, password)
-                        }
-                    },
-                    colors = ButtonDefaults.buttonColors(
-                        containerColor = main_orange,  // 背景顏色
-                        contentColor = Color.White      // 文字顏色
-                    )
 
-                ) {
-                    Text( text = "Login")
+                if (isLoading) {
+                    CircularProgressIndicator(color = Color.White)
+                } else {
+                    Button(
+                        shape = RoundedCornerShape(8.dp),
+                        onClick = {
+                            usernameError = if(username.isBlank()) "Email is required" else ""
+                            passwordError = if(password.isBlank()) "password is required" else ""
+                            if (usernameError.isEmpty() && passwordError.isEmpty()){
+                                viewModel.login(username, password)
+                            }
+                        },
+                        colors = ButtonDefaults.buttonColors(
+                            containerColor = main_orange,  // 背景顏色
+                            contentColor = Color.White      // 文字顏色
+                        )
+
+                    ) {
+                        Text( text = "Login")
+                    }
+                }
+
+                LaunchedEffect(uiState) {
+                    if (uiState is LoginUiState.Success) {
+                        onLoginSuccess() // 觸發跳轉邏輯
+                    }
                 }
 
 
