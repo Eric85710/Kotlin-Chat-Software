@@ -296,6 +296,10 @@ fun Register_Screen(
                     }
                 }
 
+                uiState.errorMessage?.let {
+                    Text(text = it, color = Color.Red, modifier = Modifier.padding(top = 8.dp))
+                }
+
 
                 //註冊成功後到login
                 LaunchedEffect(uiState.isSuccess) {

@@ -25,16 +25,17 @@ data class RegisterRequest(
 data class RegisterResponse(
     @field:Json(name = "id") val id: String,
     @field:Json(name = "username") val username: String,
-    @field:Json(name = "display_name") val displayName: String,
-    @field:Json(name = "email") val email: String,
 
-    // 💡 這些欄位很有可能為 null，所以加上 ?
+    // 💡 使用 field: 前綴消除警告，並保持 String? 避免解析崩潰
+    @field:Json(name = "display_name") val displayName: String?,
+
+    @field:Json(name = "email") val email: String?,
+
     @field:Json(name = "avatar_url") val avatarUrl: String? = null,
     @field:Json(name = "banner_url") val bannerUrl: String? = null,
     @field:Json(name = "bio") val bio: String? = null,
 
-    // 💡 這些欄位後端漏給時，會自動使用預設值，不會崩潰
-    @field:Json(name = "is_verified") val isVerified: Boolean = false,
-    @field:Json(name = "status") val status: String = "active",
-    @field:Json(name = "created_at") val createdAt: String = ""
+    @field:Json(name = "is_verified") val isVerified: Boolean? = false,
+    @field:Json(name = "status") val status: String? = "active",
+    @field:Json(name = "created_at") val createdAt: String? = ""
 )
