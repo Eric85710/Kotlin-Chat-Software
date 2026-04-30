@@ -2,6 +2,10 @@ package com.example.login_v3.data.api.api_class
 
 import com.squareup.moshi.Json
 import com.squareup.moshi.JsonClass
+
+
+
+//login data
 @JsonClass(generateAdapter = true)
 data class LoginRequest(
     val username: String,
@@ -9,10 +13,30 @@ data class LoginRequest(
 )
 @JsonClass(generateAdapter = true)
 data class LoginResponse(
+    val access_token: String,
+    val expires_in: Int,
+    val refresh_token: String,
     val token: String,
-    val userId: String
+    val user: UserInfo
+)
+@JsonClass(generateAdapter = true)
+data class UserInfo(
+    val id: String,
+    val username: String,
+    val display_name: String,
+    val email: String,
+    val avatar_url: String,
+    val banner_url: String,
+    val bio: String,
+    val status: String,
+    val is_verified: Boolean,
+    val created_at: String
 )
 
+
+
+
+//register data
 @JsonClass(generateAdapter = true)
 data class RegisterRequest(
     val display_name: String,
@@ -20,7 +44,6 @@ data class RegisterRequest(
     val password: String,
     val username: String
 )
-
 @JsonClass(generateAdapter = true)
 data class RegisterResponse(
     @field:Json(name = "id") val id: String,
