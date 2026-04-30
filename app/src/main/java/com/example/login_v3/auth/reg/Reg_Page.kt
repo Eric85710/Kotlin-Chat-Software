@@ -54,7 +54,8 @@ import kotlin.text.ifEmpty
 @Composable
 fun Register_Screen(
     paddingValues: PaddingValues,
-    viewModel: RegisterViewModel = hiltViewModel()
+    viewModel: RegisterViewModel = hiltViewModel(),
+    onRegisterSuccess: () -> Unit
 ){
     val uiState by viewModel.uiState.collectAsState()
 
@@ -296,20 +297,16 @@ fun Register_Screen(
                 }
 
 
+                //註冊成功後到login
                 LaunchedEffect(uiState.isSuccess) {
                     if (uiState.isSuccess) {
-                        // 這裡執行導向登入頁面或是主頁面的動作
-                        println("導航至登入頁面")
+                        onRegisterSuccess()
                     }
                 }
 
 
                 //input_block_end
             }
-
-
         }
-
     }
-
 }
