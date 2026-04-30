@@ -21,6 +21,7 @@ import androidx.compose.material.icons.rounded.Visibility
 import androidx.compose.material.icons.rounded.VisibilityOff
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
+import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.Text
@@ -46,6 +47,8 @@ import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.text.input.VisualTransformation
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.hilt.navigation.compose.hiltViewModel
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import coil.ImageLoader
 import coil.compose.AsyncImage
 import coil.decode.SvgDecoder
@@ -59,14 +62,16 @@ import kotlin.text.ifEmpty
 @Composable
 fun LoginScreen(
     paddingValues: PaddingValues,
+    viewModel: AuthViewModel = hiltViewModel(),
     onLoginSuccess: () -> Unit
 ){
 
-    var email by remember { mutableStateOf("") }
+    val uiState by viewModel.loginState.collectAsStateWithLifecycle()
+    var username by remember { mutableStateOf("") }
     var password by remember { mutableStateOf("") }
     var passwordVisible by remember { mutableStateOf(false) }
 
-    var emailError by remember { mutableStateOf("") }
+    var usernameError by remember { mutableStateOf("") }
     var passwordError by remember { mutableStateOf("") }
 
 
@@ -151,12 +156,12 @@ fun LoginScreen(
 
 
                 TextField(
-                    value = email,
-                    onValueChange = { email = it},
+                    value = username,
+                    onValueChange = { username = it},
                     label = {
                         Text(
-                            emailError.ifEmpty { "Email" },
-                            color = if (emailError.isNotEmpty()) Red else Color.Unspecified
+                            usernameError.ifEmpty { "username" },
+                            color = if (usernameError.isNotEmpty()) Red else Color.Unspecified
                         )
                     },
 
@@ -223,13 +228,25 @@ fun LoginScreen(
                 Spacer(modifier = Modifier.height(20.dp))
 
 
+                when (uiState) {
+                    is LoginUiState.Loading -> CircularProgressIndicator()
+                    is LoginUiState.Success -> {
+                        val user = (uiState as LoginUiState.Success).user
+                        Text("歡迎，${user.display_name}")
+                    }
+                    is LoginUiState.Error -> {
+                        Text(text = (uiState as LoginUiState.Error).message, color = Color.Red)
+                    }
+                    else -> {}
+                }
+
                 Button(
                     shape = RoundedCornerShape(8.dp),
                     onClick = {
-                        emailError = if(email.isBlank()) "Email is required" else ""
+                        usernameError = if(username.isBlank()) "Email is required" else ""
                         passwordError = if(password.isBlank()) "password is required" else ""
-                        if (emailError.isEmpty() && passwordError.isEmpty()){
-                            //login auth logic
+                        if (usernameError.isEmpty() && passwordError.isEmpty()){
+                            viewModel.login(username, password)
                         }
                     },
                     colors = ButtonDefaults.buttonColors(
