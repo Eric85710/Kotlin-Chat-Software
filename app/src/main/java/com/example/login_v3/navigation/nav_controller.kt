@@ -1,10 +1,16 @@
 package com.example.login_v3.navigation
 
 import androidx.activity.compose.BackHandler
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.PaddingValues
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.ui.Alignment
+import androidx.compose.ui.Modifier
+import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.example.login_v3.auth.login.LoginScreen
 import com.example.login_v3.auth.Login_or_Reg_page
@@ -15,11 +21,19 @@ import com.example.login_v3.home.HomeScreen
 @Composable
 fun AppNavGraph(
     paddingValues: PaddingValues,
-    appViewModel: AppViewModel = viewModel()
+    appViewModel: AppViewModel = hiltViewModel()
 ) {
     val currentScreen by appViewModel.currentScreen.collectAsState()
 
     when (currentScreen) {
+
+        AppScreen.Loading -> {
+            // 顯示一個簡單的載入圈圈
+            Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+                CircularProgressIndicator()
+            }
+        }
+
         AppScreen.PreReg -> Login_or_Reg_page(
             paddingValues = paddingValues,
             onLoginClick = { appViewModel.goTo(AppScreen.Login) },
@@ -27,8 +41,7 @@ fun AppNavGraph(
         )
 
         AppScreen.Login -> LoginScreen(
-            paddingValues = paddingValues,
-            onLoginSuccess = { appViewModel.goTo(AppScreen.ScreensTab) }
+            paddingValues = paddingValues
         )
 
         AppScreen.Register -> {

@@ -63,8 +63,7 @@ import kotlin.text.ifEmpty
 @Composable
 fun LoginScreen(
     paddingValues: PaddingValues,
-    viewModel: AuthViewModel = hiltViewModel(),
-    onLoginSuccess: () -> Unit
+    viewModel: AuthViewModel = hiltViewModel()
 ){
 
     val uiState by viewModel.loginState.collectAsStateWithLifecycle()
@@ -265,11 +264,6 @@ fun LoginScreen(
                     }
                 }
 
-                LaunchedEffect(uiState) {
-                    if (uiState is LoginUiState.Success) {
-                        onLoginSuccess() // 觸發跳轉邏輯
-                    }
-                }
 
 
                 Spacer(modifier = Modifier.height(16.dp))
