@@ -42,7 +42,7 @@ import com.example.login_v3.home.setting.setting_detail_page.viewmodel.ProfileUi
 
 
 @Composable
-fun setting_profile_page(
+fun Setting_profile_page(
     viewModel: PersonalProfileViewModel = hiltViewModel()
 ) {
     val uiState by viewModel.uiState.collectAsState()

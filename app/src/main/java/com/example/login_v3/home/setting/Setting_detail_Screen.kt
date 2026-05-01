@@ -38,8 +38,8 @@ import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
+import com.example.login_v3.home.setting.setting_detail_page.detail_UI.Setting_profile_page
 import com.example.login_v3.home.setting.setting_detail_page.detail_UI.setting_devices_page
-import com.example.login_v3.home.setting.setting_detail_page.detail_UI.setting_profile_page
 import com.example.login_v3.home.setting.setting_detail_page.detail_UI.setting_subscription_page
 import com.example.login_v3.home.setting.setting_detail_page.detail_UI.setting_theme_page
 import com.example.login_v3.home.setting.setting_detail_page.viewmodel.Theme_ViewModel
@@ -123,7 +123,7 @@ fun SharedTransitionScope.setting_detail_Screen(
             startDestination = startRoute
         ) {
 
-            composable("setting_Profile") { setting_profile_page() }
+            composable("setting_Profile") { Setting_profile_page() }
             composable("setting_Theme") {
                 val activity = LocalActivity.current as ComponentActivity
                 val vm: Theme_ViewModel = hiltViewModel(viewModelStoreOwner = activity)
