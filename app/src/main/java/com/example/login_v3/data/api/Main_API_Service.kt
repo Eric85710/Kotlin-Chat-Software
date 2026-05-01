@@ -21,8 +21,8 @@ interface TecnologiaApi {
     suspend fun login(@Body body: LoginRequest): Response<LoginResponse>
 
     // 取得個人資料：通常需要 Token
-    @GET("api/me")
-    suspend fun getMe(@Header("Authorization") token: String): Response<User>
+    @GET("me")
+    suspend fun getUserProfile(): Response<UserProfile>
 
     // 發送好友請求
     @POST("api/friends/request")
