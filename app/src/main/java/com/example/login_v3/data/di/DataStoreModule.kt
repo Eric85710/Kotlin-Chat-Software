@@ -6,6 +6,7 @@ import androidx.datastore.core.DataStore
 import androidx.datastore.preferences.core.Preferences
 import androidx.datastore.preferences.preferencesDataStore
 import com.example.login_v3.data.local.UserPreferences.UserPreferencesRepository
+import com.example.login_v3.data.repository.basic.TokenManager
 import dagger.Module
 import dagger.Provides
 import dagger.hilt.InstallIn
@@ -21,12 +22,24 @@ private val Context.dataStore: DataStore<Preferences> by preferencesDataStore(na
 // 修正 2: 移除 private，讓 Hilt 可以訪問這個模組
 object DataStoreModule {
 
+
+    //data store instance
+    @Provides
+    @Singleton
+    fun provideDataStore(@ApplicationContext context: Context): DataStore<Preferences> {
+        return context.dataStore
+    }
+
     //UserPreferencesRepository
     @Provides
     @Singleton
-    fun provideUserPreferencesRepository(
-        @ApplicationContext context: Context
-    ): UserPreferencesRepository {
-        return UserPreferencesRepository(context.dataStore)
+    fun provideUserPreferencesRepository(dataStore: DataStore<Preferences>): UserPreferencesRepository {
+        return UserPreferencesRepository(dataStore)
+    }
+
+    @Provides
+    @Singleton
+    fun provideTokenManager(dataStore: DataStore<Preferences>): TokenManager {
+        return TokenManager(dataStore)
     }
 }

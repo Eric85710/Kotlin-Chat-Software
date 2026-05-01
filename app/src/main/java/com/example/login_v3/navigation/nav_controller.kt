@@ -28,7 +28,7 @@ fun AppNavGraph(
 
         AppScreen.Login -> LoginScreen(
             paddingValues = paddingValues,
-            onLoginSuccess = { appViewModel.onLoginSuccess() }
+            onLoginSuccess = { appViewModel.goTo(AppScreen.ScreensTab) }
         )
 
         AppScreen.Register -> {

@@ -5,6 +5,7 @@ import androidx.lifecycle.viewModelScope
 import com.example.login_v3.data.api.api_class.LoginRequest
 import com.example.login_v3.data.api.api_class.UserInfo
 import com.example.login_v3.data.repository.basic.AuthRepository
+import com.example.login_v3.data.repository.basic.TokenManager
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -21,27 +22,28 @@ sealed class LoginUiState {
 
 @HiltViewModel
 class AuthViewModel @Inject constructor(
-    private val repository: AuthRepository
+    private val repository: AuthRepository,
+    private val tokenManager: TokenManager // 注入 TokenManager
 ) : ViewModel() {
 
-    // 用於內部修改的私有狀態
     private val _loginState = MutableStateFlow<LoginUiState>(LoginUiState.Idle)
-    // 暴露給 Compose 觀察的公開狀態
     val loginState: StateFlow<LoginUiState> = _loginState.asStateFlow()
 
     fun login(username: String, password: String) {
         viewModelScope.launch {
             _loginState.value = LoginUiState.Loading
-
             try {
                 val request = LoginRequest(username = username, password = password)
                 val response = repository.login(request)
 
                 if (response.isSuccessful && response.body() != null) {
-                    // 登入成功，儲存 User 資訊
-                    _loginState.value = LoginUiState.Success(response.body()!!.user)
+                    val loginResponse = response.body()!!
 
-                    // 提示：通常這裡還會處理 Token 持久化（儲存在 DataStore 或 EncryptedSharedPreferences）
+                    // 1. 先把 Token 存入 DataStore
+                    tokenManager.saveAuthData(loginResponse.access_token)
+
+                    // 2. 更新 UI 狀態
+                    _loginState.value = LoginUiState.Success(loginResponse.user)
                 } else {
                     _loginState.value = LoginUiState.Error("登入失敗：${response.code()}")
                 }
