@@ -16,6 +16,8 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material3.Button
+import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Divider
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
@@ -34,15 +36,42 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
 import com.example.login_v3.R
+import com.example.login_v3.data.api.api_class.UserProfile
 import com.example.login_v3.home.setting.setting_detail_page.viewmodel.PersonalProfileViewModel
+import com.example.login_v3.home.setting.setting_detail_page.viewmodel.ProfileUiState
+
 
 @Composable
 fun setting_profile_page(
     viewModel: PersonalProfileViewModel = hiltViewModel()
-){
+) {
     val uiState by viewModel.uiState.collectAsState()
 
+    when (val state = uiState) {
+        is ProfileUiState.Loading -> {
+            CircularProgressIndicator() // 轉圈圈
+        }
+        is ProfileUiState.Success -> {
+            // 顯示個人資料
+            Loaded_setting_profile_page(state.profile)
+        }
+        is ProfileUiState.Error -> {
+            // 顯示錯誤訊息與重試按鈕
+            Column {
+                Text(text = state.message, color = Color.Red)
+                Button(onClick = { viewModel.fetchProfile() }) {
+                    Text("重試")
+                }
+            }
+        }
+    }
+}
 
+
+@Composable
+fun Loaded_setting_profile_page(
+    profile: UserProfile
+){
     Column(
         modifier = Modifier.fillMaxSize()
     ) {
@@ -118,7 +147,7 @@ fun setting_profile_page(
 
                         Spacer(modifier = Modifier.width(20.dp))
 
-                        Text(text = "Eric Chen",
+                        Text(text = "名稱: ${profile.display_name}",
                             fontSize = 36.sp,
                             fontWeight = FontWeight.Medium,
                             modifier = Modifier
