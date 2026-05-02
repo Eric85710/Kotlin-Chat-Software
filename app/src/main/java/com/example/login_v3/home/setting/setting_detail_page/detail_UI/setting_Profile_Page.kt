@@ -147,7 +147,7 @@ fun Loaded_setting_profile_page(
 
                         Spacer(modifier = Modifier.width(20.dp))
 
-                        Text(text = "名稱: ${profile.display_name}",
+                        Text(text = "${profile.display_name}",
                             fontSize = 36.sp,
                             fontWeight = FontWeight.Medium,
                             modifier = Modifier
