@@ -35,10 +35,13 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
+import coil.compose.AsyncImage
 import com.example.login_v3.R
 import com.example.login_v3.data.api.api_class.UserProfile
 import com.example.login_v3.home.setting.setting_detail_page.viewmodel.PersonalProfileViewModel
 import com.example.login_v3.home.setting.setting_detail_page.viewmodel.ProfileUiState
+
+
 
 
 @Composable
@@ -72,6 +75,18 @@ fun Setting_profile_page(
 fun Loaded_setting_profile_page(
     profile: UserProfile
 ){
+    AsyncImage(
+        model = profile.avatar_url,
+        contentDescription = "User Avatar",
+        modifier = Modifier
+            .size(80.dp)            // 設定頭像大小
+            .clip(CircleShape),      // 將圖片裁切成圓形
+        contentScale = ContentScale.Crop, // 確保圖片填滿並裁切，避免變形
+        placeholder = painterResource(R.drawable.avatar_v1), // 載入中顯示的圖片
+        error = painterResource(R.drawable.avatar_v1)             // 載入失敗顯示的圖片
+    )
+
+
     Column(
         modifier = Modifier.fillMaxSize()
     ) {
