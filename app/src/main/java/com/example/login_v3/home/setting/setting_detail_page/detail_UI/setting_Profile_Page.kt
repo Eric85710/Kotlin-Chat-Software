@@ -3,6 +3,7 @@ package com.example.login_v3.home.setting.setting_detail_page.detail_UI
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -24,6 +25,9 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.blur
@@ -75,6 +79,9 @@ fun Setting_profile_page(
 fun Loaded_setting_profile_page(
     profile: UserProfile
 ){
+    //bia info
+    var showDialog by remember { mutableStateOf(false) }
+    var tempBio by remember { mutableStateOf(profile.bio ?: "") }
 
     Column(
         modifier = Modifier.fillMaxSize()
@@ -241,11 +248,24 @@ fun Loaded_setting_profile_page(
                 )
 
                 //intro
-                Text(
-                    text = "Founder of JFF studios，Software Dev Guy，3D Artist",
-                    fontSize = 16.sp,
-                    color = MaterialTheme.colorScheme.onBackground
-                )
+                Box(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(top = 8.dp)
+                        .clickable {
+                            tempBio = profile.bio ?: "" // 開啟時同步目前的 bio
+                            showDialog = true
+                        }
+                        .border(1.dp, Color.White.copy(alpha = 0.3f), RoundedCornerShape(8.dp))
+                        .padding(16.dp)
+                ) {
+                    // 這裡改用 profile.bio
+                    Text(
+                        text = if (profile.bio.isNullOrBlank()) "Add a bio..." else profile.bio,
+                        color = if (profile.bio.isNullOrBlank()) Color.Gray else Color.White
+                    )
+                }
+
             }
         }
     }

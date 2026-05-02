@@ -3,6 +3,7 @@ package com.example.login_v3.home.setting.setting_detail_page.viewmodel
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.example.login_v3.data.api.api_class.UserProfile
+import com.example.login_v3.data.api.api_class.UserProfileUpdateRequest
 import com.example.login_v3.data.repository.basic.PersonalProfileRepository
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -31,6 +32,7 @@ class PersonalProfileViewModel @Inject constructor(
         fetchProfile()
     }
 
+    //get profile
     fun fetchProfile() {
         viewModelScope.launch {
             _uiState.value = ProfileUiState.Loading
@@ -45,6 +47,17 @@ class PersonalProfileViewModel @Inject constructor(
                     _uiState.value =
                         ProfileUiState.Error(e.localizedMessage ?: "未知錯誤")
                 }
+        }
+    }
+
+    //update profile
+    fun updateBio(newBio: String) {
+        viewModelScope.launch {
+            val request = UserProfileUpdateRequest(bio = newBio)
+            repository.patchUserProfile(request).onSuccess {
+                // 更新成功後，可以重新 loadProfile() 或更新本地狀態
+                fetchProfile()
+            }
         }
     }
 }
