@@ -75,17 +75,6 @@ fun Setting_profile_page(
 fun Loaded_setting_profile_page(
     profile: UserProfile
 ){
-    AsyncImage(
-        model = profile.avatar_url,
-        contentDescription = "User Avatar",
-        modifier = Modifier
-            .size(80.dp)            // 設定頭像大小
-            .clip(CircleShape),      // 將圖片裁切成圓形
-        contentScale = ContentScale.Crop, // 確保圖片填滿並裁切，避免變形
-        placeholder = painterResource(R.drawable.avatar_v1), // 載入中顯示的圖片
-        error = painterResource(R.drawable.avatar_v1)             // 載入失敗顯示的圖片
-    )
-
 
     Column(
         modifier = Modifier.fillMaxSize()
@@ -156,7 +145,9 @@ fun Loaded_setting_profile_page(
                             modifier = Modifier
                                 .size(avatarSize)
                                 .clip(CircleShape),
-                            contentScale = ContentScale.Crop
+                            contentScale = ContentScale.Crop,
+                            placeholder = painterResource(R.drawable.avatar_v1),
+                            error = painterResource(R.drawable.avatar_v1)
                         )
 
                         Spacer(modifier = Modifier.width(20.dp))
