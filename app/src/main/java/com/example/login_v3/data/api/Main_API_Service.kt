@@ -5,6 +5,7 @@ import retrofit2.Response
 import retrofit2.http.Body
 import retrofit2.http.GET
 import retrofit2.http.Header
+import retrofit2.http.PATCH
 import retrofit2.http.POST
 
 interface TecnologiaApi {
@@ -23,6 +24,11 @@ interface TecnologiaApi {
     // 取得個人資料：通常需要 Token
     @GET("api/me")
     suspend fun getUserProfile(): Response<UserProfile>
+
+    @PATCH("me")
+    suspend fun updateProfile(
+        @Body request: UserProfileUpdateRequest
+    ): Response<Unit>
 
     // 發送好友請求
     @POST("api/friends/request")

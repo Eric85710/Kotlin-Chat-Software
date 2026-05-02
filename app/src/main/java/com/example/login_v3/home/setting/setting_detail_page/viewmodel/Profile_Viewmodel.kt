@@ -34,14 +34,17 @@ class PersonalProfileViewModel @Inject constructor(
     fun fetchProfile() {
         viewModelScope.launch {
             _uiState.value = ProfileUiState.Loading
-            try {
-                val profile = repository.getMyProfile()
-                _uiState.value = ProfileUiState.Success(profile)
-            } catch (e: Exception) {
-                // 如果是 401，Interceptor 會處理登出，
-                // 這裡處理一般的網路錯誤或 API 錯誤
-                _uiState.value = ProfileUiState.Error(e.localizedMessage ?: "未知錯誤")
-            }
+
+            val result = repository.getMyProfile()
+
+            result
+                .onSuccess { profile ->
+                    _uiState.value = ProfileUiState.Success(profile)
+                }
+                .onFailure { e ->
+                    _uiState.value =
+                        ProfileUiState.Error(e.localizedMessage ?: "未知錯誤")
+                }
         }
     }
 }
