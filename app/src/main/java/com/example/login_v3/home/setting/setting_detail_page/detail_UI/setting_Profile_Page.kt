@@ -17,11 +17,14 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Divider
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
+import androidx.compose.material3.TextField
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
@@ -39,6 +42,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
+import androidx.lifecycle.viewmodel.compose.viewModel
 import coil.compose.AsyncImage
 import com.example.login_v3.R
 import com.example.login_v3.data.api.api_class.UserProfile
@@ -77,7 +81,8 @@ fun Setting_profile_page(
 
 @Composable
 fun Loaded_setting_profile_page(
-    profile: UserProfile
+    profile: UserProfile,
+    viewModel: PersonalProfileViewModel = hiltViewModel()
 ){
     //bia info
     var showDialog by remember { mutableStateOf(false) }
@@ -263,6 +268,34 @@ fun Loaded_setting_profile_page(
                     Text(
                         text = if (profile.bio.isNullOrBlank()) "Add a bio..." else profile.bio,
                         color = if (profile.bio.isNullOrBlank()) Color.Gray else Color.White
+                    )
+                }
+
+                // 彈出編輯視窗
+                if (showDialog) {
+                    AlertDialog(
+                        onDismissRequest = { showDialog = false },
+                        title = { Text("Edit Bio") },
+                        text = {
+                            TextField(
+                                value = tempBio,
+                                onValueChange = { tempBio = it },
+                                placeholder = { Text("Enter your bio") }
+                            )
+                        },
+                        confirmButton = {
+                            TextButton(onClick = {
+                                viewModel.updateBio(tempBio) // 呼叫你寫好的 API 邏輯
+                                showDialog = false
+                            }) {
+                                Text("Save", color = Color.Cyan)
+                            }
+                        },
+                        dismissButton = {
+                            TextButton(onClick = { showDialog = false }) {
+                                Text("Cancel")
+                            }
+                        }
                     )
                 }
 
