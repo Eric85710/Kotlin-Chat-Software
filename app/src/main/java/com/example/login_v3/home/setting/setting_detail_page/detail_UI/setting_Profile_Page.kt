@@ -150,13 +150,12 @@ fun Loaded_setting_profile_page(
                     ){
                         Spacer(modifier = Modifier.width(36.dp))
                         //user avatar
-                        Image(
-                            painter = painterResource(id = R.drawable.avatar_v1), // 把 JPG 放在 res/drawable
-                            contentDescription = "avatar",
+                        AsyncImage(
+                            model = profile.avatar_url,
+                            contentDescription = "Avatar of ${profile.display_name}",
                             modifier = Modifier
                                 .size(avatarSize)
-                                .clip(CircleShape)
-                            ,
+                                .clip(CircleShape),
                             contentScale = ContentScale.Crop
                         )
 
