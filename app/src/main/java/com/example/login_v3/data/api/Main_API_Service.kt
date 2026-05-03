@@ -1,12 +1,15 @@
 package com.example.login_v3.data.api
 
 import com.example.login_v3.data.api.api_class.*
+import okhttp3.MultipartBody
 import retrofit2.Response
 import retrofit2.http.Body
 import retrofit2.http.GET
 import retrofit2.http.Header
+import retrofit2.http.Multipart
 import retrofit2.http.PATCH
 import retrofit2.http.POST
+import retrofit2.http.Part
 
 interface TecnologiaApi {
 
@@ -28,6 +31,12 @@ interface TecnologiaApi {
     @PATCH("api/me")
     suspend fun updateProfile(
         @Body request: UserProfileUpdateRequest
+    ): Response<Unit>
+
+    @Multipart
+    @POST("api/me/avatar")
+    suspend fun uploadAvatar(
+        @Part avatar: MultipartBody.Part
     ): Response<Unit>
 
     // 發送好友請求
