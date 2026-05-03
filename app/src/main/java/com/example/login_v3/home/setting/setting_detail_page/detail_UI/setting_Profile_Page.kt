@@ -275,6 +275,9 @@ fun Loaded_setting_profile_page(
                 if (showDialog) {
                     AlertDialog(
                         onDismissRequest = { showDialog = false },
+                        containerColor = MaterialTheme.colorScheme.primary,
+                        titleContentColor = MaterialTheme.colorScheme.secondary,
+                        textContentColor = MaterialTheme.colorScheme.onBackground,
                         title = { Text("Edit Bio") },
                         text = {
                             TextField(
@@ -292,12 +295,12 @@ fun Loaded_setting_profile_page(
                                 viewModel.updateBio(tempBio) // 呼叫你寫好的 API 邏輯
                                 showDialog = false
                             }) {
-                                Text("Save", color = main_orange)
+                                Text("Save", color = MaterialTheme.colorScheme.onBackground)
                             }
                         },
                         dismissButton = {
                             TextButton(onClick = { showDialog = false }) {
-                                Text("Cancel", color = main_orange)
+                                Text("Cancel", color = MaterialTheme.colorScheme.onBackground)
                             }
                         }
                     )
