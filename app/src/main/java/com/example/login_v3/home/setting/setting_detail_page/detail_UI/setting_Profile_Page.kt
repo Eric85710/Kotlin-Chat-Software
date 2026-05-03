@@ -1,5 +1,6 @@
 package com.example.login_v3.home.setting.setting_detail_page.detail_UI
 
+import android.util.Log
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
@@ -57,7 +58,6 @@ fun Setting_profile_page(
     viewModel: PersonalProfileViewModel = hiltViewModel()
 ) {
     val uiState by viewModel.uiState.collectAsState()
-
     when (val state = uiState) {
         is ProfileUiState.Loading -> {
             CircularProgressIndicator() // 轉圈圈
@@ -84,6 +84,7 @@ fun Loaded_setting_profile_page(
     profile: UserProfile,
     viewModel: PersonalProfileViewModel = hiltViewModel()
 ){
+
     //bia info
     var showDialog by remember { mutableStateOf(false) }
     var tempBio by remember { mutableStateOf(profile.bio ?: "") }
@@ -285,6 +286,7 @@ fun Loaded_setting_profile_page(
                         },
                         confirmButton = {
                             TextButton(onClick = {
+                                Log.d("BioDebug", "準備送出的 Bio: $tempBio")
                                 viewModel.updateBio(tempBio) // 呼叫你寫好的 API 邏輯
                                 showDialog = false
                             }) {
@@ -293,7 +295,7 @@ fun Loaded_setting_profile_page(
                         },
                         dismissButton = {
                             TextButton(onClick = { showDialog = false }) {
-                                Text("Cancel")
+                                Text("Cancel", color = Color.Cyan)
                             }
                         }
                     )
