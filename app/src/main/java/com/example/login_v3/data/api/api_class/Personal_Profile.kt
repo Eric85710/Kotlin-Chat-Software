@@ -27,19 +27,3 @@ data class UserProfileUpdateRequest(
     val display_name: String? = null,
     val status: String? = null
 )
-
-@JsonClass(generateAdapter = true)
-data class UserProfileResponse(
-    @field:Json(name = "user_id") val userId: String,
-    val username: String,
-    val email: String,
-    @field:Json(name = "display_name") val displayName: String,
-    @field:Json(name = "avatar_url") val avatarUrl: String?,
-    @field:Json(name = "banner_url") val bannerUrl: String?,
-    val bio: String?,
-    val status: String?,
-    @field:Json(name = "is_active") val isActive: Boolean,
-    @field:Json(name = "is_verified") val isVerified: Boolean,
-    @field:Json(name = "created_at") val createdAt: String,
-    @field:Json(name = "last_login") val lastLogin: String?
-)

@@ -49,8 +49,7 @@ import com.example.login_v3.R
 import com.example.login_v3.data.api.api_class.UserProfile
 import com.example.login_v3.home.setting.setting_detail_page.viewmodel.PersonalProfileViewModel
 import com.example.login_v3.home.setting.setting_detail_page.viewmodel.ProfileUiState
-
-
+import com.example.login_v3.ui.theme.main_orange
 
 
 @Composable
@@ -293,12 +292,12 @@ fun Loaded_setting_profile_page(
                                 viewModel.updateBio(tempBio) // 呼叫你寫好的 API 邏輯
                                 showDialog = false
                             }) {
-                                Text("Save", color = Color.Cyan)
+                                Text("Save", color = main_orange)
                             }
                         },
                         dismissButton = {
                             TextButton(onClick = { showDialog = false }) {
-                                Text("Cancel", color = Color.Cyan)
+                                Text("Cancel", color = main_orange)
                             }
                         }
                     )

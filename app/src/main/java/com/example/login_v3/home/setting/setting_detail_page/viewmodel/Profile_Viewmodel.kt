@@ -60,4 +60,5 @@ class PersonalProfileViewModel @Inject constructor(
             }
         }
     }
+
 }
