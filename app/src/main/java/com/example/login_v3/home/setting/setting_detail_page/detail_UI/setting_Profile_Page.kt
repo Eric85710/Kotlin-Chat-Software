@@ -280,7 +280,10 @@ fun Loaded_setting_profile_page(
                         text = {
                             TextField(
                                 value = tempBio,
-                                onValueChange = { tempBio = it },
+                                onValueChange = {
+                                    tempBio = it
+                                    Log.d("BioDebug", "目前打字內容: $it")
+                                                },
                                 placeholder = { Text("Enter your bio") }
                             )
                         },
