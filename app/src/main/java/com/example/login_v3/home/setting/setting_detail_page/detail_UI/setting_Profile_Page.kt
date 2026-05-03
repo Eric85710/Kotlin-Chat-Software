@@ -1,6 +1,9 @@
 package com.example.login_v3.home.setting.setting_detail_page.detail_UI
 
 import android.util.Log
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.PickVisualMediaRequest
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
@@ -88,6 +91,18 @@ fun Loaded_setting_profile_page(
     var showDialog by remember { mutableStateOf(false) }
     var tempBio by remember { mutableStateOf(profile.bio ?: "") }
 
+
+    //image chooser
+    val launcher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.PickVisualMedia()
+    ) { uri ->
+        // 2. 當使用者選完照片後，會回傳一個 Uri
+        if (uri != null) {
+            // 直接把本地 Uri 轉成字串丟進去 (僅限本地 Demo，重整 App 後會失效)
+            viewModel.updateProfile(avatarUrl = uri.toString())
+        }
+    }
+
     Column(
         modifier = Modifier.fillMaxSize()
     ) {
@@ -156,7 +171,12 @@ fun Loaded_setting_profile_page(
                             contentDescription = "Avatar of ${profile.display_name}",
                             modifier = Modifier
                                 .size(avatarSize)
-                                .clip(CircleShape),
+                                .clip(CircleShape)
+                                .clickable {
+                                    // 假設你拿到了一個新網址
+                                    launcher.launch(PickVisualMediaRequest(ActivityResultContracts.PickVisualMedia.ImageOnly))
+                                }
+                            ,
                             contentScale = ContentScale.Crop,
                             placeholder = painterResource(R.drawable.avatar_v1),
                             error = painterResource(R.drawable.avatar_v1)
@@ -283,17 +303,13 @@ fun Loaded_setting_profile_page(
                         text = {
                             TextField(
                                 value = tempBio,
-                                onValueChange = {
-                                    tempBio = it
-                                    Log.d("BioDebug", "目前打字內容: $it")
-                                                },
+                                onValueChange = { tempBio = it },
                                 placeholder = { Text("Enter your bio") }
                             )
                         },
                         confirmButton = {
                             TextButton(onClick = {
-                                Log.d("BioDebug", "準備送出的 Bio: $tempBio")
-                                viewModel.updateBio(tempBio) // 呼叫你寫好的 API 邏輯
+                                viewModel.updateProfile(bio = tempBio) // 呼叫你寫好的 API 邏輯
                                 showDialog = false
                             }) {
                                 Text("Save", color = MaterialTheme.colorScheme.onBackground)

@@ -51,12 +51,26 @@ class PersonalProfileViewModel @Inject constructor(
     }
 
     //update profile
-    fun updateBio(newBio: String) {
+    fun updateProfile(
+        displayName: String? = null,
+        bio: String? = null,
+        avatarUrl: String? = null,
+        bannerUrl: String? = null,
+        status: String? = null
+    ) {
         viewModelScope.launch {
-            val request = UserProfileUpdateRequest(bio = newBio)
+            val request = UserProfileUpdateRequest(
+                display_name = displayName,
+                bio = bio,
+                avatar_url = avatarUrl,
+                banner_url = bannerUrl,
+                status = status
+            )
+
             repository.patchUserProfile(request).onSuccess {
-                // 更新成功後，可以重新 loadProfile() 或更新本地狀態
                 fetchProfile()
+            }.onFailure {
+                // 處理錯誤
             }
         }
     }
