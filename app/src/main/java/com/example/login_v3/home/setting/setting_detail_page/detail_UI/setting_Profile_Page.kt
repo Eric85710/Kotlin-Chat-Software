@@ -41,6 +41,7 @@ import androidx.compose.ui.draw.blur
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
@@ -93,13 +94,13 @@ fun Loaded_setting_profile_page(
 
 
     //image chooser
+    val context = LocalContext.current // 務必獲取 Context，uploadAvatar 需要它來解析 Uri
     val launcher = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.PickVisualMedia()
     ) { uri ->
-        // 2. 當使用者選完照片後，會回傳一個 Uri
         if (uri != null) {
-            // 直接把本地 Uri 轉成字串丟進去 (僅限本地 Demo，重整 App 後會失效)
-            viewModel.updateProfile(avatarUrl = uri.toString())
+            // ✅ 修正：呼叫上傳圖片的函式，而不是更新網址字串的函式
+            viewModel.uploadAvatar(context, uri)
         }
     }
 

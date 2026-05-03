@@ -3,6 +3,7 @@ package com.example.login_v3.data.repository.basic
 import com.example.login_v3.data.api.TecnologiaApi
 import com.example.login_v3.data.api.api_class.UserProfile
 import com.example.login_v3.data.api.api_class.UserProfileUpdateRequest
+import okhttp3.MultipartBody
 import javax.inject.Inject
 
 class PersonalProfileRepository @Inject constructor(
@@ -32,6 +33,20 @@ class PersonalProfileRepository @Inject constructor(
                 Result.success(Unit)
             } else {
                 Result.failure(Exception("更新失敗: ${response.code()}"))
+            }
+        } catch (e: Exception) {
+            Result.failure(e)
+        }
+    }
+
+    // 3. 上傳頭像圖片 (POST)
+    suspend fun uploadAvatar(avatarPart: MultipartBody.Part): Result<Unit> {
+        return try {
+            val response = api.uploadAvatar(avatarPart)
+            if (response.isSuccessful) {
+                Result.success(Unit)
+            } else {
+                Result.failure(Exception("圖片上傳失敗: ${response.code()}"))
             }
         } catch (e: Exception) {
             Result.failure(e)
