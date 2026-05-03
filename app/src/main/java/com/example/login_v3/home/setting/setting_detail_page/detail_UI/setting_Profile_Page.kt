@@ -168,7 +168,8 @@ fun Loaded_setting_profile_page(
                             fontSize = 36.sp,
                             fontWeight = FontWeight.Medium,
                             modifier = Modifier
-                                .padding(top = 14.dp)
+                                .padding(top = 14.dp),
+                            color = MaterialTheme.colorScheme.onBackground
                         )
                     }
                 }
@@ -267,7 +268,7 @@ fun Loaded_setting_profile_page(
                     // 這裡改用 profile.bio
                     Text(
                         text = if (profile.bio.isNullOrBlank()) "Add a bio..." else profile.bio,
-                        color = if (profile.bio.isNullOrBlank()) Color.Gray else Color.White
+                        color = if (profile.bio.isNullOrBlank()) Color.Gray else MaterialTheme.colorScheme.onBackground
                     )
                 }
 
