@@ -25,7 +25,7 @@ interface TecnologiaApi {
     @GET("api/me")
     suspend fun getUserProfile(): Response<UserProfile>
 
-    @PATCH("me")
+    @PATCH("api/me")
     suspend fun updateProfile(
         @Body request: UserProfileUpdateRequest
     ): Response<Unit>
