@@ -36,7 +36,7 @@ interface TecnologiaApi {
     @Multipart
     @POST("api/me/avatar")
     suspend fun uploadAvatar(
-        @Part avatar: MultipartBody.Part
+        @Part file: MultipartBody.Part
     ): Response<Unit>
 
     // 發送好友請求

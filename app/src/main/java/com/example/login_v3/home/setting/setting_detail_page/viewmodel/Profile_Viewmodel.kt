@@ -80,7 +80,7 @@ class PersonalProfileViewModel @Inject constructor(
         }
     }
 
-    // 在 ViewModel 類別內新增此 function
+    // upload image
     fun uploadAvatar(context: Context, uri: Uri) {
         viewModelScope.launch {
             // 如果你想要在上傳時讓 UI 顯示 Loading，可以在這開啟
@@ -96,7 +96,7 @@ class PersonalProfileViewModel @Inject constructor(
 
                 // 3. 建立 MultipartBody.Part
                 // 注意："avatar" 必須跟後端 @Part("avatar") 裡面的名稱一模一樣
-                val body = MultipartBody.Part.createFormData("avatar", "avatar.jpg", requestFile)
+                val body = MultipartBody.Part.createFormData("file", "avatar.jpg", requestFile)
 
                 // 4. 呼叫 Repository
                 repository.uploadAvatar(body)
