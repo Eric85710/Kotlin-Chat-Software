@@ -246,7 +246,9 @@ fun Loaded_setting_profile_page(
                 Row() {
                     Text(text = "${profile.display_name}",
                         fontSize = 20.sp,
-                        color = MaterialTheme.colorScheme.onBackground
+                        color = MaterialTheme.colorScheme.onBackground,
+                        modifier = Modifier
+                            .weight(1f)
                     )
                     Icon(
                         imageVector = Icons.Default.Edit,
