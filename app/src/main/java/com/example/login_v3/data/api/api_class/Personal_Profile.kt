@@ -1,5 +1,6 @@
 package com.example.login_v3.data.api.api_class
 
+import com.example.login_v3.R
 import com.squareup.moshi.Json
 import com.squareup.moshi.JsonClass
 
@@ -27,3 +28,12 @@ data class UserProfileUpdateRequest(
     val display_name: String? = null,
     val status: String? = null
 )
+
+val UserProfile.fullAvatarUrl: Any?
+    get() = if (avatar_url.isNullOrBlank()) {
+        R.drawable.avatar_v1 // 如果沒網址，直接回傳預設圖片資源
+    } else if (avatar_url.startsWith("http")) {
+        avatar_url // 已經是完整網址就直接用
+    } else {
+        "http://192.168.0.217$avatar_url" // 否則補上 Base URL
+    }

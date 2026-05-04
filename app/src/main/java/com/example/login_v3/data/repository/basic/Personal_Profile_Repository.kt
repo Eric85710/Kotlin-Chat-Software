@@ -43,6 +43,7 @@ class PersonalProfileRepository @Inject constructor(
     suspend fun uploadAvatar(avatarPart: MultipartBody.Part): Result<Unit> {
         return try {
             val response = api.uploadAvatar(avatarPart)
+
             if (response.isSuccessful) {
                 Result.success(Unit)
             } else {

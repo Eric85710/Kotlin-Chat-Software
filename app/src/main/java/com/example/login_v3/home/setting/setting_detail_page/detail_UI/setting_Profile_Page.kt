@@ -21,10 +21,13 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Divider
+import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
@@ -51,6 +54,7 @@ import androidx.lifecycle.viewmodel.compose.viewModel
 import coil.compose.AsyncImage
 import com.example.login_v3.R
 import com.example.login_v3.data.api.api_class.UserProfile
+import com.example.login_v3.data.api.api_class.fullAvatarUrl
 import com.example.login_v3.home.setting.setting_detail_page.viewmodel.PersonalProfileViewModel
 import com.example.login_v3.home.setting.setting_detail_page.viewmodel.ProfileUiState
 import com.example.login_v3.ui.theme.main_orange
@@ -101,6 +105,7 @@ fun Loaded_setting_profile_page(
         if (uri != null) {
             // ✅ 修正：呼叫上傳圖片的函式，而不是更新網址字串的函式
             viewModel.uploadAvatar(context, uri)
+            Log.d("AvatarURL", "目前的圖片網址為: ${profile.avatar_url}")
         }
     }
 
@@ -166,9 +171,10 @@ fun Loaded_setting_profile_page(
 
                     ){
                         Spacer(modifier = Modifier.width(36.dp))
+
                         //user avatar
                         AsyncImage(
-                            model = profile.avatar_url,
+                            model = profile.fullAvatarUrl,
                             contentDescription = "Avatar of ${profile.display_name}",
                             modifier = Modifier
                                 .size(avatarSize)
@@ -179,7 +185,6 @@ fun Loaded_setting_profile_page(
                                 }
                             ,
                             contentScale = ContentScale.Crop,
-                            placeholder = painterResource(R.drawable.avatar_v1),
                             error = painterResource(R.drawable.avatar_v1)
                         )
 
@@ -274,22 +279,23 @@ fun Loaded_setting_profile_page(
                     modifier = Modifier.padding(vertical = 8.dp)
                 )
 
-                //intro
-                Box(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(top = 8.dp)
-                        .clickable {
-                            tempBio = profile.bio ?: "" // 開啟時同步目前的 bio
-                            showDialog = true
-                        }
-                        .border(1.dp, Color.White.copy(alpha = 0.3f), RoundedCornerShape(8.dp))
-                        .padding(16.dp)
-                ) {
+                Row() {
                     // 這裡改用 profile.bio
                     Text(
                         text = if (profile.bio.isNullOrBlank()) "Add a bio..." else profile.bio,
                         color = if (profile.bio.isNullOrBlank()) Color.Gray else MaterialTheme.colorScheme.onBackground
+                    )
+
+                    Icon(
+                        imageVector = Icons.Default.Edit,
+                        contentDescription = "Edit bio",
+                        tint = MaterialTheme.colorScheme.primary,
+                        modifier = Modifier
+                            .size(20.dp)
+                            .clickable {
+                                tempBio = profile.bio ?: "" // 開啟時同步目前的 bio
+                                showDialog = true
+                            }
                     )
                 }
 
