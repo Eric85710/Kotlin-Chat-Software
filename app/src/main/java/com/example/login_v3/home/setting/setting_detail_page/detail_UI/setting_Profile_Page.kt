@@ -86,6 +86,13 @@ fun Setting_profile_page(
 }
 
 
+
+// 定義目前正在編輯的目標
+sealed class EditTarget(val title: String) {
+    object Bio : EditTarget("Edit Bio")
+    object DisplayName : EditTarget("Edit Display Name")
+}
+
 @Composable
 fun Loaded_setting_profile_page(
     profile: UserProfile,
@@ -93,8 +100,9 @@ fun Loaded_setting_profile_page(
 ){
 
     //bia info
-    var showDialog by remember { mutableStateOf(false) }
-    var tempBio by remember { mutableStateOf(profile.bio ?: "") }
+    // 管理 Dialog 是否顯示，以及目前編輯的對象
+    var activeEditTarget by remember { mutableStateOf<EditTarget?>(null) }
+    var tempText by remember { mutableStateOf("") }
 
 
     //image chooser
@@ -233,11 +241,38 @@ fun Loaded_setting_profile_page(
                 modifier = Modifier
                     .padding(20.dp)
             ) {
+
+                //display name
+                Row() {
+                    Text(text = "${profile.display_name}",
+                        fontSize = 20.sp,
+                        color = MaterialTheme.colorScheme.onBackground
+                    )
+                    Icon(
+                        imageVector = Icons.Default.Edit,
+                        contentDescription = "Edit bio",
+                        tint = MaterialTheme.colorScheme.onBackground,
+                        modifier = Modifier
+                            .size(20.dp)
+                            .clickable{
+                                tempText = profile.display_name ?: ""
+                                activeEditTarget = EditTarget.DisplayName
+                            }
+                    )
+                }
+
+                Divider(
+                    color = Color.White.copy(alpha = 0.4f),
+                    thickness = 0.5.dp,
+                    modifier = Modifier.padding(vertical = 8.dp)
+                )
+
                 // mutual friends
                 Text(text = "258 mutual friends",
                     fontSize = 20.sp,
                     color = MaterialTheme.colorScheme.onBackground
                 )
+
                 Divider(
                     color = Color.White.copy(alpha = 0.4f),
                     thickness = 0.5.dp,
@@ -283,48 +318,52 @@ fun Loaded_setting_profile_page(
                     // 這裡改用 profile.bio
                     Text(
                         text = if (profile.bio.isNullOrBlank()) "Add a bio..." else profile.bio,
-                        color = if (profile.bio.isNullOrBlank()) Color.Gray else MaterialTheme.colorScheme.onBackground
+                        color = if (profile.bio.isNullOrBlank()) Color.Gray else MaterialTheme.colorScheme.onBackground,
+                        modifier = Modifier.weight(1f)
                     )
 
                     Icon(
                         imageVector = Icons.Default.Edit,
                         contentDescription = "Edit bio",
-                        tint = MaterialTheme.colorScheme.primary,
+                        tint = MaterialTheme.colorScheme.onBackground,
                         modifier = Modifier
                             .size(20.dp)
                             .clickable {
-                                tempBio = profile.bio ?: "" // 開啟時同步目前的 bio
-                                showDialog = true
+                                tempText = profile.bio ?: ""
+                                activeEditTarget = EditTarget.Bio
                             }
                     )
                 }
 
                 // 彈出編輯視窗
-                if (showDialog) {
+                if (activeEditTarget != null) {
                     AlertDialog(
-                        onDismissRequest = { showDialog = false },
+                        onDismissRequest = { activeEditTarget = null },
                         containerColor = MaterialTheme.colorScheme.primary,
-                        titleContentColor = MaterialTheme.colorScheme.secondary,
-                        textContentColor = MaterialTheme.colorScheme.onBackground,
-                        title = { Text("Edit Bio") },
+                        title = { Text(activeEditTarget?.title ?: "") },
                         text = {
                             TextField(
-                                value = tempBio,
-                                onValueChange = { tempBio = it },
-                                placeholder = { Text("Enter your bio") }
+                                value = tempText,
+                                onValueChange = { tempText = it },
+                                placeholder = { Text("Enter here...") }
                             )
                         },
                         confirmButton = {
                             TextButton(onClick = {
-                                viewModel.updateProfile(bio = tempBio) // 呼叫你寫好的 API 邏輯
-                                showDialog = false
+                                // 根據當前目標呼叫不同的 ViewModel 函式
+                                when (activeEditTarget) {
+                                    is EditTarget.Bio -> viewModel.updateProfile(bio = tempText)
+                                    is EditTarget.DisplayName -> viewModel.updateProfile(displayName = tempText)
+                                    else -> {}
+                                }
+                                activeEditTarget = null // 關閉視窗
                             }) {
                                 Text("Save", color = MaterialTheme.colorScheme.onBackground)
                             }
                         },
                         dismissButton = {
-                            TextButton(onClick = { showDialog = false }) {
-                                Text("Cancel", color = MaterialTheme.colorScheme.onBackground)
+                            TextButton(onClick = { activeEditTarget = null }) {
+                                Text("Cancel")
                             }
                         }
                     )
