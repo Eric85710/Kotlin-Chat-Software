@@ -165,11 +165,14 @@ fun Loaded_setting_profile_page(
                     ){
                         // 1. 封面圖 (背景)
                         AsyncImage(
-                            model = profile.banner_url,
+                            model = profile.fullAvatarUrl,
                             contentDescription = "Avatar of ${profile.display_name}",
                             modifier = Modifier
                                 .fillMaxWidth()
                                 .height(180.dp)
+                                .clickable {
+                                    bannerLauncher.launch(PickVisualMediaRequest(ActivityResultContracts.PickVisualMedia.ImageOnly))
+                                }
                             ,
                             contentScale = ContentScale.Crop,
                             error = painterResource(R.drawable.thumbnail_v1)
@@ -347,7 +350,7 @@ fun Loaded_setting_profile_page(
                 if (activeEditTarget != null) {
                     AlertDialog(
                         onDismissRequest = { activeEditTarget = null },
-                        containerColor = MaterialTheme.colorScheme.primary,
+                        containerColor = Color.White,
                         title = { Text(activeEditTarget?.title ?: "") },
                         text = {
                             TextField(
