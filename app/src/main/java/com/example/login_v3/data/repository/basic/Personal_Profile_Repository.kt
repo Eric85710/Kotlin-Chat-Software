@@ -4,6 +4,7 @@ import com.example.login_v3.data.api.TecnologiaApi
 import com.example.login_v3.data.api.api_class.UserProfile
 import com.example.login_v3.data.api.api_class.UserProfileUpdateRequest
 import okhttp3.MultipartBody
+import retrofit2.Response
 import javax.inject.Inject
 
 class PersonalProfileRepository @Inject constructor(
@@ -40,10 +41,13 @@ class PersonalProfileRepository @Inject constructor(
     }
 
     // 3. 上傳頭像圖片 (POST)
-    suspend fun uploadAvatar(avatarPart: MultipartBody.Part): Result<Unit> {
+    // 通用的上傳邏輯
+    private suspend fun uploadImage(
+        filePart: MultipartBody.Part,
+        uploadAction: suspend (MultipartBody.Part) -> Response<Unit>
+    ): Result<Unit> {
         return try {
-            val response = api.uploadAvatar(avatarPart)
-
+            val response = uploadAction(filePart)
             if (response.isSuccessful) {
                 Result.success(Unit)
             } else {
@@ -53,4 +57,11 @@ class PersonalProfileRepository @Inject constructor(
             Result.failure(e)
         }
     }
+
+    // 外部呼叫時依然保有語意化的名稱
+    suspend fun uploadAvatar(avatarPart: MultipartBody.Part) =
+        uploadImage(avatarPart, api::uploadAvatar)
+
+    suspend fun uploadBanner(bannerPart: MultipartBody.Part) =
+        uploadImage(bannerPart, api::uploadBanner)
 }

@@ -39,6 +39,12 @@ interface TecnologiaApi {
         @Part file: MultipartBody.Part
     ): Response<Unit>
 
+    @Multipart
+    @POST("api/me/banner")
+    suspend fun uploadBanner(
+        @Part file: MultipartBody.Part
+    ): Response<Unit>
+
     // 發送好友請求
     @POST("api/friends/request")
     suspend fun sendFriendRequest(

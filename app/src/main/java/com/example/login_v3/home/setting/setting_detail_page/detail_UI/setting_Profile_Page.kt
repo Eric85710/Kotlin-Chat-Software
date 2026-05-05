@@ -1,5 +1,6 @@
 package com.example.login_v3.home.setting.setting_detail_page.detail_UI
 
+import android.net.Uri
 import android.util.Log
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.PickVisualMediaRequest
@@ -107,14 +108,17 @@ fun Loaded_setting_profile_page(
 
     //image chooser
     val context = LocalContext.current // 務必獲取 Context，uploadAvatar 需要它來解析 Uri
-    val launcher = rememberLauncherForActivityResult(
-        contract = ActivityResultContracts.PickVisualMedia()
-    ) { uri ->
-        if (uri != null) {
-            // ✅ 修正：呼叫上傳圖片的函式，而不是更新網址字串的函式
-            viewModel.uploadAvatar(context, uri)
-            Log.d("AvatarURL", "目前的圖片網址為: ${profile.avatar_url}")
-        }
+    //avatar
+    val avatarLauncher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.PickVisualMedia() // 這裡改掉
+    ) { uri: Uri? ->
+        uri?.let { viewModel.uploadAvatar(context, it) }
+    }
+    //banner
+    val bannerLauncher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.PickVisualMedia() // 這裡改掉
+    ) { uri: Uri? ->
+        uri?.let { viewModel.uploadBanner(context, it) }
     }
 
     Column(
@@ -160,13 +164,15 @@ fun Loaded_setting_profile_page(
                             .clip(RoundedCornerShape(16.dp))
                     ){
                         // 1. 封面圖 (背景)
-                        Image(
-                            painter = painterResource(id = R.drawable.thumbnail_v1),
-                            contentDescription = null,
-                            contentScale = ContentScale.Crop,
+                        AsyncImage(
+                            model = profile.banner_url,
+                            contentDescription = "Avatar of ${profile.display_name}",
                             modifier = Modifier
                                 .fillMaxWidth()
                                 .height(180.dp)
+                            ,
+                            contentScale = ContentScale.Crop,
+                            error = painterResource(R.drawable.thumbnail_v1)
                         )
                     }
 
@@ -189,7 +195,7 @@ fun Loaded_setting_profile_page(
                                 .clip(CircleShape)
                                 .clickable {
                                     // 假設你拿到了一個新網址
-                                    launcher.launch(PickVisualMediaRequest(ActivityResultContracts.PickVisualMedia.ImageOnly))
+                                    avatarLauncher.launch(PickVisualMediaRequest(ActivityResultContracts.PickVisualMedia.ImageOnly))
                                 }
                             ,
                             contentScale = ContentScale.Crop,

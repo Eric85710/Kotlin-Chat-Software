@@ -81,38 +81,50 @@ class PersonalProfileViewModel @Inject constructor(
     }
 
     // upload image
-    fun uploadAvatar(context: Context, uri: Uri) {
+    // 1. 定義一個通用的處理邏輯
+    private fun handleImageUpload(
+        context: Context,
+        uri: Uri,
+        isAvatar: Boolean // 用來區分檔案名稱或特定邏輯
+    ) {
         viewModelScope.launch {
-            // 如果你想要在上傳時讓 UI 顯示 Loading，可以在這開啟
-            // _uiState.value = ProfileUiState.Loading
+            _uiState.value = ProfileUiState.Loading
 
             try {
-                // 1. 從 Uri 取得 InputStream 並讀取 Bytes
-                val inputStream = context.contentResolver.openInputStream(uri)
-                val bytes = inputStream?.use { it.readBytes() } ?: return@launch
+                // 從 Uri 讀取檔案
+                val bytes = context.contentResolver.openInputStream(uri)?.use { it.readBytes() }
+                if (bytes == null) {
+                    _uiState.value = ProfileUiState.Error("無法讀取檔案")
+                    return@launch
+                }
 
-                // 2. 封裝成 RequestBody (指定為圖片格式)
                 val requestFile = bytes.toRequestBody("image/*".toMediaTypeOrNull())
 
-                // 3. 建立 MultipartBody.Part
-                // 注意："avatar" 必須跟後端 @Part("avatar") 裡面的名稱一模一樣
-                val body = MultipartBody.Part.createFormData("file", "avatar.jpg", requestFile)
+                // 根據類型決定檔名（雖然通常後端只看 Part Name，但給正確副檔名比較保險）
+                val fileName = if (isAvatar) "avatar.jpg" else "banner.jpg"
+                val body = MultipartBody.Part.createFormData("file", fileName, requestFile)
 
-                // 4. 呼叫 Repository
-                repository.uploadAvatar(body)
-                    .onSuccess {
-                        // 上傳成功後，最保險的做法是重新 fetch 一次個人資料
-                        // 這樣 UI 上的頭像網址才會更新成後端最新儲存的網址
-                        fetchProfile()
-                    }
-                    .onFailure { e ->
-                        // 處理錯誤，例如發送一個錯誤訊息給 UI
-                        _uiState.value = ProfileUiState.Error(e.localizedMessage ?: "上傳失敗")
-                    }
+                // 根據類型呼叫對應的 Repository 方法
+                val result = if (isAvatar) {
+                    repository.uploadAvatar(body)
+                } else {
+                    repository.uploadBanner(body)
+                }
+
+                result.onSuccess {
+                    fetchProfile() // 成功後統一刷新資料
+                }.onFailure { e ->
+                    _uiState.value = ProfileUiState.Error(e.localizedMessage ?: "上傳失敗")
+                }
+
             } catch (e: Exception) {
-                _uiState.value = ProfileUiState.Error("讀取檔案出錯: ${e.message}")
+                _uiState.value = ProfileUiState.Error("處理檔案時發生錯誤: ${e.message}")
             }
         }
     }
+
+    // 2. 對外暴露的簡潔方法
+    fun uploadAvatar(context: Context, uri: Uri) = handleImageUpload(context, uri, true)
+    fun uploadBanner(context: Context, uri: Uri) = handleImageUpload(context, uri, false)
 
 }
