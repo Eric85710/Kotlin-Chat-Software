@@ -18,12 +18,17 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
+import androidx.compose.material.icons.filled.Create
+import androidx.compose.material.icons.filled.Person
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
+import androidx.compose.material3.DropdownMenu
+import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.MenuDefaults
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
@@ -38,6 +43,9 @@ import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.draw.blur
 import androidx.compose.ui.draw.clip
 import com.example.login_v3.home.Message.ViewModel.MessageViewModel
@@ -47,6 +55,7 @@ import com.example.login_v3.home.Message.ViewModel.MessageViewModel
 fun Tg_Message() {
     val viewModel: MessageViewModel = viewModel()
     val contacts by viewModel.contacts.collectAsState()
+    var expanded by remember { mutableStateOf(false) }
 
     Scaffold(
         containerColor = Color.Transparent,
@@ -69,12 +78,44 @@ fun Tg_Message() {
                     titleContentColor = Color.Black
                 ),
                 actions = {
-                    // ⭐ 在這裡添加按鈕
-                    IconButton(onClick = { /* 點擊按鈕後要做的事 */ }) {
-                        Icon(
-                            imageVector = Icons.Default.Add,
-                            contentDescription = "Add Message"
-                        )
+                    // 2. 使用 Box 包裹按鈕與選單，確保選單彈出位置正確
+                    Box {
+                        IconButton(onClick = { expanded = true }) {
+                            Icon(Icons.Default.Add, contentDescription = "更多選項")
+                        }
+
+                        // 3. 下拉選單組件
+                        DropdownMenu(
+                            expanded = expanded,
+                            containerColor = Color.Black.copy(alpha = 0.8f),
+                            onDismissRequest = { expanded = false },
+                            modifier = Modifier.border(0.5.dp, Color.White.copy(alpha = 0.3f))
+                        ) {
+
+                            val itemColors = MenuDefaults.itemColors(
+                                textColor = Color.White,
+                                leadingIconColor = Color(0xFFDA7029) // 使用你背景的橘色作為點綴
+                            )
+
+                            DropdownMenuItem(
+                                text = { Text("新建聯絡") },
+                                onClick = {
+                                    expanded = false
+                                    /* 執行新建動作 */
+                                },
+                                colors = itemColors,
+                                leadingIcon = { Icon(Icons.Default.Create, contentDescription = null) }
+                            )
+                            DropdownMenuItem(
+                                text = { Text("好友列表") },
+                                onClick = {
+                                    expanded = false
+                                    /* 執行添加動作 */
+                                },
+                                colors = itemColors,
+                                leadingIcon = { Icon(Icons.Default.Person, contentDescription = null) }
+                            )
+                        }
                     }
                 },
                 modifier = Modifier
