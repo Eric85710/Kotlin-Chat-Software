@@ -20,6 +20,7 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Create
 import androidx.compose.material.icons.filled.Person
+import androidx.compose.material.icons.filled.QrCode
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.DropdownMenu
@@ -54,6 +55,7 @@ import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
 import com.example.login_v3.home.Message.UI.Detail.Message_add_contact
 import com.example.login_v3.home.Message.UI.Detail.Message_contact_list
+import com.example.login_v3.home.Message.UI.Detail.Scan_QRcode
 import com.example.login_v3.home.Message.ViewModel.MessageViewModel
 
 
@@ -61,6 +63,7 @@ sealed class Screen(val route: String) {
     object Messages : Screen("messages")
     object CreateContact : Screen("create_contact")
     object FriendsList : Screen("friends_list")
+    object ScanQRcode : Screen("scan_QRcode")
 }
 
 @Composable
@@ -81,6 +84,11 @@ fun Tg_Message() {
         // 好友列表頁面
         composable(Screen.FriendsList.route) {
             Message_contact_list(navController)
+        }
+
+        //QR code
+        composable(Screen.ScanQRcode.route) {
+            Scan_QRcode(navController)
         }
     }
 }
@@ -152,6 +160,15 @@ fun Loaded_Tg_Message(
                                 },
                                 colors = itemColors,
                                 leadingIcon = { Icon(Icons.Default.Person, contentDescription = null) }
+                            )
+                            DropdownMenuItem(
+                                text = { Text("QR code") },
+                                onClick = {
+                                    expanded = false
+                                    navController.navigate(Screen.ScanQRcode.route)
+                                },
+                                colors = itemColors,
+                                leadingIcon = { Icon(Icons.Default.QrCode, contentDescription = null) }
                             )
                         }
                     }
