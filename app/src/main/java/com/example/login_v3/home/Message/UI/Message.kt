@@ -87,8 +87,9 @@ fun Tg_Message() {
                         // 3. 下拉選單組件
                         DropdownMenu(
                             expanded = expanded,
-                            containerColor = Color.Black.copy(alpha = 0.8f),
+                            containerColor = Color.Black.copy(alpha = 0.6f),
                             onDismissRequest = { expanded = false },
+                            shadowElevation = 0.dp,
                             modifier = Modifier.border(0.5.dp, Color.White.copy(alpha = 0.3f))
                         ) {
 
