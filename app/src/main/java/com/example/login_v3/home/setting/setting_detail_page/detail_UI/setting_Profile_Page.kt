@@ -56,6 +56,7 @@ import coil.compose.AsyncImage
 import com.example.login_v3.R
 import com.example.login_v3.data.api.api_class.UserProfile
 import com.example.login_v3.data.api.api_class.fullAvatarUrl
+import com.example.login_v3.data.api.api_class.fullBannerUrl
 import com.example.login_v3.home.setting.setting_detail_page.viewmodel.PersonalProfileViewModel
 import com.example.login_v3.home.setting.setting_detail_page.viewmodel.ProfileUiState
 import com.example.login_v3.ui.theme.main_orange
@@ -165,7 +166,7 @@ fun Loaded_setting_profile_page(
                     ){
                         // 1. 封面圖 (背景)
                         AsyncImage(
-                            model = profile.fullAvatarUrl,
+                            model = profile.fullBannerUrl,
                             contentDescription = "Avatar of ${profile.display_name}",
                             modifier = Modifier
                                 .fillMaxWidth()
