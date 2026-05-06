@@ -1,8 +1,10 @@
 package com.example.login_v3.navigation
 
 import androidx.lifecycle.ViewModel
+import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
+import javax.inject.Inject
 
 
 class ScreensViewModel : ViewModel() {
@@ -15,7 +17,8 @@ class ScreensViewModel : ViewModel() {
 }
 
 // BottomBarViewModel 放在同一個檔案，但仍是獨立的 ViewModel 類別
-class BottomBarViewModel : ViewModel() {
+@HiltViewModel
+class BottomBarViewModel @Inject constructor () : ViewModel() {
     private val _showBottomBar = MutableStateFlow(true)
     val showBottomBar: StateFlow<Boolean> = _showBottomBar
 

@@ -49,6 +49,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.draw.blur
 import androidx.compose.ui.draw.clip
+import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.navigation.NavController
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
@@ -57,6 +58,7 @@ import com.example.login_v3.home.Message.UI.Detail.Message_add_contact
 import com.example.login_v3.home.Message.UI.Detail.Message_contact_list
 import com.example.login_v3.home.Message.UI.Detail.Scan_QRcode
 import com.example.login_v3.home.Message.ViewModel.MessageViewModel
+import com.example.login_v3.navigation.BottomBarViewModel
 
 
 sealed class Screen(val route: String) {
@@ -67,7 +69,9 @@ sealed class Screen(val route: String) {
 }
 
 @Composable
-fun Tg_Message() {
+fun Tg_Message(
+    bottomBarViewModel: BottomBarViewModel = hiltViewModel()
+) {
     val navController = rememberNavController()
 
     NavHost(navController = navController, startDestination = Screen.Messages.route) {
@@ -83,7 +87,10 @@ fun Tg_Message() {
 
         // 好友列表頁面
         composable(Screen.FriendsList.route) {
-            Message_contact_list(navController)
+            Message_contact_list(
+                navController,
+                bottomBarViewModel = bottomBarViewModel
+            )
         }
 
         //QR code
@@ -147,7 +154,7 @@ fun Loaded_Tg_Message(
                                 text = { Text("新建聯絡") },
                                 onClick = {
                                     expanded = false
-                                    navController.navigate(Screen.FriendsList.route)
+                                    navController.navigate(Screen.CreateContact.route)
                                 },
                                 colors = itemColors,
                                 leadingIcon = { Icon(Icons.Default.Create, contentDescription = null) }
@@ -156,7 +163,7 @@ fun Loaded_Tg_Message(
                                 text = { Text("好友列表") },
                                 onClick = {
                                     expanded = false
-                                    navController.navigate(Screen.CreateContact.route)
+                                    navController.navigate(Screen.FriendsList.route)
                                 },
                                 colors = itemColors,
                                 leadingIcon = { Icon(Icons.Default.Person, contentDescription = null) }

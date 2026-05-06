@@ -50,7 +50,7 @@ fun SharedTransitionScope.setting_detail_Screen(
     title: String,
     settingIcon: String,
     animatedVisibilityScope: AnimatedVisibilityScope,
-    bottomBarViewModel: BottomBarViewModel
+    bottomBarViewModel: BottomBarViewModel = hiltViewModel()
 ){
     //control bottom bar behavior
     DisposableEffect(Unit) {

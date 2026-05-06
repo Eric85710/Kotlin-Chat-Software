@@ -12,6 +12,7 @@ import androidx.compose.material3.ListItem
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -26,13 +27,22 @@ import coil.compose.AsyncImage
 import com.example.login_v3.R
 import com.example.login_v3.data.api.api_class.Friend
 import com.example.login_v3.home.Message.ViewModel.Detail.ContactListViewModel
+import com.example.login_v3.navigation.BottomBarViewModel
 
 @Composable
 fun Message_contact_list(
     navController: NavController,
-    viewModel: ContactListViewModel = hiltViewModel()
+    contactListViewModel: ContactListViewModel = hiltViewModel(),
+    bottomBarViewModel: BottomBarViewModel
 ){
-    val friends by viewModel.friends.collectAsStateWithLifecycle()
+    val friends by contactListViewModel.friends.collectAsStateWithLifecycle()
+
+    DisposableEffect(Unit) {
+        bottomBarViewModel.setVisible(false)
+        onDispose {
+            bottomBarViewModel.setVisible(true)
+        }
+    }
 
     Column(
         modifier = Modifier
