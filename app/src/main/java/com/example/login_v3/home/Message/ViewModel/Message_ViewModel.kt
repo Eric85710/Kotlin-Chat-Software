@@ -1,5 +1,5 @@
 // Message_ViewModel.kt
-package com.example.login_v3.home
+package com.example.login_v3.home.Message.ViewModel
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope

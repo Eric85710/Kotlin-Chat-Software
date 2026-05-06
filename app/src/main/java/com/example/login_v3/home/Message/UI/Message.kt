@@ -1,9 +1,8 @@
-package com.example.login_v3.home
+package com.example.login_v3.home.Message.UI
 
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
-import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -17,10 +16,13 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Add
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
-import androidx.compose.material3.Divider
 import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
@@ -36,9 +38,9 @@ import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.compose.runtime.getValue
-import androidx.compose.ui.draw.BlurredEdgeTreatment
 import androidx.compose.ui.draw.blur
 import androidx.compose.ui.draw.clip
+import com.example.login_v3.home.Message.ViewModel.MessageViewModel
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -66,6 +68,15 @@ fun Tg_Message() {
                     containerColor = Color.Transparent,   // ⭐ 改這裡
                     titleContentColor = Color.Black
                 ),
+                actions = {
+                    // ⭐ 在這裡添加按鈕
+                    IconButton(onClick = { /* 點擊按鈕後要做的事 */ }) {
+                        Icon(
+                            imageVector = Icons.Default.Add,
+                            contentDescription = "Add Message"
+                        )
+                    }
+                },
                 modifier = Modifier
                     .background(
                         color = MaterialTheme.colorScheme.primary, // ⭐ 調低透明度
