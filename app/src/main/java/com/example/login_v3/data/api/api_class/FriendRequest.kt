@@ -1,5 +1,6 @@
 package com.example.login_v3.data.api.api_class
 
+import com.example.login_v3.R
 import com.squareup.moshi.Json
 import com.squareup.moshi.JsonClass
 
@@ -25,3 +26,12 @@ data class Friend(
     @Json(name = "accepted_at")
     val acceptedAt: String
 )
+
+val Friend.fullFriendsAvatarUrl: Any
+    get() = if (avatarUrl.isNullOrBlank()) {
+        R.drawable.avatar_v1
+    } else if (avatarUrl.startsWith("http")) {
+        avatarUrl
+    } else {
+        "http://192.168.0.217$avatarUrl"
+    }

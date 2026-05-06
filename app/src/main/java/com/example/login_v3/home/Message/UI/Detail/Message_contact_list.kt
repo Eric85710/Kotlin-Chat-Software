@@ -2,7 +2,9 @@ package com.example.login_v3.home.Message.UI.Detail
 
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyColumn
@@ -18,6 +20,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
@@ -26,6 +29,7 @@ import androidx.navigation.NavController
 import coil.compose.AsyncImage
 import com.example.login_v3.R
 import com.example.login_v3.data.api.api_class.Friend
+import com.example.login_v3.data.api.api_class.fullFriendsAvatarUrl
 import com.example.login_v3.home.Message.ViewModel.Detail.ContactListViewModel
 import com.example.login_v3.navigation.BottomBarViewModel
 
@@ -50,6 +54,8 @@ fun Message_contact_list(
         ,
         horizontalAlignment = Alignment.CenterHorizontally
     ) {
+        Spacer(modifier = Modifier.height(60.dp))
+
         if (friends.isEmpty()) {
             // 如果列表是空的，顯示提示（或載入指示器）
             Box(
@@ -82,7 +88,8 @@ fun FriendRow(friend: Friend) {
         leadingContent = {
             // 使用 Coil 載入頭像
             AsyncImage(
-                model = friend.avatarUrl,
+                model = friend.fullFriendsAvatarUrl,
+                contentScale = ContentScale.Crop,
                 contentDescription = "Avatar",
                 modifier = Modifier
                     .size(48.dp)
