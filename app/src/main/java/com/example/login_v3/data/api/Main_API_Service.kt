@@ -45,10 +45,7 @@ interface TecnologiaApi {
         @Part file: MultipartBody.Part
     ): Response<Unit>
 
-    // 發送好友請求
-    @POST("api/friends/request")
-    suspend fun sendFriendRequest(
-        @Header("Authorization") token: String,
-        @Body body: FriendRequest
-    ): Response<ApiResponse>
+    // contact
+    @GET("api/friends")
+    suspend fun getFriends(): FriendListResponse
 }
