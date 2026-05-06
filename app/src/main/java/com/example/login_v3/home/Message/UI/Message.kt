@@ -139,7 +139,7 @@ fun Loaded_Tg_Message(
                                 text = { Text("新建聯絡") },
                                 onClick = {
                                     expanded = false
-                                    /* 執行新建動作 */
+                                    navController.navigate(Screen.FriendsList.route)
                                 },
                                 colors = itemColors,
                                 leadingIcon = { Icon(Icons.Default.Create, contentDescription = null) }
@@ -148,7 +148,7 @@ fun Loaded_Tg_Message(
                                 text = { Text("好友列表") },
                                 onClick = {
                                     expanded = false
-                                    /* 執行添加動作 */
+                                    navController.navigate(Screen.CreateContact.route)
                                 },
                                 colors = itemColors,
                                 leadingIcon = { Icon(Icons.Default.Person, contentDescription = null) }
