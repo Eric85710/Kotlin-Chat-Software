@@ -48,12 +48,48 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.draw.blur
 import androidx.compose.ui.draw.clip
+import androidx.navigation.NavController
+import androidx.navigation.compose.NavHost
+import androidx.navigation.compose.composable
+import androidx.navigation.compose.rememberNavController
+import com.example.login_v3.home.Message.UI.Detail.Message_add_contact
+import com.example.login_v3.home.Message.UI.Detail.Message_contact_list
 import com.example.login_v3.home.Message.ViewModel.MessageViewModel
 
 
-@OptIn(ExperimentalMaterial3Api::class)
+sealed class Screen(val route: String) {
+    object Messages : Screen("messages")
+    object CreateContact : Screen("create_contact")
+    object FriendsList : Screen("friends_list")
+}
+
 @Composable
 fun Tg_Message() {
+    val navController = rememberNavController()
+
+    NavHost(navController = navController, startDestination = Screen.Messages.route) {
+        // 你的訊息主頁面
+        composable(Screen.Messages.route) {
+            Loaded_Tg_Message(navController)
+        }
+
+        // 新建聯絡頁面
+        composable(Screen.CreateContact.route) {
+            Message_add_contact(navController)
+        }
+
+        // 好友列表頁面
+        composable(Screen.FriendsList.route) {
+            Message_contact_list(navController)
+        }
+    }
+}
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+fun Loaded_Tg_Message(
+    navController: NavController
+) {
     val viewModel: MessageViewModel = viewModel()
     val contacts by viewModel.contacts.collectAsState()
     var expanded by remember { mutableStateOf(false) }
