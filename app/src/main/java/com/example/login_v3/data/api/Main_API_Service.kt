@@ -45,7 +45,12 @@ interface TecnologiaApi {
         @Part file: MultipartBody.Part
     ): Response<Unit>
 
-    // contact
+
+
+    // friends
     @GET("api/friends")
     suspend fun getFriends(): FriendListResponse
+
+    @GET("api/friends/pending")
+    suspend fun getFriendsPending(): PendingFriendsResponse
 }
