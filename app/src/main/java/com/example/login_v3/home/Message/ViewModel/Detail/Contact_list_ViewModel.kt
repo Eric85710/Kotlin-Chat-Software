@@ -1,5 +1,6 @@
 package com.example.login_v3.home.Message.ViewModel.Detail
 
+import android.util.Log
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.example.login_v3.data.api.api_class.Friend
@@ -25,42 +26,48 @@ class ContactListViewModel @Inject constructor(
     private val repository: FriendsRepository
 ) : ViewModel() {
 
-
     private val _uiState = MutableStateFlow(ContactUiState())
     val uiState: StateFlow<ContactUiState> = _uiState.asStateFlow()
-    private val _friends = MutableStateFlow<List<Friend>>(emptyList())
-    val friends: StateFlow<List<Friend>> = _friends
+
+    // 🚩 建議刪除獨立的 _friends，全部統一使用 _uiState
 
     init {
-        // 畫面一建立就自動抓取資料
+        refreshAll()
+    }
+
+    fun refreshAll() {
         fetchFriends()
         fetchPendingRequests()
     }
 
-
-    //friends list
     fun fetchFriends() {
         viewModelScope.launch {
             _uiState.update { it.copy(isLoading = true) }
-            repository.getFriendList()
-                .onSuccess { list ->
-                    _uiState.update { it.copy(isLoading = false, friends = list) }
-                }
-                .onFailure { error ->
-                    _uiState.update { it.copy(isLoading = false, error = error.message) }
-                }
+
+            val result = repository.getFriendList()
+
+            result.onSuccess { list ->
+                Log.d("DEBUG_API", "好友列表抓取成功，數量: ${list.size}")
+                _uiState.update { it.copy(isLoading = false, friends = list) }
+            }.onFailure { error ->
+                Log.e("DEBUG_API", "好友列表抓取失敗: ${error.message}")
+                _uiState.update { it.copy(isLoading = false, error = error.message) }
+            }
         }
     }
 
-
-    // 獲取待處理請求 (API: /api/friends/pending)
     fun fetchPendingRequests() {
         viewModelScope.launch {
-            repository.getPendingRequests()
-                .onSuccess { requests ->
-                    _uiState.update { it.copy(pendingRequests = requests) }
-                }
-                .onFailure { /* 處理錯誤 */ }
+            val result = repository.getPendingRequests()
+
+            result.onSuccess { requests ->
+                Log.d("DEBUG_API", "待處理請求抓取成功，數量: ${requests.size}")
+                _uiState.update { it.copy(pendingRequests = requests) }
+            }.onFailure { error ->
+                // 🚩 這裡一定要加 Log，否則 API 壞了你不知道
+                Log.e("DEBUG_API", "待處理請求抓取失敗: ${error.message}")
+                _uiState.update { it.copy(error = error.message) }
+            }
         }
     }
 }

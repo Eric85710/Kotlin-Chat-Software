@@ -15,6 +15,7 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.filled.Close
+import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -49,93 +50,69 @@ fun Message_contact_list(
     navController: NavController,
     contactListViewModel: ContactListViewModel = hiltViewModel(),
     bottomBarViewModel: BottomBarViewModel
-){
-
+) {
+    // 統一觀察 uiState 即可，避免觀察多個 Flow 導致狀態不同步
     val uiState by contactListViewModel.uiState.collectAsStateWithLifecycle()
-    val friends by contactListViewModel.friends.collectAsStateWithLifecycle()
+    val friends = uiState.friends // 直接從 uiState 裡面取
 
     DisposableEffect(Unit) {
         bottomBarViewModel.setVisible(false)
-        onDispose {
-            bottomBarViewModel.setVisible(true)
-        }
+        onDispose { bottomBarViewModel.setVisible(true) }
     }
 
-    Column(
+    // 使用單一 LazyColumn 處理所有內容
+    LazyColumn(
         modifier = Modifier
             .fillMaxSize()
-        ,
+            .padding(horizontal = 6.dp),
         horizontalAlignment = Alignment.CenterHorizontally
     ) {
-        Spacer(modifier = Modifier.height(60.dp))
+        // 頂部間距
+        item { Spacer(modifier = Modifier.height(60.dp)) }
 
-        //pending friends list
-        Column(
-            modifier = Modifier
-                .fillMaxWidth()
-        ) {
-                if (uiState.pendingRequests.isNotEmpty()) {
-                    LazyColumn(
-                        modifier = Modifier
-                            .fillMaxSize()
-                            .padding(6.dp)
-                    ) {
-                        item {
-                            Text(
-                                "好友請求 (${uiState.pendingRequests.size})",
-                                style = MaterialTheme.typography.titleMedium,
-                                modifier = Modifier.padding(vertical = 8.dp)
-                            )
-                        }
-                        items(uiState.pendingRequests) { request ->
-                            PendingFriendRow(request)
-                        }
-                        item { HorizontalDivider(modifier = Modifier.padding(vertical = 8.dp)) }
-                    }
-                }
-
+        // --- 區塊一：待處理好友 (只有在有資料時才顯示) ---
+        if (uiState.pendingRequests.isNotEmpty()) {
+            item {
+                Text(
+                    "好友請求 (${uiState.pendingRequests.size})",
+                    style = MaterialTheme.typography.titleMedium,
+                    modifier = Modifier.fillMaxWidth().padding(8.dp)
+                )
+            }
+            items(uiState.pendingRequests) { request ->
+                PendingFriendRow(request)
+            }
+            item { HorizontalDivider(modifier = Modifier.padding(vertical = 12.dp)) }
         }
 
-        //friends list
-        Column(
-            modifier = Modifier
-                .fillMaxWidth()
-        ) {
-            if (friends.isEmpty()) {
-                // 如果列表是空的，顯示提示（或載入指示器）
+        // --- 區塊二：正式好友標題 ---
+        item {
+            Text(
+                "所有好友",
+                style = MaterialTheme.typography.titleMedium,
+                modifier = Modifier.fillMaxWidth().padding(8.dp)
+            )
+        }
+
+        // --- 區塊三：正式好友列表內容 ---
+        if (uiState.friends.isEmpty()) {
+            item {
                 Box(
-                    modifier = Modifier.fillMaxSize().padding(6.dp),
+                    modifier = Modifier
+                        .fillParentMaxHeight(0.5f) // 佔據剩餘空間的一部分
+                        .fillMaxWidth(),
                     contentAlignment = Alignment.Center
                 ) {
-                    Text("目前沒有好友")
-                }
-            } else {
-                // 顯示好友列表
-                LazyColumn(
-                    modifier = Modifier
-                        .fillMaxSize()
-                        .padding(6.dp)
-                ) {
-                    item {
-                        Text(
-                            "所有好友",
-                            style = MaterialTheme.typography.titleMedium,
-                            modifier = Modifier.padding(vertical = 8.dp)
-                        )
-                    }
-
-                    if (uiState.friends.isEmpty() && !uiState.isLoading) {
-                        item {
-                            Box(modifier = Modifier.fillMaxWidth().padding(32.dp), contentAlignment = Alignment.Center) {
-                                Text("目前沒有好友")
-                            }
-                        }
+                    if (uiState.isLoading) {
+                        CircularProgressIndicator()
                     } else {
-                        items(uiState.friends) { friend ->
-                            FriendRow(friend)
-                        }
+                        Text("目前沒有好友")
                     }
                 }
+            }
+        } else {
+            items(uiState.friends) { friend ->
+                FriendRow(friend)
             }
         }
     }
