@@ -111,8 +111,8 @@ fun Message_contact_list(
                 }
             }
         } else {
-            items(uiState.friends) { friend ->
-                FriendRow(friend)
+            items(uiState.friends) { friends ->
+                FriendRow(friends)
             }
         }
     }
@@ -122,8 +122,8 @@ fun Message_contact_list(
 @Composable
 fun FriendRow(friend: Friend) {
     ListItem(
-        headlineContent = { Text(friend.displayName) },
-        supportingContent = { Text("@${friend.username}") },
+        headlineContent = { Text(friend.displayName ?: "未知用戶") },
+        supportingContent = { Text("@${friend.username ?: "unknown"}") },
         leadingContent = {
             // 使用 Coil 載入頭像
             AsyncImage(
@@ -138,9 +138,10 @@ fun FriendRow(friend: Friend) {
             )
         },
         trailingContent = {
+            val statusText = friend.status ?: "offline"
             // 簡單顯示狀態
             Text(
-                text = friend.status,
+                text = statusText,
                 style = MaterialTheme.typography.labelSmall,
                 color = if (friend.status == "online") Color.Green else Color.Gray
             )

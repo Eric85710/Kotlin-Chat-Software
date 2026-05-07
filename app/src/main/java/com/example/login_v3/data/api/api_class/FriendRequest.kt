@@ -11,20 +11,20 @@ data class FriendListResponse(
 @JsonClass(generateAdapter = true)
 data class Friend(
     @field:Json(name = "friend_id")
-    val friendId: String,
+    val friendId: String?, // 改為 String?
 
-    val username: String,
+    val username: String?, // 建議 username 也改可空
 
     @field:Json(name = "display_name")
-    val displayName: String,
+    val displayName: String?,
 
     @field:Json(name = "avatar_url")
-    val avatarUrl: String?, // 建議給可空性，避免後端沒傳頭像時崩潰
+    val avatarUrl: String?,
 
-    val status: String,
+    val status: String?,
 
     @field:Json(name = "accepted_at")
-    val acceptedAt: String
+    val acceptedAt: String?
 )
 val Friend.fullFriendsAvatarUrl: Any
     get() = if (avatarUrl.isNullOrBlank()) {
@@ -47,28 +47,28 @@ data class PendingFriendsResponse(
 @JsonClass(generateAdapter = true)
 data class PendingFriendApiModel(
     @field:Json(name = "friendship_id")
-    val friendshipId: String,
+    val friendshipId: String?,
 
-    val username: String,
+    val username: String?,
 
     @field:Json(name = "display_name")
     val displayName: String,
 
     @field:Json(name = "avatar_url")
-    val PendingAvatarUrl: String?,
+    val pendingAvatarUrl: String?,
 
     @field:Json(name = "from_user_id")
-    val fromUserId: String,
+    val fromUserId: String?,
 
     @field:Json(name = "created_at")
-    val createdAt: String
+    val createdAt: String?
 )
 
 val PendingFriendApiModel.fullPendingAvatarUrl: Any
-    get() = if (PendingAvatarUrl.isNullOrBlank()) {
+    get() = if (pendingAvatarUrl.isNullOrBlank()) {
         R.drawable.avatar_v1
-    } else if (PendingAvatarUrl.startsWith("http")) {
-        PendingAvatarUrl
+    } else if (pendingAvatarUrl.startsWith("http")) {
+        pendingAvatarUrl
     } else {
-        "http://192.168.0.217$PendingAvatarUrl"
+        "http://192.168.0.217$pendingAvatarUrl"
     }
