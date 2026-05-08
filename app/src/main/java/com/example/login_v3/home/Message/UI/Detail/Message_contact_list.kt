@@ -1,5 +1,6 @@
 package com.example.login_v3.home.Message.UI.Detail
 
+import android.util.Log
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -24,6 +25,7 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -152,7 +154,7 @@ fun FriendRow(friend: Friend) {
 @Composable
 fun PendingFriendRow(request: PendingFriendApiModel) {
     ListItem(
-        headlineContent = { Text(request.displayName) },
+        headlineContent = { Text("${request.displayName}") },
         supportingContent = { Text("想加你為好友") },
         leadingContent = {
             AsyncImage(

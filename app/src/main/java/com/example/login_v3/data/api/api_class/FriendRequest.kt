@@ -42,27 +42,27 @@ val Friend.fullFriendsAvatarUrl: Any
 //friends pending request
 @JsonClass(generateAdapter = true)
 data class PendingFriendsResponse(
-    @field:Json(name = "pending")
+    @Json(name = "pending") // 移除 field:
     val pendingRequests: List<PendingFriendApiModel>
 )
 
 @JsonClass(generateAdapter = true)
 data class PendingFriendApiModel(
-    @field:Json(name = "friendship_id")
+    @Json(name = "friendship_id")
     val friendshipId: String?,
 
     val username: String?,
 
-    @field:Json(name = "display_name")
-    val displayName: String,
+    @Json(name = "display_name")
+    val displayName: String?, // 建議改為可空，比較保險
 
-    @field:Json(name = "avatar_url")
+    @Json(name = "avatar_url")
     val pendingAvatarUrl: String?,
 
-    @field:Json(name = "from_user_id")
+    @Json(name = "from_user_id")
     val fromUserId: String?,
 
-    @field:Json(name = "created_at")
+    @Json(name = "created_at")
     val createdAt: String?
 )
 
