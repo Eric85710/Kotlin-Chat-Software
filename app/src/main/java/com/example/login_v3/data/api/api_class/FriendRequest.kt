@@ -6,7 +6,8 @@ import com.squareup.moshi.JsonClass
 
 @JsonClass(generateAdapter = true)
 data class FriendListResponse(
-    val friends: List<Friend>
+    // 這樣寫最安全：即便 JSON 裡少了這個欄位，也會變成 emptyList
+    val friends: List<Friend> = emptyList()
 )
 @JsonClass(generateAdapter = true)
 data class Friend(
@@ -15,10 +16,10 @@ data class Friend(
 
     val username: String?, // 建議 username 也改可空
 
-    @field:Json(name = "display_name")
+    @Json(name = "display_name") // 移除 field: 試試看
     val displayName: String?,
 
-    @field:Json(name = "avatar_url")
+    @Json(name = "avatar_url")
     val avatarUrl: String?,
 
     val status: String?,
@@ -27,12 +28,13 @@ data class Friend(
     val acceptedAt: String?
 )
 val Friend.fullFriendsAvatarUrl: Any
-    get() = if (avatarUrl.isNullOrBlank()) {
-        R.drawable.avatar_v1
-    } else if (avatarUrl.startsWith("http")) {
-        avatarUrl
-    } else {
-        "http://192.168.0.217$avatarUrl"
+    get() {
+        val url = avatarUrl ?: ""
+        return when {
+            url.isBlank() -> R.drawable.avatar_v1
+            url.startsWith("http") -> url
+            else -> "http://192.168.0.217$url"
+        }
     }
 
 

@@ -9,13 +9,14 @@ class FriendsRepository @Inject constructor(
     private val apiService: TecnologiaApi
 ) {
 
-    suspend fun getFriendList(): Result<List<Friend>>  {
+    suspend fun getFriendList(): Result<List<Friend>> {
         return try {
             val response = apiService.getFriends()
-            // 回傳成功，並直接提取裡面的 List<Friend>
-            Result.success(response.friends)
+            // 如果 apiService 直接回傳 FriendListResponse (非 Response 封裝)
+            // 則直接取用，並處理 null
+            Result.success(response.friends ?: emptyList())
         } catch (e: Exception) {
-            // 處理連線超時、404、500 等各種錯誤
+            // 這裡可以根據 e 的型別做額外處理，例如 HttpException 或 IOException
             Result.failure(e)
         }
     }
@@ -23,8 +24,8 @@ class FriendsRepository @Inject constructor(
     suspend fun getPendingRequests(): Result<List<PendingFriendApiModel>> {
         return try {
             val response = apiService.getFriendsPending()
-            // 這裡回傳 API Model，轉換邏輯可以放在 ViewModel
-            Result.success(response.pendingRequests)
+            // 這裡同樣建議處理可能為 null 的情況
+            Result.success(response.pendingRequests ?: emptyList())
         } catch (e: Exception) {
             Result.failure(e)
         }
