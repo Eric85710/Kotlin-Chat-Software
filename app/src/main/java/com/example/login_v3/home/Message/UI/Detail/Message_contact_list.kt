@@ -84,8 +84,13 @@ fun Message_contact_list(
             items(uiState.pendingRequests) { request ->
                 PendingFriendRow(
                     request,
-                    onAccept = { id -> contactListViewModel.acceptFriend(id) },
-                    onReject = { id -> /* 實作邏輯同 accept */ }
+                    isLoading = uiState.isLoading,
+                    onAccept = { _ ->
+                        request.fromUserId?.let { id -> contactListViewModel.acceptFriend(id) }
+                    },
+                    onReject = { _ ->
+                        request.fromUserId?.let { id -> contactListViewModel.rejectFriend(id) }
+                    }
                 )
             }
             item { HorizontalDivider(modifier = Modifier.padding(vertical = 12.dp)) }
@@ -158,6 +163,7 @@ fun FriendRow(friend: Friend) {
 @Composable
 fun PendingFriendRow(
     request: PendingFriendApiModel,
+    isLoading: Boolean,
     onAccept: (String) -> Unit, // 增加回呼
     onReject: (String) -> Unit  // 增加回呼
 ) {
@@ -175,14 +181,16 @@ fun PendingFriendRow(
         },
         trailingContent = {
             Row {
-                IconButton(onClick = {
-                    request.friendshipId?.let { onReject(it) }
-                }) {
+                IconButton(
+                    onClick = { request.friendshipId?.let { onReject(it) } },
+                    enabled = !isLoading // 正在載入時禁用
+                ) {
                     Icon(Icons.Default.Close, contentDescription = "拒絕", tint = Color.Red)
                 }
-                IconButton(onClick = {
-                    request.friendshipId?.let { onAccept(it) }
-                }) {
+                IconButton(
+                    onClick = { request.friendshipId?.let { onAccept(it) } },
+                    enabled = !isLoading // 正在載入時禁用
+                ) {
                     Icon(Icons.Default.Check, contentDescription = "接受", tint = Color.Green)
                 }
             }

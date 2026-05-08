@@ -58,7 +58,10 @@ class ContactListViewModel @Inject constructor(
     //accept and reject
     fun acceptFriend(friendshipId: String) {
         viewModelScope.launch {
-            // 這裡可以選擇性開啟 loading
+
+            //loading
+            _uiState.update { it.copy(isLoading = true) }
+
             val result = repository.acceptFriendRequest(friendshipId)
 
             result.onSuccess {
@@ -72,6 +75,9 @@ class ContactListViewModel @Inject constructor(
     }
     fun rejectFriend(friendshipId: String) {
         viewModelScope.launch {
+
+            _uiState.update { it.copy(isLoading = true) }
+
             val result = repository.rejectFriendRequest(friendshipId)
 
             result.onSuccess {
