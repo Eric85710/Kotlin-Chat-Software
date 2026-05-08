@@ -21,11 +21,26 @@ class FriendsRepository @Inject constructor(
         }
     }
 
+
+    //pending list
     suspend fun getPendingRequests(): Result<List<PendingFriendApiModel>> {
         return try {
             val response = apiService.getFriendsPending()
             // 這裡同樣建議處理可能為 null 的情況
             Result.success(response.pendingRequests ?: emptyList())
+        } catch (e: Exception) {
+            Result.failure(e)
+        }
+    }
+
+    suspend fun acceptFriendRequest(friendshipId: String): Result<Unit> {
+        return try {
+            val response = apiService.acceptFriendRequest(friendshipId)
+            if (response.isSuccessful) {
+                Result.success(Unit)
+            } else {
+                Result.failure(Exception("接受失敗: ${response.code()}"))
+            }
         } catch (e: Exception) {
             Result.failure(e)
         }

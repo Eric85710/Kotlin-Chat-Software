@@ -10,6 +10,7 @@ import retrofit2.http.Multipart
 import retrofit2.http.PATCH
 import retrofit2.http.POST
 import retrofit2.http.Part
+import retrofit2.http.Path
 
 interface TecnologiaApi {
 
@@ -50,7 +51,10 @@ interface TecnologiaApi {
     // friends
     @GET("api/friends")
     suspend fun getFriends(): FriendListResponse
-
     @GET("api/friends/pending")
     suspend fun getFriendsPending(): PendingFriendsResponse
+    @POST("api/friends/{id}/accept")
+    suspend fun acceptFriendRequest(
+        @Path("id") friendshipId: String
+    ): Response<Unit>
 }
