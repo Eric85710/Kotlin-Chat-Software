@@ -53,8 +53,14 @@ interface TecnologiaApi {
     suspend fun getFriends(): FriendListResponse
     @GET("api/friends/pending")
     suspend fun getFriendsPending(): PendingFriendsResponse
+
+    //accept and reject
     @POST("api/friends/{id}/accept")
     suspend fun acceptFriendRequest(
+        @Path("id") friendshipId: String
+    ): Response<Unit>
+    @POST("api/friends/{id}/reject")
+    suspend fun rejectFriendRequest(
         @Path("id") friendshipId: String
     ): Response<Unit>
 }

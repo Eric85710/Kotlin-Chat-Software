@@ -3,6 +3,7 @@ package com.example.login_v3.data.repository.basic
 import com.example.login_v3.data.api.TecnologiaApi
 import com.example.login_v3.data.api.api_class.Friend
 import com.example.login_v3.data.api.api_class.PendingFriendApiModel
+import retrofit2.Response
 import javax.inject.Inject
 
 class FriendsRepository @Inject constructor(
@@ -33,14 +34,22 @@ class FriendsRepository @Inject constructor(
         }
     }
 
-    suspend fun acceptFriendRequest(friendshipId: String): Result<Unit> {
+    // 接受
+    suspend fun acceptFriendRequest(id: String) = safeApiCall {
+        apiService.acceptFriendRequest(id)
+    }
+
+    // 拒絕
+    suspend fun rejectFriendRequest(id: String) = safeApiCall {
+        apiService.rejectFriendRequest(id)
+    }
+
+    // 統一處理 Response<Unit> 的工具函式
+    private suspend fun safeApiCall(call: suspend () -> Response<Unit>): Result<Unit> {
         return try {
-            val response = apiService.acceptFriendRequest(friendshipId)
-            if (response.isSuccessful) {
-                Result.success(Unit)
-            } else {
-                Result.failure(Exception("接受失敗: ${response.code()}"))
-            }
+            val response = call()
+            if (response.isSuccessful) Result.success(Unit)
+            else Result.failure(Exception("API 錯誤: ${response.code()}"))
         } catch (e: Exception) {
             Result.failure(e)
         }

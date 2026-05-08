@@ -53,4 +53,33 @@ class ContactListViewModel @Inject constructor(
             }
         }
     }
+
+
+    //accept and reject
+    fun acceptFriend(friendshipId: String) {
+        viewModelScope.launch {
+            // 這裡可以選擇性開啟 loading
+            val result = repository.acceptFriendRequest(friendshipId)
+
+            result.onSuccess {
+                // 關鍵：重新整理資料，讓 UI 自動更新
+                refreshAll()
+            }.onFailure { error ->
+                Log.e("DEBUG_API", "接受請求錯誤: ${error.message}")
+                _uiState.update { it.copy(error = "無法接受請求：${error.message}") }
+            }
+        }
+    }
+    fun rejectFriend(friendshipId: String) {
+        viewModelScope.launch {
+            val result = repository.rejectFriendRequest(friendshipId)
+
+            result.onSuccess {
+                refreshAll() // 刷新列表，該筆請求會消失
+            }.onFailure { error ->
+                Log.e("DEBUG_API", "拒絕請求錯誤: ${error.message}")
+                _uiState.update { it.copy(error = "無法拒絕請求：${error.message}") }
+            }
+        }
+    }
 }
