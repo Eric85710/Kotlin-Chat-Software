@@ -1,6 +1,7 @@
 package com.example.login_v3.data.repository.basic
 
 import com.example.login_v3.data.api.TecnologiaApi
+import com.example.login_v3.data.api.api_class.AddFriendRequest
 import com.example.login_v3.data.api.api_class.Friend
 import com.example.login_v3.data.api.api_class.PendingFriendApiModel
 import retrofit2.Response
@@ -54,4 +55,13 @@ class FriendsRepository @Inject constructor(
             Result.failure(e)
         }
     }
+    //add friends
+    suspend fun sendFriendRequest(friendId: String): Result<Unit> {
+        return safeApiCall {
+            // 確保這裡的參數名稱與 Data Class 定義的一模一樣
+            val request = AddFriendRequest(friendId = friendId)
+            apiService.sendFriendRequest(request)
+        }
+    }
+
 }

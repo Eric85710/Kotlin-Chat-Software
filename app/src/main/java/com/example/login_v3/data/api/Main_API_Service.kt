@@ -65,4 +65,11 @@ interface TecnologiaApi {
     suspend fun rejectFriendRequest(
         @Path("fromUserId") fromUserId: String
     ): Response<Unit>
+
+    // add friends
+    @POST("api/friends/request")
+    suspend fun sendFriendRequest(
+        @Body request: AddFriendRequest
+    ): Response<Unit>
+
 }

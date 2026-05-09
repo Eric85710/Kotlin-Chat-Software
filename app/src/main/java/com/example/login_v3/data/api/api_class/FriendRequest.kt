@@ -65,6 +65,10 @@ data class PendingFriendApiModel(
     @Json(name = "created_at")
     val createdAt: String?
 )
+//add friends
+data class AddFriendRequest(
+    @Json(name = "friend_id") val friendId: String
+)
 
 val PendingFriendApiModel.fullPendingAvatarUrl: Any
     get() = if (pendingAvatarUrl.isNullOrBlank()) {
