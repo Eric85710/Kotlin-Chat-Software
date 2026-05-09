@@ -66,6 +66,7 @@ data class PendingFriendApiModel(
     val createdAt: String?
 )
 //add friends
+@JsonClass(generateAdapter = true)
 data class AddFriendRequest(
     @Json(name = "friend_id") val friendId: String
 )

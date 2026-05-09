@@ -55,6 +55,7 @@ class FriendsRepository @Inject constructor(
             Result.failure(e)
         }
     }
+
     //add friends
     suspend fun sendFriendRequest(friendId: String): Result<Unit> {
         return safeApiCall {
