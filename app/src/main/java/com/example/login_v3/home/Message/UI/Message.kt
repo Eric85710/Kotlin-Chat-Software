@@ -1,5 +1,7 @@
 package com.example.login_v3.home.Message.UI
 
+import androidx.compose.animation.AnimatedContentTransitionScope
+import androidx.compose.animation.core.tween
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
@@ -74,7 +76,38 @@ fun Tg_Message(
 ) {
     val navController = rememberNavController()
 
-    NavHost(navController = navController, startDestination = Screen.Messages.route) {
+    NavHost(
+        navController = navController,
+        startDestination = Screen.Messages.route,
+        // 進入時的動畫（新頁面出現）
+        enterTransition = {
+            slideIntoContainer(
+                towards = AnimatedContentTransitionScope.SlideDirection.Left,
+                animationSpec = tween(700)
+            )
+        },
+        // 退出時的動畫（舊頁面消失）
+        exitTransition = {
+            slideOutOfContainer(
+                towards = AnimatedContentTransitionScope.SlideDirection.Left,
+                animationSpec = tween(700)
+            )
+        },
+        // 按返回鍵進入時的動畫
+        popEnterTransition = {
+            slideIntoContainer(
+                towards = AnimatedContentTransitionScope.SlideDirection.Right,
+                animationSpec = tween(700)
+            )
+        },
+        // 按返回鍵退出時的動畫
+        popExitTransition = {
+            slideOutOfContainer(
+                towards = AnimatedContentTransitionScope.SlideDirection.Right,
+                animationSpec = tween(700)
+            )
+        }
+    ) {
         // 你的訊息主頁面
         composable(Screen.Messages.route) {
             Loaded_Tg_Message(navController)
