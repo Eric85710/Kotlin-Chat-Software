@@ -1,6 +1,9 @@
 package com.example.login_v3.home.Message.UI.Detail
 
 import android.util.Log
+import androidx.compose.foundation.background
+import androidx.compose.foundation.border
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -14,10 +17,13 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material3.Button
+import androidx.compose.material3.Card
+import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
@@ -25,6 +31,7 @@ import androidx.compose.material3.IconButton
 import androidx.compose.material3.ListItem
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
+import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
@@ -38,13 +45,18 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavController
 import coil.compose.AsyncImage
+import coil.request.ImageRequest
 import com.example.login_v3.R
 import com.example.login_v3.data.api.api_class.Friend
 import com.example.login_v3.data.api.api_class.PendingFriendApiModel
@@ -148,33 +160,108 @@ fun Message_contact_list(
 
 //friends list
 @Composable
-fun FriendRow(friend: Friend) {
-    ListItem(
-        headlineContent = { Text(friend.displayName ?: "未知用戶") },
-        supportingContent = { Text("@${friend.username ?: "unknown"}") },
-        leadingContent = {
-            // 使用 Coil 載入頭像
-            AsyncImage(
-                model = friend.fullFriendsAvatarUrl,
-                contentScale = ContentScale.Crop,
-                contentDescription = "Avatar",
+fun FriendRow(
+    friend: Friend,
+    onClick: () -> Unit = {} // 建議加入點擊事件，例如跳轉聊天室
+) {
+    // 定義狀態顏色
+    val statusColor = when (friend.status?.lowercase()) {
+        "online" -> Color(0xFF4CAF50) // 鮮豔的綠色
+        "busy" -> Color(0xFFF44336)   // 紅色
+        else -> Color(0xFF9E9E9E)     // 灰色 (offline/away)
+    }
+
+    Card(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(vertical = 4.dp, horizontal = 2.dp) // 外間距
+            .clickable(onClick = onClick),
+        shape = RoundedCornerShape(12.dp), // 圓角
+        colors = CardDefaults.cardColors(
+            containerColor = MaterialTheme.colorScheme.primary // 使用 Surface 顏色
+        ),
+        elevation = CardDefaults.cardElevation(defaultElevation = 0.dp)
+    ) {
+        Row(
+            modifier = Modifier
+                .padding(16.dp) // 內邊距
+                .fillMaxWidth(),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            // 1. 大頭貼 (左側)
+            Box(contentAlignment = Alignment.BottomEnd) {
+                AsyncImage(
+                    model = ImageRequest.Builder(LocalContext.current)
+                        .data(friend.fullFriendsAvatarUrl)
+                        .crossfade(true)
+                        .build(),
+                    contentDescription = "Avatar of ${friend.displayName}",
+                    contentScale = ContentScale.Crop,
+                    modifier = Modifier
+                        .size(52.dp) // 稍微加大一點
+                        .clip(CircleShape)
+                        .border(1.dp, MaterialTheme.colorScheme.outlineVariant, CircleShape), // 加入細邊框
+                    placeholder = painterResource(id = R.drawable.avatar_v1),
+                    error = painterResource(id = R.drawable.avatar_v1)
+                )
+
+                // 狀態圓點疊加在頭像右下角
+                Surface(
+                    color = statusColor,
+                    shape = CircleShape,
+                    modifier = Modifier
+                        .size(14.dp)
+                        .border(2.dp, MaterialTheme.colorScheme.surface, CircleShape) // 白色外圈
+                ) {}
+            }
+
+            Spacer(modifier = Modifier.width(16.dp))
+
+            // 2. 文字資訊 (中間)
+            Column(
+                modifier = Modifier.weight(1f)
+            ) {
+                Text(
+                    text = friend.displayName ?: "未知用戶",
+                    style = MaterialTheme.typography.titleMedium.copy(
+                        fontWeight = FontWeight.Bold,
+                        letterSpacing = 0.5.sp
+                    ),
+                    color = MaterialTheme.colorScheme.onBackground,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis
+                )
+
+                Spacer(modifier = Modifier.height(2.dp))
+
+                Text(
+                    text = "@${friend.username ?: "unknown"}",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onBackground,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis
+                )
+            }
+
+            val isOnline = friend.status?.lowercase() == "online"
+            // 定義圓點顏色
+            val dotColor = if (isOnline) {
+                Color(0xFF4CAF50) // 綠色 (Online)
+            } else {
+                Color(0xFF9E9E9E) // 灰色 (Offline)
+            }
+
+            // 實作圓點
+            Box(
                 modifier = Modifier
-                    .size(48.dp)
-                    .clip(CircleShape),
-                placeholder = painterResource(id = R.drawable.avatar_v1),
-                error = painterResource(id = R.drawable.avatar_v1)
+                    .size(10.dp) // 圓點大小
+                    .clip(CircleShape)
+                    .background(dotColor)
             )
-        },
-        trailingContent = {
-            val statusText = friend.status ?: "offline"
-            // 簡單顯示狀態
-            Text(
-                text = statusText,
-                style = MaterialTheme.typography.labelSmall,
-                color = if (friend.status == "online") Color.Green else Color.Gray
-            )
+
+            Spacer(modifier = Modifier.width(10.dp))
         }
-    )
+    }
 }
 
 @Composable
