@@ -1,9 +1,11 @@
 package com.example.login_v3.data.repository.basic
 
+import android.util.Log
 import com.example.login_v3.data.api.TecnologiaApi
 import com.example.login_v3.data.api.api_class.AddFriendRequest
 import com.example.login_v3.data.api.api_class.Friend
 import com.example.login_v3.data.api.api_class.PendingFriendApiModel
+import com.example.login_v3.data.api.api_class.UserDetail
 import retrofit2.Response
 import javax.inject.Inject
 
@@ -45,23 +47,51 @@ class FriendsRepository @Inject constructor(
         apiService.rejectFriendRequest(id)
     }
 
-    // 統一處理 Response<Unit> 的工具函式
+    //add friends
+    suspend fun sendFriendRequest(friendId: String): Result<Unit> {
+        Log.d("API_DEBUG", "準備發送好友申請，目標 ID: $friendId")
+        val result = safeApiCall {
+            val request = AddFriendRequest(friendId = friendId)
+            apiService.sendFriendRequest(request)
+        }
+        result.onFailure { Log.e("API_DEBUG", "sendFriendRequest 最終失敗: ${it.message}") }
+        return result
+    }
+
+    // 2. 確保「全類別」只有這一個 safeApiCall 函式
     private suspend fun safeApiCall(call: suspend () -> Response<Unit>): Result<Unit> {
         return try {
             val response = call()
-            if (response.isSuccessful) Result.success(Unit)
-            else Result.failure(Exception("API 錯誤: ${response.code()}"))
+            if (response.isSuccessful) {
+                Log.d("API_DEBUG", "請求成功: ${response.raw().request.url}")
+                Result.success(Unit)
+            } else {
+                val errorBody = response.errorBody()?.string()
+                val errorCode = response.code()
+                val errorMessage = "API 錯誤 $errorCode: $errorBody"
+                Log.e("API_DEBUG", errorMessage)
+                Result.failure(Exception(errorMessage))
+            }
         } catch (e: Exception) {
+            Log.e("API_DEBUG", "連線或執行異常: ${e.message}", e)
             Result.failure(e)
         }
     }
 
-    //add friends
-    suspend fun sendFriendRequest(friendId: String): Result<Unit> {
-        return safeApiCall {
-            // 確保這裡的參數名稱與 Data Class 定義的一模一樣
-            val request = AddFriendRequest(friendId = friendId)
-            apiService.sendFriendRequest(request)
+    // 搜尋使用者
+    suspend fun searchUsers(keyword: String): Result<List<UserDetail>> {
+        return try {
+            val response = apiService.searchUsers(keyword)
+
+            // 這裡做一個「結構轉換」
+            // 假設 additionalProp1 裡面裝的是我們想要的資料
+            // 如果 response.additionalProp1 是 Map，我們可以取其 Values 轉成 List
+            val userList = response.additionalProp1.values.toList()
+
+            Result.success(userList)
+        } catch (e: Exception) {
+            Log.e("API_DEBUG", "搜尋失敗: ${e.message}")
+            Result.failure(e)
         }
     }
 

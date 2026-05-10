@@ -79,3 +79,13 @@ val PendingFriendApiModel.fullPendingAvatarUrl: Any
     } else {
         "http://192.168.0.217$pendingAvatarUrl"
     }
+
+// 根據你說的 API 回傳格式定義
+data class UserSearchResponse(
+    val additionalProp1: Map<String, UserDetail> // 假設它是一個物件對應
+)
+
+data class UserDetail(
+    val id: String,
+    val name: String
+)

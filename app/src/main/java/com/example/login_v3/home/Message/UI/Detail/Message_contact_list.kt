@@ -61,6 +61,8 @@ fun Message_contact_list(
 ) {
     // 統一觀察 uiState 即可，避免觀察多個 Flow 導致狀態不同步
     val uiState by contactListViewModel.uiState.collectAsStateWithLifecycle()
+    // 判斷目前是否處於「搜尋模式」
+    val isSearching = uiState.searchQuery.isNotBlank()
     val friends = uiState.friends // 直接從 uiState 裡面取
 
     DisposableEffect(Unit) {

@@ -5,8 +5,11 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.example.login_v3.data.api.api_class.Friend
 import com.example.login_v3.data.api.api_class.PendingFriendApiModel
+import com.example.login_v3.data.api.api_class.UserDetail
 import com.example.login_v3.data.repository.basic.FriendsRepository
 import dagger.hilt.android.lifecycle.HiltViewModel
+import kotlinx.coroutines.Job
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -19,6 +22,9 @@ data class ContactUiState(
     val isLoading: Boolean = false,
     val friends: List<Friend> = emptyList(),
     val pendingRequests: List<PendingFriendApiModel> = emptyList(),
+    // 新增：搜尋結果與關鍵字
+    val searchResults: List<UserDetail> = emptyList(),
+    val searchQuery: String = "",
     val error: String? = null
 )
 @HiltViewModel
@@ -110,6 +116,45 @@ class ContactListViewModel @Inject constructor(
                     )
                 }
             }
+        }
+    }
+
+    private var searchJob: Job? = null
+
+    fun onSearchQueryChanged(newQuery: String) {
+        // 更新 UI 上的輸入文字
+        _uiState.update { it.copy(searchQuery = newQuery) }
+
+        // 如果關鍵字為空，清空搜尋結果並返回
+        if (newQuery.isBlank()) {
+            _uiState.update { it.copy(searchResults = emptyList()) }
+            return
+        }
+
+        // --- 防抖處理 (Debounce) ---
+        searchJob?.cancel() // 取消前一個還在跑的搜尋
+        searchJob = viewModelScope.launch {
+            delay(500) // 使用者停頓 0.5 秒後才真正發出請求
+            performSearch(newQuery)
+        }
+    }
+
+    private suspend fun performSearch(query: String) {
+        _uiState.update { it.copy(isLoading = true) }
+
+        val result = repository.searchUsers(query)
+
+        result.onSuccess { users ->
+            _uiState.update { it.copy(
+                isLoading = false,
+                searchResults = users,
+                error = null
+            )}
+        }.onFailure { error ->
+            _uiState.update { it.copy(
+                isLoading = false,
+                error = "搜尋失敗: ${error.message}"
+            )}
         }
     }
 }
