@@ -130,6 +130,7 @@ fun Message_contact_list(
                         onAddFriend = { contactListViewModel.sendFriendRequest(user.id) }
                     )
                 }
+                item { Spacer(modifier = Modifier.height(40.dp)) }
             }
 
 
