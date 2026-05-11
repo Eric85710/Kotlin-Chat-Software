@@ -1,9 +1,13 @@
 package com.example.login_v3.home.Message.UI.Detail
 
 import android.util.Log
+import androidx.compose.animation.animateContentSize
+import androidx.compose.animation.core.Spring
+import androidx.compose.animation.core.spring
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -21,14 +25,23 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.Chat
+import androidx.compose.material.icons.filled.Call
+import androidx.compose.material.icons.filled.Chat
 import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.filled.Close
+import androidx.compose.material.icons.filled.ExpandLess
+import androidx.compose.material.icons.filled.ExpandMore
+import androidx.compose.material.icons.filled.MoreHoriz
+import androidx.compose.material.icons.filled.Person
 import androidx.compose.material.icons.filled.PersonAdd
 import androidx.compose.material.icons.filled.Search
+import androidx.compose.material.icons.filled.VideoCall
 import androidx.compose.material3.Button
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.material3.Divider
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -130,7 +143,7 @@ fun Message_contact_list(
                         onAddFriend = { contactListViewModel.sendFriendRequest(user.id) }
                     )
                 }
-                item { Spacer(modifier = Modifier.height(40.dp)) }
+                item { Spacer(modifier = Modifier.height(60.dp)) }
             }
 
 
@@ -205,6 +218,9 @@ fun FriendRow(
     friend: Friend,
     onClick: () -> Unit = {} // 建議加入點擊事件，例如跳轉聊天室
 ) {
+    // 1. 定義展開狀態
+    var isExpanded by remember { mutableStateOf(false) }
+
     // 定義狀態顏色
     val statusColor = when (friend.status?.lowercase()) {
         "online" -> Color(0xFF4CAF50) // 鮮豔的綠色
@@ -216,92 +232,140 @@ fun FriendRow(
         modifier = Modifier
             .fillMaxWidth()
             .padding(vertical = 4.dp, horizontal = 2.dp) // 外間距
-            .clickable(onClick = onClick),
+            .animateContentSize(
+                animationSpec = spring(
+                    dampingRatio = Spring.DampingRatioLowBouncy,
+                    stiffness = Spring.StiffnessLow
+                )
+            )
+            .clickable {
+                isExpanded = !isExpanded // 點擊切換展開/縮合
+                // 如果原本的 onClick 還有其他用途（如跳轉）可以保留
+                // onClick()
+            }
+        ,
         shape = RoundedCornerShape(12.dp), // 圓角
         colors = CardDefaults.cardColors(
             containerColor = MaterialTheme.colorScheme.primary // 使用 Surface 顏色
         ),
         elevation = CardDefaults.cardElevation(defaultElevation = 0.dp)
     ) {
-        Row(
-            modifier = Modifier
-                .padding(16.dp) // 內邊距
-                .fillMaxWidth(),
-            verticalAlignment = Alignment.CenterVertically
-        ) {
-            // 1. 大頭貼 (左側)
-            Box(contentAlignment = Alignment.BottomEnd) {
-                AsyncImage(
-                    model = ImageRequest.Builder(LocalContext.current)
-                        .data(friend.fullFriendsAvatarUrl)
-                        .crossfade(true)
-                        .build(),
-                    contentDescription = "Avatar of ${friend.displayName}",
-                    contentScale = ContentScale.Crop,
-                    modifier = Modifier
-                        .size(52.dp) // 稍微加大一點
-                        .clip(CircleShape)
-                        .border(1.dp, MaterialTheme.colorScheme.outlineVariant, CircleShape), // 加入細邊框
-                    placeholder = painterResource(id = R.drawable.avatar_v1),
-                    error = painterResource(id = R.drawable.avatar_v1)
-                )
 
-                // 狀態圓點疊加在頭像右下角
-                Surface(
-                    color = statusColor,
-                    shape = CircleShape,
-                    modifier = Modifier
-                        .size(14.dp)
-                        .border(2.dp, MaterialTheme.colorScheme.surface, CircleShape) // 白色外圈
-                ) {}
-            }
-
-            Spacer(modifier = Modifier.width(16.dp))
-
-            // 2. 文字資訊 (中間)
-            Column(
-                modifier = Modifier.weight(1f)
-            ) {
-                Text(
-                    text = friend.displayName ?: "未知用戶",
-                    style = MaterialTheme.typography.titleMedium.copy(
-                        fontWeight = FontWeight.Bold,
-                        letterSpacing = 0.5.sp
-                    ),
-                    color = MaterialTheme.colorScheme.onBackground,
-                    maxLines = 1,
-                    overflow = TextOverflow.Ellipsis
-                )
-
-                Spacer(modifier = Modifier.height(2.dp))
-
-                Text(
-                    text = "@${friend.username ?: "unknown"}",
-                    style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onBackground,
-                    maxLines = 1,
-                    overflow = TextOverflow.Ellipsis
-                )
-            }
-
-            val isOnline = friend.status?.lowercase() == "online"
-            // 定義圓點顏色
-            val dotColor = if (isOnline) {
-                Color(0xFF4CAF50) // 綠色 (Online)
-            } else {
-                Color(0xFF9E9E9E) // 灰色 (Offline)
-            }
-
-            // 實作圓點
-            Box(
+        Column() {
+            Row(
                 modifier = Modifier
-                    .size(10.dp) // 圓點大小
-                    .clip(CircleShape)
-                    .background(dotColor)
-            )
+                    .padding(16.dp) // 內邊距
+                    .fillMaxWidth(),
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                // 1. 大頭貼 (左側)
+                Box(contentAlignment = Alignment.BottomEnd) {
+                    AsyncImage(
+                        model = ImageRequest.Builder(LocalContext.current)
+                            .data(friend.fullFriendsAvatarUrl)
+                            .crossfade(true)
+                            .build(),
+                        contentDescription = "Avatar of ${friend.displayName}",
+                        contentScale = ContentScale.Crop,
+                        modifier = Modifier
+                            .size(52.dp) // 稍微加大一點
+                            .clip(CircleShape)
+                            .border(1.dp, MaterialTheme.colorScheme.outlineVariant, CircleShape), // 加入細邊框
+                        placeholder = painterResource(id = R.drawable.avatar_v1),
+                        error = painterResource(id = R.drawable.avatar_v1)
+                    )
 
-            Spacer(modifier = Modifier.width(10.dp))
+                    // 狀態圓點疊加在頭像右下角
+                    Surface(
+                        color = statusColor,
+                        shape = CircleShape,
+                        modifier = Modifier
+                            .size(14.dp)
+                            .border(2.dp, MaterialTheme.colorScheme.surface, CircleShape) // 白色外圈
+                    ) {}
+                }
+
+                Spacer(modifier = Modifier.width(16.dp))
+
+                // 2. 文字資訊 (中間)
+                Column(
+                    modifier = Modifier.weight(1f)
+                ) {
+                    Text(
+                        text = friend.displayName ?: "未知用戶",
+                        style = MaterialTheme.typography.titleMedium.copy(
+                            fontWeight = FontWeight.Bold,
+                            letterSpacing = 0.5.sp
+                        ),
+                        color = MaterialTheme.colorScheme.onBackground,
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis
+                    )
+
+                    Spacer(modifier = Modifier.height(2.dp))
+
+                    Text(
+                        text = "@${friend.username ?: "unknown"}",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onBackground,
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis
+                    )
+                }
+
+                val isOnline = friend.status?.lowercase() == "online"
+                // 定義圓點顏色
+                val dotColor = if (isOnline) {
+                    Color(0xFF4CAF50) // 綠色 (Online)
+                } else {
+                    Color(0xFF9E9E9E) // 灰色 (Offline)
+                }
+
+                // 實作圓點
+                Box(
+                    modifier = Modifier
+                        .size(10.dp) // 圓點大小
+                        .clip(CircleShape)
+                        .background(dotColor)
+                )
+
+                Spacer(modifier = Modifier.width(10.dp))
+            }
+
+            // 3. 展開後才顯示的五個內容按鈕
+            if (isExpanded) {
+                Divider(
+                    modifier = Modifier.padding(horizontal = 16.dp),
+                    thickness = 0.5.dp,
+                    color = MaterialTheme.colorScheme.outlineVariant
+                )
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(8.dp),
+                    horizontalArrangement = Arrangement.SpaceEvenly // 均勻分佈
+                ) {
+                    val icons = listOf(
+                        Icons.Default.Chat,
+                        Icons.Default.Call,
+                        Icons.Default.VideoCall,
+                        Icons.Default.Person,
+                        Icons.Default.MoreHoriz
+                    )
+
+                    icons.forEach { icon ->
+                        IconButton(onClick = { /* 執行功能 */ }) {
+                            Icon(
+                                imageVector = icon,
+                                contentDescription = null,
+                                tint = MaterialTheme.colorScheme.primary
+                            )
+                        }
+                    }
+                }
+            }
         }
+
     }
 }
 
