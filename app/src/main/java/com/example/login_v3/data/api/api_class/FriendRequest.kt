@@ -4,6 +4,8 @@ import com.example.login_v3.R
 import com.squareup.moshi.Json
 import com.squareup.moshi.JsonClass
 
+
+//get friends list
 @JsonClass(generateAdapter = true)
 data class FriendListResponse(
     // 這樣寫最安全：即便 JSON 裡少了這個欄位，也會變成 emptyList
@@ -65,12 +67,6 @@ data class PendingFriendApiModel(
     @Json(name = "created_at")
     val createdAt: String?
 )
-//add friends
-@JsonClass(generateAdapter = true)
-data class AddFriendRequest(
-    @Json(name = "friend_id") val friendId: String
-)
-
 val PendingFriendApiModel.fullPendingAvatarUrl: Any
     get() = if (pendingAvatarUrl.isNullOrBlank()) {
         R.drawable.avatar_v1
@@ -80,12 +76,27 @@ val PendingFriendApiModel.fullPendingAvatarUrl: Any
         "http://192.168.0.217$pendingAvatarUrl"
     }
 
-// 根據你說的 API 回傳格式定義
+
+
+//add friends
+@JsonClass(generateAdapter = true)
+data class AddFriendRequest(
+    @Json(name = "friend_id") val friendId: String
+)
+
+//user search
 data class UserSearchResponse(
-    val additionalProp1: Map<String, UserDetail> // 假設它是一個物件對應
+    val count: Int,
+    val users: List<UserDetail>
 )
 
 data class UserDetail(
     val id: String,
-    val name: String
+    val username: String,
+    val display_name: String,
+    val avatar_url: String?, // 考慮到可能是 null，建議加上 ?
+    val banner_url: String?,
+    val bio: String?,
+    val status: String?,
+    val created_at: String
 )
