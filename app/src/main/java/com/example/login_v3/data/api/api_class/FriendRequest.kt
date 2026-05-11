@@ -100,7 +100,7 @@ data class UserDetail(
     val displayName: String,
 
     @Json(name = "avatar_url")
-    val avatarUrl: String?,
+    val SearchAvatarUrl: String?,
 
     @Json(name = "banner_url")
     val bannerUrl: String?,
@@ -111,3 +111,12 @@ data class UserDetail(
     @Json(name = "created_at")
     val createdAt: String
 )
+
+val UserDetail.fullSearchedAvatarUrl: Any
+    get() = if (SearchAvatarUrl.isNullOrBlank()) {
+        R.drawable.avatar_v1
+    } else if (SearchAvatarUrl.startsWith("http")) {
+        SearchAvatarUrl
+    } else {
+        "http://192.168.0.217$SearchAvatarUrl"
+    }

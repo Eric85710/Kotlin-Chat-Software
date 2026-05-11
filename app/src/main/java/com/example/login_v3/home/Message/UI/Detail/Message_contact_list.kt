@@ -70,6 +70,7 @@ import com.example.login_v3.data.api.api_class.fullPendingAvatarUrl
 import com.example.login_v3.home.Message.ViewModel.Detail.ContactListViewModel
 import com.example.login_v3.navigation.BottomBarViewModel
 import androidx.compose.ui.text.input.ImeAction
+import com.example.login_v3.data.api.api_class.fullSearchedAvatarUrl
 
 
 @Composable
@@ -421,7 +422,7 @@ fun SearchResultRow(
         ) {
             // 這裡放頭像
             AsyncImage(
-                model = user.avatarUrl,
+                model = user.fullSearchedAvatarUrl,
                 contentDescription = null,
                 modifier = Modifier.size(40.dp).clip(CircleShape)
             )
