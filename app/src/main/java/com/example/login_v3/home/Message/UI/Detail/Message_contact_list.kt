@@ -18,9 +18,13 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.text.KeyboardActions
+import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.filled.Close
+import androidx.compose.material.icons.filled.PersonAdd
+import androidx.compose.material.icons.filled.Search
 import androidx.compose.material3.Button
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
@@ -60,10 +64,13 @@ import coil.request.ImageRequest
 import com.example.login_v3.R
 import com.example.login_v3.data.api.api_class.Friend
 import com.example.login_v3.data.api.api_class.PendingFriendApiModel
+import com.example.login_v3.data.api.api_class.UserDetail
 import com.example.login_v3.data.api.api_class.fullFriendsAvatarUrl
 import com.example.login_v3.data.api.api_class.fullPendingAvatarUrl
 import com.example.login_v3.home.Message.ViewModel.Detail.ContactListViewModel
 import com.example.login_v3.navigation.BottomBarViewModel
+import androidx.compose.ui.text.input.ImeAction
+
 
 @Composable
 fun Message_contact_list(
@@ -74,7 +81,6 @@ fun Message_contact_list(
     // 統一觀察 uiState 即可，避免觀察多個 Flow 導致狀態不同步
     val uiState by contactListViewModel.uiState.collectAsStateWithLifecycle()
     // 判斷目前是否處於「搜尋模式」
-    val isSearching = uiState.searchQuery.isNotBlank()
     val friends = uiState.friends // 直接從 uiState 裡面取
 
     DisposableEffect(Unit) {
@@ -89,15 +95,38 @@ fun Message_contact_list(
             .padding(horizontal = 6.dp),
         horizontalAlignment = Alignment.CenterHorizontally
     ) {
+
         // 頂部間距
         item { Spacer(modifier = Modifier.height(60.dp)) }
 
-        //add friends
+        // --- 搜尋框 ---
         item {
-            AddUserBar(
-                isLoading = uiState.isLoading,
-                onSendRequest = { id -> contactListViewModel.sendFriendRequest(id) }
+            UserSearchBar(
+                query = uiState.searchQuery,
+                onQueryChange = { contactListViewModel.onSearchQueryChanged(it) },
+                onSearch = { contactListViewModel.performSearch() },
+                isLoading = uiState.isLoading
             )
+        }
+
+        // --- 搜尋結果區塊 (僅在有結果時顯示) ---
+        if (uiState.searchResults.isNotEmpty()) {
+            item {
+                Text(
+                    "搜尋結果",
+                    style = MaterialTheme.typography.titleMedium,
+                    modifier = Modifier.fillMaxWidth().padding(8.dp),
+                    color = MaterialTheme.colorScheme.primary
+                )
+            }
+            items(uiState.searchResults) { user ->
+                // 這裡你可以自定義搜尋結果的 Row
+                SearchResultRow(
+                    user = user,
+                    onAddFriend = { contactListViewModel.sendFriendRequest(user.id) }
+                )
+            }
+            item { HorizontalDivider(modifier = Modifier.padding(vertical = 12.dp)) }
         }
 
         // --- 區塊一：待處理好友 (只有在有資料時才顯示) ---
@@ -344,6 +373,66 @@ fun PendingFriendRow(
                 )
             } else {
                 Text("新增")
+            }
+        }
+    }
+}
+
+
+//search user
+@Composable
+fun UserSearchBar(
+    query: String,
+    onQueryChange: (String) -> Unit,
+    onSearch: () -> Unit,
+    isLoading: Boolean
+) {
+    OutlinedTextField(
+        value = query,
+        onValueChange = onQueryChange,
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(8.dp),
+        placeholder = { Text("搜尋使用者 ID 或名稱...") },
+        leadingIcon = { Icon(Icons.Default.Search, contentDescription = null) },
+        trailingIcon = {
+            if (isLoading) {
+                CircularProgressIndicator(modifier = Modifier.size(24.dp), strokeWidth = 2.dp)
+            }
+        },
+        singleLine = true,
+        keyboardOptions = KeyboardOptions(imeAction = ImeAction.Search),
+        keyboardActions = KeyboardActions(onSearch = { onSearch() }),
+        shape = RoundedCornerShape(12.dp)
+    )
+}
+@Composable
+fun SearchResultRow(
+    user: UserDetail,
+    onAddFriend: () -> Unit
+) {
+    Card(
+        modifier = Modifier.fillMaxWidth().padding(vertical = 4.dp),
+        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant)
+    ) {
+        Row(
+            modifier = Modifier.padding(12.dp),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            // 這裡放頭像
+            AsyncImage(
+                model = user.avatarUrl,
+                contentDescription = null,
+                modifier = Modifier.size(40.dp).clip(CircleShape)
+            )
+
+            Column(modifier = Modifier.weight(1f).padding(horizontal = 12.dp)) {
+                Text(user.displayName, style = MaterialTheme.typography.bodyLarge)
+                Text("@${user.username}", style = MaterialTheme.typography.bodySmall)
+            }
+
+            IconButton(onClick = onAddFriend) {
+                Icon(Icons.Default.PersonAdd, contentDescription = "加好友")
             }
         }
     }
