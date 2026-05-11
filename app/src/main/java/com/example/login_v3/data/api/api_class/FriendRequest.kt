@@ -85,18 +85,29 @@ data class AddFriendRequest(
 )
 
 //user search
+@JsonClass(generateAdapter = true)
 data class UserSearchResponse(
     val count: Int,
     val users: List<UserDetail>
 )
 
+@JsonClass(generateAdapter = true) // 內部類別也一定要加！
 data class UserDetail(
     val id: String,
     val username: String,
-    val display_name: String,
-    val avatar_url: String?, // 考慮到可能是 null，建議加上 ?
-    val banner_url: String?,
+
+    @Json(name = "display_name") // 這樣你的 Kotlin 代碼可以用漂亮的 displayName
+    val displayName: String,
+
+    @Json(name = "avatar_url")
+    val avatarUrl: String?,
+
+    @Json(name = "banner_url")
+    val bannerUrl: String?,
+
     val bio: String?,
     val status: String?,
-    val created_at: String
+
+    @Json(name = "created_at")
+    val createdAt: String
 )

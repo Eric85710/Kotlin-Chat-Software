@@ -6,6 +6,7 @@ import com.example.login_v3.data.api.api_class.AddFriendRequest
 import com.example.login_v3.data.api.api_class.Friend
 import com.example.login_v3.data.api.api_class.PendingFriendApiModel
 import com.example.login_v3.data.api.api_class.UserDetail
+import com.example.login_v3.data.api.api_class.UserSearchResponse
 import retrofit2.Response
 import javax.inject.Inject
 
@@ -58,6 +59,34 @@ class FriendsRepository @Inject constructor(
         return result
     }
 
+
+    //search user
+    suspend fun searchUsers(query: String): Result<UserSearchResponse> {
+        return safeApiCallWithData {
+            apiService.searchUsers(query) // 1. 使用 apiService 2. 確保 apiService 定義回傳 Response<UserSearchResponse>
+        }
+    }
+
+    // 支援「回傳資料」的通用封裝 for search user
+    private suspend fun <T> safeApiCallWithData(call: suspend () -> Response<T>): Result<T> {
+        return try {
+            val response = call()
+            if (response.isSuccessful) {
+                val body = response.body()
+                if (body != null) {
+                    Result.success(body)
+                } else {
+                    Result.failure(Exception("回傳資料為空"))
+                }
+            } else {
+                val errorMsg = "API 錯誤 ${response.code()}: ${response.errorBody()?.string()}"
+                Result.failure(Exception(errorMsg))
+            }
+        } catch (e: Exception) {
+            Result.failure(e)
+        }
+    }
+
     // 2. 確保「全類別」只有這一個 safeApiCall 函式
     private suspend fun safeApiCall(call: suspend () -> Response<Unit>): Result<Unit> {
         return try {
@@ -74,23 +103,6 @@ class FriendsRepository @Inject constructor(
             }
         } catch (e: Exception) {
             Log.e("API_DEBUG", "連線或執行異常: ${e.message}", e)
-            Result.failure(e)
-        }
-    }
-
-    // 搜尋使用者
-    suspend fun searchUsers(keyword: String): Result<List<UserDetail>> {
-        return try {
-            val response = apiService.searchUsers(keyword)
-
-            // 這裡做一個「結構轉換」
-            // 假設 additionalProp1 裡面裝的是我們想要的資料
-            // 如果 response.additionalProp1 是 Map，我們可以取其 Values 轉成 List
-            val userList = response.additionalProp1.values.toList()
-
-            Result.success(userList)
-        } catch (e: Exception) {
-            Log.e("API_DEBUG", "搜尋失敗: ${e.message}")
             Result.failure(e)
         }
     }

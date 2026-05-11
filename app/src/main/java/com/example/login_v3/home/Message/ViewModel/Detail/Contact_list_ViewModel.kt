@@ -119,42 +119,46 @@ class ContactListViewModel @Inject constructor(
         }
     }
 
-    private var searchJob: Job? = null
 
+
+    //search user
     fun onSearchQueryChanged(newQuery: String) {
-        // 更新 UI 上的輸入文字
+        // 1. 即時更新文字輸入，確保 UI TextField 顯示順暢
         _uiState.update { it.copy(searchQuery = newQuery) }
+    }
 
-        // 如果關鍵字為空，清空搜尋結果並返回
-        if (newQuery.isBlank()) {
+    fun performSearch() {
+        val query = _uiState.value.searchQuery
+        if (query.isBlank()) {
+            // 如果關鍵字為空，清空搜尋結果
             _uiState.update { it.copy(searchResults = emptyList()) }
             return
         }
 
-        // --- 防抖處理 (Debounce) ---
-        searchJob?.cancel() // 取消前一個還在跑的搜尋
-        searchJob = viewModelScope.launch {
-            delay(500) // 使用者停頓 0.5 秒後才真正發出請求
-            performSearch(newQuery)
-        }
-    }
+        viewModelScope.launch {
+            // 2. 顯示 Loading
+            _uiState.update { it.copy(isLoading = true, error = null) }
 
-    private suspend fun performSearch(query: String) {
-        _uiState.update { it.copy(isLoading = true) }
+            // 3. 呼叫 Repository
+            val result = repository.searchUsers(query)
 
-        val result = repository.searchUsers(query)
-
-        result.onSuccess { users ->
-            _uiState.update { it.copy(
-                isLoading = false,
-                searchResults = users,
-                error = null
-            )}
-        }.onFailure { error ->
-            _uiState.update { it.copy(
-                isLoading = false,
-                error = "搜尋失敗: ${error.message}"
-            )}
+            // 4. 處理結果
+            result.onSuccess { response ->
+                _uiState.update {
+                    it.copy(
+                        isLoading = false,
+                        searchResults = response.users // UserSearchResponse 裡的列表
+                    )
+                }
+            }.onFailure { error ->
+                _uiState.update {
+                    it.copy(
+                        isLoading = false,
+                        error = "搜尋失敗：${error.message}",
+                        searchResults = emptyList() // 失敗時清空列表
+                    )
+                }
+            }
         }
     }
 }

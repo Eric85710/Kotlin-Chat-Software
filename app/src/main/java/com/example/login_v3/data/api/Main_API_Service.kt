@@ -77,6 +77,6 @@ interface TecnologiaApi {
     @GET("api/users/search")
     suspend fun searchUsers(
         @Query("q") query: String
-    ): UserSearchResponse
+    ): Response<UserSearchResponse>
 
 }
