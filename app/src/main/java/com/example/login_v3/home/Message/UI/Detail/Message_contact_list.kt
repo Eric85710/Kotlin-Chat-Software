@@ -110,80 +110,90 @@ fun Message_contact_list(
             )
         }
 
-        // --- 搜尋結果區塊 (僅在有結果時顯示) ---
-        if (uiState.searchResults.isNotEmpty()) {
-            item {
-                Text(
-                    "搜尋結果",
-                    style = MaterialTheme.typography.titleMedium,
-                    modifier = Modifier.fillMaxWidth().padding(8.dp),
-                    color = MaterialTheme.colorScheme.primary
-                )
-            }
-            items(uiState.searchResults) { user ->
-                // 這裡你可以自定義搜尋結果的 Row
-                SearchResultRow(
-                    user = user,
-                    onAddFriend = { contactListViewModel.sendFriendRequest(user.id) }
-                )
-            }
-            item { HorizontalDivider(modifier = Modifier.padding(vertical = 12.dp)) }
-        }
+        //is Searching or not
+        if (uiState.isSearching) {
 
-        // --- 區塊一：待處理好友 (只有在有資料時才顯示) ---
-        if (uiState.pendingRequests.isNotEmpty()) {
+            // --- 搜尋結果區塊 (僅在有結果時顯示) ---
+            if (uiState.searchResults.isNotEmpty()) {
+                item {
+                    Text(
+                        "搜尋結果",
+                        style = MaterialTheme.typography.titleMedium,
+                        modifier = Modifier.fillMaxWidth().padding(8.dp),
+                        color = MaterialTheme.colorScheme.primary
+                    )
+                }
+                items(uiState.searchResults) { user ->
+                    // 這裡你可以自定義搜尋結果的 Row
+                    SearchResultRow(
+                        user = user,
+                        onAddFriend = { contactListViewModel.sendFriendRequest(user.id) }
+                    )
+                }
+            }
+
+
+        //if not searching then display friends list
+        }else {
+            // --- 區塊一：待處理好友 (只有在有資料時才顯示) ---
+            if (uiState.pendingRequests.isNotEmpty()) {
+                item {
+                    Text(
+                        "好友請求 (${uiState.pendingRequests.size})",
+                        style = MaterialTheme.typography.titleMedium,
+                        modifier = Modifier.fillMaxWidth().padding(8.dp)
+                    )
+                }
+                items(uiState.pendingRequests) { request ->
+                    PendingFriendRow(
+                        request,
+                        isLoading = uiState.isLoading,
+                        onAccept = { _ ->
+                            request.fromUserId?.let { id -> contactListViewModel.acceptFriend(id) }
+                        },
+                        onReject = { _ ->
+                            request.fromUserId?.let { id -> contactListViewModel.rejectFriend(id) }
+                        }
+                    )
+                }
+                item { HorizontalDivider(modifier = Modifier.padding(vertical = 12.dp)) }
+            }
+
+            // --- 區塊二：正式好友標題 ---
             item {
                 Text(
-                    "好友請求 (${uiState.pendingRequests.size})",
+                    "所有好友",
                     style = MaterialTheme.typography.titleMedium,
                     modifier = Modifier.fillMaxWidth().padding(8.dp)
                 )
             }
-            items(uiState.pendingRequests) { request ->
-                PendingFriendRow(
-                    request,
-                    isLoading = uiState.isLoading,
-                    onAccept = { _ ->
-                        request.fromUserId?.let { id -> contactListViewModel.acceptFriend(id) }
-                    },
-                    onReject = { _ ->
-                        request.fromUserId?.let { id -> contactListViewModel.rejectFriend(id) }
-                    }
-                )
-            }
-            item { HorizontalDivider(modifier = Modifier.padding(vertical = 12.dp)) }
-        }
 
-        // --- 區塊二：正式好友標題 ---
-        item {
-            Text(
-                "所有好友",
-                style = MaterialTheme.typography.titleMedium,
-                modifier = Modifier.fillMaxWidth().padding(8.dp)
-            )
-        }
-
-        // --- 區塊三：正式好友列表內容 ---
-        if (uiState.friends.isEmpty()) {
-            item {
-                Box(
-                    modifier = Modifier
-                        .fillParentMaxHeight(0.5f) // 佔據剩餘空間的一部分
-                        .fillMaxWidth(),
-                    contentAlignment = Alignment.Center
-                ) {
-                    if (uiState.isLoading) {
-                        CircularProgressIndicator()
-                    } else {
-                        Text("目前沒有好友")
+            // --- 區塊三：正式好友列表內容 ---
+            if (uiState.friends.isEmpty()) {
+                item {
+                    Box(
+                        modifier = Modifier
+                            .fillParentMaxHeight(0.5f) // 佔據剩餘空間的一部分
+                            .fillMaxWidth(),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        if (uiState.isLoading) {
+                            CircularProgressIndicator()
+                        } else {
+                            Text("目前沒有好友")
+                        }
                     }
                 }
-            }
-        } else {
-            items(uiState.friends) { friends ->
-                FriendRow(friends)
+            } else {
+                items(uiState.friends) { friends ->
+                    FriendRow(friends)
+                }
             }
         }
+
+
+
+
     }
 }
 
@@ -330,53 +340,6 @@ fun PendingFriendRow(
             }
         }
     )
-}
-
-//add friends
-@Composable
-    fun AddUserBar(
-    isLoading: Boolean,
-    onSendRequest: (String) -> Unit
-) {
-    var userIdText by remember { mutableStateOf("") }
-
-    Row(
-        modifier = Modifier
-            .fillMaxWidth()
-            .padding(8.dp),
-        verticalAlignment = Alignment.CenterVertically
-    ) {
-        OutlinedTextField(
-            value = userIdText,
-            onValueChange = { userIdText = it },
-            label = { Text("輸入好友 ID") },
-            modifier = Modifier.weight(1f),
-            singleLine = true,
-            enabled = !isLoading
-        )
-
-        Spacer(modifier = Modifier.width(8.dp))
-
-        Button(
-            onClick = {
-                if (userIdText.isNotBlank()) {
-                    onSendRequest(userIdText)
-                    userIdText = "" // 發送後清空輸入框
-                }
-            },
-            enabled = !isLoading && userIdText.isNotBlank()
-        ) {
-            if (isLoading) {
-                CircularProgressIndicator(
-                    modifier = Modifier.size(16.dp),
-                    color = MaterialTheme.colorScheme.onPrimary,
-                    strokeWidth = 2.dp
-                )
-            } else {
-                Text("新增")
-            }
-        }
-    }
 }
 
 

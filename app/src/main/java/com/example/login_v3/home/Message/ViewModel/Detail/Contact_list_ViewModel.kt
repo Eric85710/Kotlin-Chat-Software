@@ -22,10 +22,12 @@ data class ContactUiState(
     val isLoading: Boolean = false,
     val friends: List<Friend> = emptyList(),
     val pendingRequests: List<PendingFriendApiModel> = emptyList(),
-    // 新增：搜尋結果與關鍵字
     val searchResults: List<UserDetail> = emptyList(),
     val searchQuery: String = "",
-    val error: String? = null
+    val error: String? = null,
+
+    //UI state
+    val isSearching: Boolean = false
 )
 @HiltViewModel
 class ContactListViewModel @Inject constructor(
@@ -136,7 +138,10 @@ class ContactListViewModel @Inject constructor(
     //search user
     fun onSearchQueryChanged(newQuery: String) {
         // 1. 即時更新文字輸入，確保 UI TextField 顯示順暢
-        _uiState.update { it.copy(searchQuery = newQuery) }
+        _uiState.update { it.copy(
+            searchQuery = newQuery,
+            isSearching = newQuery.isNotBlank()
+        ) }
     }
 
     fun performSearch() {
