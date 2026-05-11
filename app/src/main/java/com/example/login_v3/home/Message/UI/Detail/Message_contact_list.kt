@@ -432,8 +432,23 @@ fun SearchResultRow(
                 Text("@${user.username}", style = MaterialTheme.typography.bodySmall)
             }
 
-            IconButton(onClick = onAddFriend) {
-                Icon(Icons.Default.PersonAdd, contentDescription = "加好友")
+            // 判斷是否顯示勾勾
+            if (user.isRequestSent) {
+                // 已發送狀態：綠色勾勾，且按鈕不具備點擊功能
+                Icon(
+                    imageVector = Icons.Default.Check,
+                    contentDescription = "已發送",
+                    tint = Color(0xFF4CAF50), // 綠色
+                    modifier = Modifier.padding(12.dp)
+                )
+            } else {
+                // 尚未發送：加好友按鈕
+                IconButton(onClick = onAddFriend) {
+                    Icon(
+                        imageVector = Icons.Default.PersonAdd,
+                        contentDescription = "加好友"
+                    )
+                }
             }
         }
     }

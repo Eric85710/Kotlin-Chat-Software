@@ -109,7 +109,9 @@ data class UserDetail(
     val status: String?,
 
     @Json(name = "created_at")
-    val createdAt: String
+    val createdAt: String,
+
+    val isRequestSent: Boolean = false
 )
 
 val UserDetail.fullSearchedAvatarUrl: Any

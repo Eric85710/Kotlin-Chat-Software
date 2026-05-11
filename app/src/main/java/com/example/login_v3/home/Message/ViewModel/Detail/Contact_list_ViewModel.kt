@@ -96,7 +96,7 @@ class ContactListViewModel @Inject constructor(
     //add friends
     fun sendFriendRequest(friendId: String) {
         viewModelScope.launch {
-            // 1. 顯示載入中，並清除舊的錯誤訊息
+            // 1. 顯示載入中
             _uiState.update { it.copy(isLoading = true, error = null) }
 
             // 2. 呼叫 Repository
@@ -104,9 +104,21 @@ class ContactListViewModel @Inject constructor(
 
             // 3. 處理結果
             result.onSuccess {
-                // 發送成功後，通常會重新整理資料
-                // 這樣如果你的「待處理清單」包含「已發送的申請」，畫面就會更新
-                refreshAll()
+                // 關鍵修改：更新搜尋結果清單中的 isRequestSent 狀態
+                _uiState.update { state ->
+                    val updatedSearchResults = state.searchResults.map { user ->
+                        if (user.id == friendId) {
+                            user.copy(isRequestSent = true) // 找到目標，標記為已發送
+                        } else {
+                            user
+                        }
+                    }
+                    state.copy(
+                        isLoading = false,
+                        searchResults = updatedSearchResults
+                    )
+                }
+                // refreshAll()
             }.onFailure { error ->
                 Log.e("DEBUG_API", "發送好友申請錯誤: ${error.message}")
                 _uiState.update {
