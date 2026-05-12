@@ -24,8 +24,10 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Edit
+import androidx.compose.material.icons.filled.ManageAccounts
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
+import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Divider
 import androidx.compose.material3.Icon
@@ -64,7 +66,8 @@ import com.example.login_v3.ui.theme.main_orange
 
 @Composable
 fun Setting_profile_page(
-    viewModel: PersonalProfileViewModel = hiltViewModel()
+    viewModel: PersonalProfileViewModel = hiltViewModel(),
+    onNavigateToAccountSwitch: () -> Unit
 ) {
     val uiState by viewModel.uiState.collectAsState()
     when (val state = uiState) {
@@ -73,7 +76,10 @@ fun Setting_profile_page(
         }
         is ProfileUiState.Success -> {
             // 顯示個人資料
-            Loaded_setting_profile_page(state.profile)
+            Loaded_setting_profile_page(
+                profile = state.profile,
+                onNavigateToAccountSwitch = onNavigateToAccountSwitch // 補上這行
+            )
         }
         is ProfileUiState.Error -> {
             // 顯示錯誤訊息與重試按鈕
@@ -98,7 +104,8 @@ sealed class EditTarget(val title: String) {
 @Composable
 fun Loaded_setting_profile_page(
     profile: UserProfile,
-    viewModel: PersonalProfileViewModel = hiltViewModel()
+    viewModel: PersonalProfileViewModel = hiltViewModel(),
+    onNavigateToAccountSwitch: () -> Unit
 ){
 
     //bia info
@@ -382,6 +389,26 @@ fun Loaded_setting_profile_page(
                 }
 
             }
+        }
+
+
+        //switch account button
+        Spacer(modifier = Modifier.height(20.dp)) // 將按鈕推到底部
+
+        Button(
+            onClick = onNavigateToAccountSwitch,
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(10.dp),
+            colors = ButtonDefaults.buttonColors(
+                containerColor = MaterialTheme.colorScheme.secondaryContainer,
+                contentColor = MaterialTheme.colorScheme.onSecondaryContainer
+            ),
+            shape = RoundedCornerShape(12.dp)
+        ) {
+            Icon(Icons.Default.ManageAccounts, contentDescription = null)
+            Spacer(modifier = Modifier.width(8.dp))
+            Text("Manage & Switch Accounts")
         }
     }
 }

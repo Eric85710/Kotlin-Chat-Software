@@ -31,7 +31,7 @@ class MainViewModel : ViewModel() {
 
 //init navigation
 enum class AppScreen {
-    PreReg, Login, Register, Home, ScreensTab, Loading
+    PreReg, Login, Register, Home, ScreensTab, Loading, AccountSwitch
 }
 
 @HiltViewModel

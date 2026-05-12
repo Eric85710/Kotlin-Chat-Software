@@ -43,6 +43,8 @@ import com.example.login_v3.home.setting.setting_detail_page.detail_UI.setting_d
 import com.example.login_v3.home.setting.setting_detail_page.detail_UI.setting_subscription_page
 import com.example.login_v3.home.setting.setting_detail_page.detail_UI.setting_theme_page
 import com.example.login_v3.home.setting.setting_detail_page.viewmodel.Theme_ViewModel
+import com.example.login_v3.navigation.AppScreen
+import com.example.login_v3.navigation.AppViewModel
 import com.example.login_v3.navigation.BottomBarViewModel
 
 @Composable
@@ -50,7 +52,8 @@ fun SharedTransitionScope.setting_detail_Screen(
     title: String,
     settingIcon: String,
     animatedVisibilityScope: AnimatedVisibilityScope,
-    bottomBarViewModel: BottomBarViewModel = hiltViewModel()
+    bottomBarViewModel: BottomBarViewModel = hiltViewModel(),
+    appViewModel: AppViewModel = hiltViewModel()
 ){
     //control bottom bar behavior
     DisposableEffect(Unit) {
@@ -123,7 +126,11 @@ fun SharedTransitionScope.setting_detail_Screen(
             startDestination = startRoute
         ) {
 
-            composable("setting_Profile") { Setting_profile_page() }
+            composable("setting_Profile") { Setting_profile_page(
+                onNavigateToAccountSwitch = {
+                    appViewModel.goTo(AppScreen.AccountSwitch)
+                }
+            ) }
             composable("setting_Theme") {
                 val activity = LocalActivity.current as ComponentActivity
                 val vm: Theme_ViewModel = hiltViewModel(viewModelStoreOwner = activity)

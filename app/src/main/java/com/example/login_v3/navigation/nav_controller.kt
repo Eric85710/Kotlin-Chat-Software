@@ -14,6 +14,7 @@ import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.example.login_v3.auth.login.LoginScreen
 import com.example.login_v3.auth.Login_or_Reg_page
+import com.example.login_v3.auth.SwitchAccount.AccountSwitchScreen
 import com.example.login_v3.auth.reg.RegisterScreen
 import com.example.login_v3.auth.reg.Register_Screen
 import com.example.login_v3.home.HomeScreen
@@ -64,5 +65,14 @@ fun AppNavGraph(
         )
 
         AppScreen.ScreensTab -> MainScreen_tab()
+
+        AppScreen.AccountSwitch -> {
+            AccountSwitchScreen(
+                // 點擊「登入另一個帳號」就跳轉到 Login 頁面
+                onAddAccountClick = { appViewModel.goTo(AppScreen.Login) },
+                // 點擊返回則回到原本的主分頁 (ScreensTab)
+                onBack = { appViewModel.goTo(AppScreen.ScreensTab) }
+            )
+        }
     }
 }
