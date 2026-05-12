@@ -399,7 +399,7 @@ fun Loaded_setting_profile_page(
             onClick = onNavigateToAccountSwitch,
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(10.dp),
+            ,
             colors = ButtonDefaults.buttonColors(
                 containerColor = MaterialTheme.colorScheme.secondaryContainer,
                 contentColor = MaterialTheme.colorScheme.onSecondaryContainer

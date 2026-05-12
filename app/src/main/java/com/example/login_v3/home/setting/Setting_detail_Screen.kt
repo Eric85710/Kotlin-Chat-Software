@@ -53,8 +53,18 @@ fun SharedTransitionScope.setting_detail_Screen(
     settingIcon: String,
     animatedVisibilityScope: AnimatedVisibilityScope,
     bottomBarViewModel: BottomBarViewModel = hiltViewModel(),
-    appViewModel: AppViewModel = hiltViewModel()
 ){
+
+    //UI state for manage account
+    val activity = LocalActivity.current as? ComponentActivity
+
+    // 2. 使用該 Activity 作為 ViewModelStoreOwner
+    // 這樣可以確保拿到的 appViewModel 是跟隨 Activity 生命週期的「唯一實例」
+    val appViewModel: AppViewModel = activity?.let {
+        hiltViewModel(viewModelStoreOwner = it)
+    } ?: hiltViewModel() // Fallback 方案
+
+
     //control bottom bar behavior
     DisposableEffect(Unit) {
         bottomBarViewModel.setVisible(false)

@@ -1,5 +1,6 @@
 package com.example.login_v3.navigation
 
+import android.util.Log
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
@@ -69,7 +70,9 @@ class AppViewModel @Inject constructor(
     }
 
     fun goTo(screen: AppScreen) {
+        Log.d("NavTest", "Attempting to go to: $screen")
         _currentScreen.value = screen
+        Log.d("NavTest", "Current state value: ${_currentScreen.value}")
     }
 
     // 修改：登出當前帳號
