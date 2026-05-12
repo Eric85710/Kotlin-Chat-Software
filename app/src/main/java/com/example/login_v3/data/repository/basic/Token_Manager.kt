@@ -20,11 +20,10 @@ class TokenManager @Inject constructor(
         preferences[USER_ID_LIST] ?: emptySet()
     }
 
+    // TokenManager 內部建議改動
     companion object {
-        // 1. 記錄目前正在使用的 UserId
+        private val USER_ID_LIST = stringSetPreferencesKey("user_id_list") // 移到這裡
         private val CURRENT_USER_ID = stringPreferencesKey("current_user_id")
-
-        // 2. 輔助函式：根據 userId 動態產生 Token 的 Key
         private fun accessTokenKey(userId: String) = stringPreferencesKey("access_token_$userId")
     }
 

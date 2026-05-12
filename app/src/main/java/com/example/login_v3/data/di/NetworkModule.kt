@@ -46,20 +46,30 @@ object NetworkModule {
     @Singleton
     fun provideOkHttpClient(tokenManager: TokenManager): OkHttpClient {
         return OkHttpClient.Builder()
-            .connectTimeout(15, TimeUnit.SECONDS) // 連線逾時
-            .readTimeout(15, TimeUnit.SECONDS)    // 讀取逾時
+            .connectTimeout(15, TimeUnit.SECONDS)
+            .readTimeout(15, TimeUnit.SECONDS)
             .addInterceptor { chain ->
-                val token = runBlocking { tokenManager.accessToken.first() }
-                val requestBuilder = chain.request().newBuilder()
+                // 1. 動態獲取「目前選中帳號」的 Token
+                // 使用 first() 確保只取目前最新的那一個值
+                val token = runBlocking { tokenManager.currentAccessToken.first() }
 
+                val requestBuilder = chain.request().newBuilder()
                 token?.let {
                     requestBuilder.addHeader("Authorization", "Bearer $it")
                 }
 
                 val response = chain.proceed(requestBuilder.build())
 
+                // 2. 處理 Token 失效 (401)
                 if (response.code == 401) {
-                    runBlocking { tokenManager.clearAuthData() }
+                    runBlocking {
+                        // 獲取目前是哪個 ID 失效了
+                        val currentId = tokenManager.currentUserId.first()
+                        currentId?.let {
+                            // 只登出當前失效的帳號，不影響其他帳號
+                            tokenManager.logout(it)
+                        }
+                    }
                 }
 
                 response
