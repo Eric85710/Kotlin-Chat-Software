@@ -230,7 +230,6 @@ fun LoginScreen(
 
 
                 when (uiState) {
-                    is LoginUiState.Loading -> CircularProgressIndicator()
                     is LoginUiState.Success -> {
                         val user = (uiState as LoginUiState.Success).user
                         Text("歡迎，${user.display_name}")

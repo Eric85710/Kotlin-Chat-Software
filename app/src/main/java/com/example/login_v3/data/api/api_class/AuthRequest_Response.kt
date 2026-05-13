@@ -25,11 +25,11 @@ data class UserInfo(
     val username: String,
     val display_name: String,
     val email: String,
-    val avatar_url: String?,
-    val banner_url: String?,
-    val bio: String?,
+    val avatar_url: String? = null, // 建議給預設 null
+    val banner_url: String? = null,
+    val bio: String? = null,
     val status: String,
-    val is_verified: Boolean,
+    val is_verified: Boolean = false,
     val created_at: String
 )
 
