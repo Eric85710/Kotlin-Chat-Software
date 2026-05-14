@@ -10,6 +10,7 @@ import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
@@ -42,10 +43,13 @@ import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Divider
+import androidx.compose.material3.FilledTonalIconButton
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
+import androidx.compose.material3.IconButtonDefaults
 import androidx.compose.material3.ListItem
+import androidx.compose.material3.ListItemDefaults
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Surface
@@ -274,15 +278,6 @@ fun FriendRow(
                         placeholder = painterResource(id = R.drawable.avatar_v1),
                         error = painterResource(id = R.drawable.avatar_v1)
                     )
-
-                    // 狀態圓點疊加在頭像右下角
-                    Surface(
-                        color = statusColor,
-                        shape = CircleShape,
-                        modifier = Modifier
-                            .size(14.dp)
-                            .border(2.dp, MaterialTheme.colorScheme.surface, CircleShape) // 白色外圈
-                    ) {}
                 }
 
                 Spacer(modifier = Modifier.width(16.dp))
@@ -373,38 +368,101 @@ fun FriendRow(
 fun PendingFriendRow(
     request: PendingFriendApiModel,
     isLoading: Boolean,
-    onAccept: (String) -> Unit, // 增加回呼
-    onReject: (String) -> Unit  // 增加回呼
+    onAccept: (String) -> Unit,
+    onReject: (String) -> Unit
 ) {
-    ListItem(
-        headlineContent = { Text("${request.displayName}") },
-        supportingContent = { Text("想加你為好友") },
-        leadingContent = {
-            AsyncImage(
-                // 這裡可以使用我們之前寫的擴充函式 .toFullImageUrl()
-                model = request.fullPendingAvatarUrl,
-                contentDescription = null,
-                modifier = Modifier.size(40.dp).clip(CircleShape),
-                error = painterResource(id = R.drawable.avatar_v1)
-            )
-        },
-        trailingContent = {
-            Row {
-                IconButton(
-                    onClick = { request.friendshipId?.let { onReject(it) } },
-                    enabled = !isLoading // 正在載入時禁用
+    Card(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(vertical = 4.dp, horizontal = 2.dp)
+        ,
+        shape = RoundedCornerShape(12.dp), // 圓角
+        colors = CardDefaults.cardColors(
+            containerColor = MaterialTheme.colorScheme.primary // 使用 Surface 顏色
+        ),
+        elevation = CardDefaults.cardElevation(defaultElevation = 0.dp)
+    ) {
+        ListItem(
+            colors = ListItemDefaults.colors(
+                containerColor = Color.Transparent // 讓底層 Card 的顏色透出來
+            ),
+            modifier = Modifier.padding(vertical = 4.dp),
+            headlineContent = {
+                Text(
+                    text = request.displayName ?: "未知用戶",
+                    style = MaterialTheme.typography.titleMedium,
+                    fontWeight = FontWeight.Bold
+                )
+            },
+            supportingContent = {
+                Text(
+                    text = "想加你為好友",
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+            },
+            leadingContent = {
+                Surface(
+                    shape = CircleShape,
+                    tonalElevation = 2.dp
                 ) {
-                    Icon(Icons.Default.Close, contentDescription = "拒絕", tint = Color.Red)
+                    AsyncImage(
+                        model = request.fullPendingAvatarUrl,
+                        contentDescription = null,
+                        modifier = Modifier
+                            .size(48.dp)
+                            .clip(CircleShape),
+                        contentScale = ContentScale.Crop,
+                        error = painterResource(id = R.drawable.avatar_v1)
+                    )
                 }
-                IconButton(
-                    onClick = { request.friendshipId?.let { onAccept(it) } },
-                    enabled = !isLoading // 正在載入時禁用
+            },
+            trailingContent = {
+                Row(
+                    horizontalArrangement = Arrangement.spacedBy(8.dp),
+                    verticalAlignment = Alignment.CenterVertically
                 ) {
-                    Icon(Icons.Default.Check, contentDescription = "接受", tint = Color.Green)
+                    // 拒絕按鈕 (圓形、低調)
+                    FilledTonalIconButton(
+                        onClick = { request.friendshipId?.let { onReject(it) } },
+                        enabled = !isLoading,
+                        colors = IconButtonDefaults.filledTonalIconButtonColors(
+                            containerColor = MaterialTheme.colorScheme.errorContainer.copy(alpha = 0.8f),
+                            contentColor = MaterialTheme.colorScheme.error
+                        )
+                    ) {
+                        Icon(Icons.Default.Close, contentDescription = "拒絕", modifier = Modifier.size(20.dp))
+                    }
+
+                    // 接受按鈕 (綠色系)
+                    FilledTonalIconButton(
+                        onClick = { request.friendshipId?.let { onAccept(it) } },
+                        enabled = !isLoading,
+                        colors = IconButtonDefaults.filledTonalIconButtonColors(
+                            // containerColor: 背景色 (淺綠)
+                            containerColor = Color(0xFFE8F5E9),
+                            // contentColor: 圖示與進度條顏色 (深綠)
+                            contentColor = Color(0xFF2E7D32)
+                        )
+                    ) {
+                        if (isLoading) {
+                            CircularProgressIndicator(
+                                modifier = Modifier.size(20.dp),
+                                color = Color(0xFF2E7D32), // 這裡也要同步改為深綠色
+                                strokeWidth = 2.dp
+                            )
+                        } else {
+                            Icon(
+                                imageVector = Icons.Default.Check,
+                                contentDescription = "接受",
+                                modifier = Modifier.size(20.dp)
+                            )
+                        }
+                    }
                 }
             }
-        }
-    )
+        )
+    }
 }
 
 
