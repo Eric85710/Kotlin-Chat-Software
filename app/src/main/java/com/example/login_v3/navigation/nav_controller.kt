@@ -46,9 +46,15 @@ fun AppNavGraph(
             paddingValues = paddingValues
         )
 
-        AppScreen.AddAccount -> AddAccountScreen(
-            paddingValues = paddingValues
-        )
+        AppScreen.AddAccount -> {
+            BackHandler {
+                appViewModel.goTo(AppScreen.ScreensTab)
+            }
+            AddAccountScreen(
+                paddingValues = paddingValues,
+                onBack = { appViewModel.goTo(AppScreen.ScreensTab) }
+            )
+        }
 
         AppScreen.Register -> {
             //back to pre_reg
@@ -72,6 +78,9 @@ fun AppNavGraph(
         AppScreen.ScreensTab -> MainScreen_tab()
 
         AppScreen.AccountSwitch -> {
+            BackHandler {
+                appViewModel.goTo(AppScreen.ScreensTab)
+            }
             AccountSwitchScreen(
                 // 點擊「登入另一個帳號」就跳轉到 Login 頁面
                 onAddAccountClick = { appViewModel.goTo(AppScreen.AddAccount) },

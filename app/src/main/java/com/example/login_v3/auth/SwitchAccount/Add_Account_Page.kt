@@ -63,7 +63,8 @@ import kotlin.text.ifEmpty
 @Composable
 fun AddAccountScreen(
     paddingValues: PaddingValues,
-    viewModel: AuthViewModel = hiltViewModel()
+    viewModel: AuthViewModel = hiltViewModel(),
+    onBack: () -> Unit,
 ){
 
     val uiState by viewModel.loginState.collectAsStateWithLifecycle()
