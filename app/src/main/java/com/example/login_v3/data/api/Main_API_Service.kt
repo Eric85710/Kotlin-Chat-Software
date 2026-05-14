@@ -79,4 +79,9 @@ interface TecnologiaApi {
         @Query("q") query: String
     ): Response<UserSearchResponse>
 
+
+    //Get dm list
+    @GET("api/dm/rooms")
+    suspend fun getChatRooms(): Response<RoomListResponse>
+
 }
