@@ -222,10 +222,6 @@ fun AddAccountScreen(
 
 
                 when (uiState) {
-                    is LoginUiState.Success -> {
-                        val user = (uiState as LoginUiState.Success).user
-                        Text("歡迎，${user.display_name}")
-                    }
                     is LoginUiState.Error -> {
                         Text(text = (uiState as LoginUiState.Error).message, color = Color.Red)
                     }
