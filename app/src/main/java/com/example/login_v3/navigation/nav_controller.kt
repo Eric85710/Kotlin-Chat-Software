@@ -15,6 +15,7 @@ import androidx.lifecycle.viewmodel.compose.viewModel
 import com.example.login_v3.auth.login.LoginScreen
 import com.example.login_v3.auth.Login_or_Reg_page
 import com.example.login_v3.auth.SwitchAccount.AccountSwitchScreen
+import com.example.login_v3.auth.SwitchAccount.AddAccountScreen
 import com.example.login_v3.auth.reg.RegisterScreen
 import com.example.login_v3.auth.reg.Register_Screen
 import com.example.login_v3.home.HomeScreen
@@ -45,6 +46,10 @@ fun AppNavGraph(
             paddingValues = paddingValues
         )
 
+        AppScreen.AddAccount -> AddAccountScreen(
+            paddingValues = paddingValues
+        )
+
         AppScreen.Register -> {
             //back to pre_reg
             BackHandler {
@@ -69,7 +74,7 @@ fun AppNavGraph(
         AppScreen.AccountSwitch -> {
             AccountSwitchScreen(
                 // 點擊「登入另一個帳號」就跳轉到 Login 頁面
-                onAddAccountClick = { appViewModel.goTo(AppScreen.Login) },
+                onAddAccountClick = { appViewModel.goTo(AppScreen.AddAccount) },
                 // 點擊返回則回到原本的主分頁 (ScreensTab)
                 onBack = { appViewModel.goTo(AppScreen.ScreensTab) }
             )
