@@ -37,21 +37,32 @@ import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
+import coil.compose.AsyncImage
+import com.example.login_v3.R
 import com.example.login_v3.auth.login.AuthViewModel
+import com.example.login_v3.data.api.api_class.UserProfile
+import com.example.login_v3.data.api.api_class.fullAvatarUrl
+import com.example.login_v3.home.setting.setting_detail_page.viewmodel.PersonalProfileViewModel
+import com.example.login_v3.home.setting.setting_detail_page.viewmodel.ProfileUiState
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun AccountSwitchScreen(
-    viewModel: AuthViewModel = hiltViewModel<AuthViewModel>(),
+    viewModel: AuthViewModel = hiltViewModel(),
+    profileViewModel: PersonalProfileViewModel = hiltViewModel(),
     onAddAccountClick: () -> Unit,
     onBack: () -> Unit
 ) {
     // 觀察 ViewModel 中的狀態
     val allUsers by viewModel.allUserIds.collectAsState()
     val currentUserId by viewModel.currentUserId.collectAsState()
+    val uiState by profileViewModel.uiState.collectAsState()
 
     Scaffold(
         topBar = {
@@ -74,7 +85,7 @@ fun AccountSwitchScreen(
             Text(
                 text = "已登入的帳號",
                 style = MaterialTheme.typography.titleMedium,
-                color = MaterialTheme.colorScheme.primary
+                color = MaterialTheme.colorScheme.onBackground
             )
 
             Spacer(modifier = Modifier.height(8.dp))
@@ -87,8 +98,10 @@ fun AccountSwitchScreen(
                 // 這裡加上明確的 items(items = ...)
                 items(items = allUsers.toList()) { userId ->
                     val isCurrent = (userId == currentUserId) // 這裡解決 == 類型問題
+                    val currentProfile = (uiState as? ProfileUiState.Success)?.profile
 
                     AccountItem(
+                        profile = currentProfile,
                         userId = userId,
                         isCurrent = isCurrent,
                         onSelect = { viewModel.switchAccount(userId) },
@@ -115,6 +128,7 @@ fun AccountSwitchScreen(
 
 @Composable
 fun AccountItem(
+    profile: UserProfile?,
     userId: String,
     isCurrent: Boolean,
     onSelect: () -> Unit,
@@ -140,16 +154,23 @@ fun AccountItem(
             horizontalArrangement = Arrangement.SpaceBetween
         ) {
             Row(verticalAlignment = Alignment.CenterVertically) {
-                // 模擬頭像
-                Surface(
-                    shape = CircleShape,
-                    color = MaterialTheme.colorScheme.secondary,
-                    modifier = Modifier.size(40.dp)
-                ) {
-                    Box(contentAlignment = Alignment.Center) {
-                        Text(userId.take(1).uppercase(), color = Color.White)
-                    }
-                }
+                // 頭像
+                AsyncImage(
+                    // 使用 ?. 確保 profile 不為空時才讀取屬性，若為空則傳回 null
+                    model = profile?.fullAvatarUrl,
+
+                    // contentDescription 也要處理，可以用 ?: 提供預設字串
+                    contentDescription = "Avatar of ${profile?.display_name ?: "Unknown"}",
+
+                    modifier = Modifier
+                        .size(40.dp)
+                        .clip(CircleShape),
+                    contentScale = ContentScale.Crop,
+
+                    // 當 model 為 null 或載入失敗時，會顯示這個預設圖
+                    error = painterResource(R.drawable.avatar_v1),
+                    placeholder = painterResource(R.drawable.avatar_v1)
+                )
 
                 Spacer(modifier = Modifier.width(12.dp))
 

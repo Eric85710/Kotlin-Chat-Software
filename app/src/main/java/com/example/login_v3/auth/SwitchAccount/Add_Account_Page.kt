@@ -251,7 +251,7 @@ fun AddAccountScreen(
                         )
 
                     ) {
-                        Text( text = "Login")
+                        Text( text = "Add")
                     }
                 }
 

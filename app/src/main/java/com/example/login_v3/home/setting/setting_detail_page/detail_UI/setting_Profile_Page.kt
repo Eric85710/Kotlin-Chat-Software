@@ -118,13 +118,13 @@ fun Loaded_setting_profile_page(
     val context = LocalContext.current // 務必獲取 Context，uploadAvatar 需要它來解析 Uri
     //avatar
     val avatarLauncher = rememberLauncherForActivityResult(
-        contract = ActivityResultContracts.PickVisualMedia() // 這裡改掉
+        contract = ActivityResultContracts.PickVisualMedia()
     ) { uri: Uri? ->
         uri?.let { viewModel.uploadAvatar(context, it) }
     }
     //banner
     val bannerLauncher = rememberLauncherForActivityResult(
-        contract = ActivityResultContracts.PickVisualMedia() // 這裡改掉
+        contract = ActivityResultContracts.PickVisualMedia()
     ) { uri: Uri? ->
         uri?.let { viewModel.uploadBanner(context, it) }
     }
