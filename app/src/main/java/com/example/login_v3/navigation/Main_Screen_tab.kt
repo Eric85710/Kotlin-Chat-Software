@@ -22,7 +22,6 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
-import com.example.login_v3.home.Message.ViewModel.MessageViewModel
 import com.example.login_v3.home.Tg_MarketPlace
 import com.example.login_v3.home.Message.UI.Tg_Message
 import com.example.login_v3.home.Tg_Server
@@ -108,12 +107,9 @@ fun Screens_NavGraph(
     paddingValues: PaddingValues,
     screensViewModel: ScreensViewModel,
     bottomBarViewModel: BottomBarViewModel,
-    messageViewModel: MessageViewModel = androidx.lifecycle.viewmodel.compose.viewModel()
 ) {
     //nav_wheel_selecting tab
     val selectedScreen by screensViewModel.selected.collectAsState()
-    //message_contact_list_import
-    val contacts by messageViewModel.contacts.collectAsState()
 
 
     when (selectedScreen) {

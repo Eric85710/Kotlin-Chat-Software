@@ -62,5 +62,3 @@ data class Reaction(
     @Json(name = "count") val count: Int,
     @Json(name = "me_reacted") val meReacted: Boolean
 )
-
-
