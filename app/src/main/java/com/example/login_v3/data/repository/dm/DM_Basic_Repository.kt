@@ -5,7 +5,7 @@ import com.example.login_v3.data.api.api_class.RoomListResponse
 import javax.inject.Inject
 import javax.inject.Singleton
 
-@Singleton // 如果你希望整個 App 週期內只存在一個實體
+@Singleton
 class ChatRoomsRepository @Inject constructor(
     private val api: TecnologiaApi
 ) {

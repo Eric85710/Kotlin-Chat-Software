@@ -13,7 +13,7 @@ data class RoomListResponse(
 @JsonClass(generateAdapter = true)
 data class ChatRoom(
     @Json(name = "room_id") val roomId: String,
-    @Json(name = "room_name") val roomName: String,
+    @Json(name = "room_name") val roomName: String?,
     @Json(name = "room_type") val roomType: String,
     @Json(name = "room_icon_url") val roomIconUrl: String?,
     @Json(name = "is_muted") val isMuted: Boolean,

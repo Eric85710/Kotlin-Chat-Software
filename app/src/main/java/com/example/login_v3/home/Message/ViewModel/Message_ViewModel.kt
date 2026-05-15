@@ -1,6 +1,7 @@
 // Message_ViewModel.kt
 package com.example.login_v3.home.Message.ViewModel
 
+import android.util.Log
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.example.login_v3.R
@@ -26,8 +27,9 @@ class ChatRoomsViewModel @Inject constructor(
             val result = repository.fetchRooms()
             result.onSuccess { response ->
                 _roomsState.value = response.rooms
-            }.onFailure {
-                // 處理錯誤，例如更新一個 error state
+            }.onFailure { error ->
+                // 這裡非常重要！
+                Log.e("Technologia", "讀取失敗！原因：${error.message}", error)
             }
         }
     }

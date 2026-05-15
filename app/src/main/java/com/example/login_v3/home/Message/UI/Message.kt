@@ -310,7 +310,10 @@ fun RoomItem(
         // 2. 中間內容：名稱與最後訊息
         Column(modifier = Modifier.weight(1f)) {
             Text(
-                text = room.roomName.ifEmpty { room.partner?.displayName ?: "Unknown" },
+                // 使用 orEmpty() 先把 String? 轉成 String
+                text = room.roomName.orEmpty().ifEmpty {
+                    room.partner?.displayName ?: "Unknown"
+                },
                 style = MaterialTheme.typography.titleMedium,
                 fontWeight = FontWeight.Bold,
                 maxLines = 1,
