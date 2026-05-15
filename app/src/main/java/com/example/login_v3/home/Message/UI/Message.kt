@@ -273,11 +273,7 @@ fun Loaded_Tg_Message(
                             room = room,
                             onClick = onRoomClick
                         )
-                        Divider(
-                            modifier = Modifier.padding(horizontal = 16.dp),
-                            thickness = 0.5.dp,
-                            color = Color.LightGray.copy(alpha = 0.5f)
-                        )
+                        Spacer(modifier = Modifier.height(10.dp))
                     }
                 }
             }
@@ -313,6 +309,7 @@ fun RoomItem(
                 .padding(16.dp), // Card 內部的填充
             verticalAlignment = Alignment.CenterVertically
         ) {
+
             // 1. 頭像
             val imageUrl = room.roomIconUrl ?: room.partner?.fullContactAvatarUrl
             AsyncImage(
