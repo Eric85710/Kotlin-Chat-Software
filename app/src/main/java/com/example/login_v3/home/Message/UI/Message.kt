@@ -55,6 +55,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.draw.blur
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.sp
@@ -300,6 +301,7 @@ fun RoomItem(
         AsyncImage(
             model = imageUrl,
             contentDescription = "Avatar",
+            contentScale = ContentScale.Crop,
             modifier = Modifier
                 .size(50.dp)
                 .clip(CircleShape)
