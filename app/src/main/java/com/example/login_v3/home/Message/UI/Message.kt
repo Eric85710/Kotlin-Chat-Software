@@ -255,7 +255,7 @@ fun Loaded_Tg_Message(
             modifier = Modifier
                 .fillMaxSize()
         ) {
-            Spacer(modifier = Modifier.height(20.dp))
+            Spacer(modifier = Modifier.height(10.dp))
 
             if (rooms.isEmpty()) {
                 // 顯示空狀態或 Loading (這部分可根據需求擴充)
@@ -381,6 +381,8 @@ fun RoomItem(
                             overflow = TextOverflow.Ellipsis
                         )
 
+                        Spacer(modifier = Modifier.width(6.dp))
+
                         if (room.unreadCount > 0) {
                             Badge(
                                 containerColor = Color(0xFFDA7029), // 使用你的主橘色
@@ -397,27 +399,23 @@ fun RoomItem(
                     Spacer(modifier = Modifier.width(2.dp))
                 }
 
-                // 3. 右側：時間與未讀計數
-                Column(
-                    verticalArrangement = Arrangement.Center
-                ) {
 
-                    val partner = room.partner // 先從 room 取得 partner
-                    if (partner != null) {
-                        val status = UserStatus.fromString(partner.status)
-                        if (status != UserStatus.UNKNOWN) {
-                            Canvas(
-                                modifier = Modifier
-                                    .size(14.dp)
-                                    // 注意：在 Column 中 Alignment.BottomEnd 可能不適用
-                                    // 如果你要讓點跟在文字旁邊，建議用 Box 或是調整 Alignment
-                                    .border(2.dp, Color.White, CircleShape)
-                            ) {
-                                drawCircle(color = status.color)
-                            }
-                        }
+
+                //online status
+                val partner = room.partner // 先從 room 取得 partner
+                if (partner != null) {
+                    val status = UserStatus.fromString(partner.status)
+                    if (status != UserStatus.UNKNOWN) {
+                        Box(
+                            modifier = Modifier
+                                .size(14.dp)
+                                .background(status.color, CircleShape) // 直接設定圓形背景
+                                .border(2.dp, Color.White, CircleShape) // 白色外圈邊線
+                        )
                     }
                 }
+
+                Spacer(modifier = Modifier.width(10.dp))
             }
 
 

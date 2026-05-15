@@ -27,9 +27,14 @@ class ChatRoomsViewModel @Inject constructor(
             val result = repository.fetchRooms()
             result.onSuccess { response ->
                 _roomsState.value = response.rooms
+
+                // 打印偵錯訊息
+                response.rooms.forEach { room ->
+                    val status = room.partner?.status
+                    val name = room.partner?.displayName
+                }
             }.onFailure { error ->
-                // 這裡非常重要！
-                Log.e("Technologia", "讀取失敗！原因：${error.message}", error)
+                Log.e("ChatRoomsViewModel", "Fetch failed", error)
             }
         }
     }
