@@ -6,6 +6,7 @@ import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -25,6 +26,7 @@ import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Create
 import androidx.compose.material.icons.filled.Person
 import androidx.compose.material.icons.filled.QrCode
+import androidx.compose.material3.Badge
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.Divider
@@ -251,6 +253,8 @@ fun Loaded_Tg_Message(
             modifier = Modifier
                 .fillMaxSize()
         ) {
+            Spacer(modifier = Modifier.height(20.dp))
+
             if (rooms.isEmpty()) {
                 // 顯示空狀態或 Loading (這部分可根據需求擴充)
                 Box(
@@ -289,82 +293,96 @@ fun RoomItem(
     room: ChatRoom,
     onClick: (String) -> Unit
 ) {
-    Row(
+    Card(
         modifier = Modifier
             .fillMaxWidth()
-            .clickable { onClick(room.roomId) }
-            .padding(horizontal = 16.dp, vertical = 12.dp),
-        verticalAlignment = Alignment.CenterVertically
-    ) {
-        // 1. 頭像處理
-        val imageUrl = room.roomIconUrl ?: room.partner?.fullContactAvatarUrl
-        AsyncImage(
-            model = imageUrl,
-            contentDescription = "Avatar",
-            contentScale = ContentScale.Crop,
-            modifier = Modifier
-                .size(50.dp)
-                .clip(CircleShape)
-                .background(Color.LightGray) // 載入前的底色
+            .padding(horizontal = 12.dp, vertical = 6.dp) // 增加外邊距，讓 Card 之間有呼吸感
+            .clickable { onClick(room.roomId) },
+        shape = RoundedCornerShape(16.dp), // 較大的圓角看起來更現代
+        colors = CardDefaults.cardColors(
+            containerColor = Color.White.copy(alpha = 0.85f) // 半透明白色，透出後方的漸層背景
+        ),
+        elevation = CardDefaults.cardElevation(
+            defaultElevation = 0.dp // 增加輕微陰影
         )
-
-        Spacer(modifier = Modifier.width(12.dp))
-
-        // 2. 中間內容：名稱與最後訊息
-        Column(modifier = Modifier.weight(1f)) {
-            Text(
-                // 使用 orEmpty() 先把 String? 轉成 String
-                text = room.roomName.orEmpty().ifEmpty {
-                    room.partner?.displayName ?: "Unknown"
-                },
-                style = MaterialTheme.typography.titleMedium,
-                fontWeight = FontWeight.Bold,
-                maxLines = 1,
-                overflow = TextOverflow.Ellipsis
+    ) {
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .background(Color.Transparent)
+                .padding(16.dp), // Card 內部的填充
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            // 1. 頭像
+            val imageUrl = room.roomIconUrl ?: room.partner?.fullContactAvatarUrl
+            AsyncImage(
+                model = imageUrl,
+                contentDescription = "Avatar",
+                contentScale = ContentScale.Crop,
+                modifier = Modifier
+                    .size(56.dp) // 稍微加大一點
+                    .clip(CircleShape)
+                    .border(1.dp, Color.White, CircleShape) // 頭像加個細白邊
+                    .background(Color.LightGray)
             )
 
-            val lastMsgText = when {
-                room.lastMessage?.isDeleted == true -> "訊息已刪除"
-                room.lastMessage?.content != null -> room.lastMessage.content
-                room.lastMessage?.attachment != null -> "[檔案] ${room.lastMessage.attachment.filename}"
-                else -> "尚未有訊息"
+            Spacer(modifier = Modifier.width(16.dp))
+
+            // 2. 中間內容
+            Column(modifier = Modifier.weight(1f)) {
+                Text(
+                    text = room.roomName.orEmpty().ifEmpty {
+                        room.partner?.displayName ?: "Unknown"
+                    },
+                    style = MaterialTheme.typography.titleMedium,
+                    fontWeight = FontWeight.Bold,
+                    color = Color(0xFF333333),
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis
+                )
+
+                Spacer(modifier = Modifier.height(4.dp))
+
+                val lastMsgText = when {
+                    room.lastMessage?.isDeleted == true -> "訊息已刪除"
+                    room.lastMessage?.content != null -> room.lastMessage.content
+                    room.lastMessage?.attachment != null -> "[檔案] ${room.lastMessage.attachment.filename}"
+                    else -> "尚未有訊息"
+                }
+
+                Text(
+                    text = lastMsgText,
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = Color.Gray,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis
+                )
             }
 
-            Text(
-                text = lastMsgText,
-                style = MaterialTheme.typography.bodyMedium,
-                color = Color.Gray,
-                maxLines = 1,
-                overflow = TextOverflow.Ellipsis
-            )
-        }
+            // 3. 右側：時間與未讀計數
+            Column(
+                horizontalAlignment = Alignment.End,
+                verticalArrangement = Arrangement.Center
+            ) {
+                val time = room.lastMessage?.createdAt?.take(10) ?: ""
+                Text(
+                    text = time,
+                    style = MaterialTheme.typography.labelSmall,
+                    color = Color.Gray
+                )
 
-        // 3. 右側：時間與未讀計數
-        Column(horizontalAlignment = Alignment.End) {
-            // 這裡簡單截取時間字串，實際建議用 DateTimeFormatter 轉格式
-            val time = room.lastMessage?.createdAt?.take(10) ?: ""
-            Text(
-                text = time,
-                style = MaterialTheme.typography.labelSmall,
-                color = Color.Gray
-            )
+                Spacer(modifier = Modifier.height(8.dp))
 
-            Spacer(modifier = Modifier.height(4.dp))
-
-            if (room.unreadCount > 0) {
-                Box(
-                    modifier = Modifier
-                        .size(20.dp)
-                        .clip(CircleShape)
-                        .background(MaterialTheme.colorScheme.primary),
-                    contentAlignment = Alignment.Center
-                ) {
-                    Text(
-                        text = if (room.unreadCount > 99) "99+" else room.unreadCount.toString(),
-                        color = Color.White,
-                        fontSize = 10.sp,
-                        fontWeight = FontWeight.Bold
-                    )
+                if (room.unreadCount > 0) {
+                    Badge(
+                        containerColor = Color(0xFFDA7029), // 使用你的主橘色
+                        contentColor = Color.White
+                    ) {
+                        Text(
+                            text = if (room.unreadCount > 99) "99+" else room.unreadCount.toString(),
+                            modifier = Modifier.padding(horizontal = 4.dp)
+                        )
+                    }
                 }
             }
         }
