@@ -65,6 +65,7 @@ import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
 import coil.compose.AsyncImage
 import com.example.login_v3.data.api.api_class.ChatRoom
+import com.example.login_v3.data.api.api_class.fullContactAvatarUrl
 import com.example.login_v3.home.Message.UI.Detail.Message_add_contact
 import com.example.login_v3.home.Message.UI.Detail.Message_contact_list
 import com.example.login_v3.home.Message.UI.Detail.Scan_QRcode
@@ -295,7 +296,7 @@ fun RoomItem(
         verticalAlignment = Alignment.CenterVertically
     ) {
         // 1. 頭像處理
-        val imageUrl = room.roomIconUrl ?: room.partner?.avatarUrl
+        val imageUrl = room.roomIconUrl ?: room.partner?.fullContactAvatarUrl
         AsyncImage(
             model = imageUrl,
             contentDescription = "Avatar",

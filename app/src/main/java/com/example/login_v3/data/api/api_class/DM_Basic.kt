@@ -1,5 +1,6 @@
 package com.example.login_v3.data.api.api_class
 
+import com.example.login_v3.R
 import com.squareup.moshi.Json
 import com.squareup.moshi.JsonClass
 
@@ -62,3 +63,12 @@ data class Reaction(
     @Json(name = "count") val count: Int,
     @Json(name = "me_reacted") val meReacted: Boolean
 )
+
+val Partner.fullContactAvatarUrl: Any
+    get() = if (avatarUrl.isNullOrBlank()) {
+        R.drawable.avatar_v1 // 如果沒網址，直接回傳預設圖片資源
+    } else if (avatarUrl.startsWith("http")) {
+        avatarUrl // 已經是完整網址就直接用
+    } else {
+        "http://192.168.0.217$avatarUrl" // 否則補上 Base URL
+    }
