@@ -71,6 +71,7 @@ import androidx.navigation.compose.rememberNavController
 import coil.compose.AsyncImage
 import com.example.login_v3.data.api.api_class.ChatRoom
 import com.example.login_v3.data.api.api_class.fullContactAvatarUrl
+import com.example.login_v3.home.Message.UI.Detail.MessageMessaging
 import com.example.login_v3.home.Message.UI.Detail.Message_add_contact
 import com.example.login_v3.home.Message.UI.Detail.Message_contact_list
 import com.example.login_v3.home.Message.UI.Detail.Scan_QRcode
@@ -83,6 +84,7 @@ sealed class Screen(val route: String) {
     object CreateContact : Screen("create_contact")
     object FriendsList : Screen("friends_list")
     object ScanQRcode : Screen("scan_QRcode")
+    object MessageMessaging : Screen("Message_Messaging")
 }
 
 @Composable
@@ -144,6 +146,11 @@ fun Tg_Message(
         //QR code
         composable(Screen.ScanQRcode.route) {
             Scan_QRcode(navController)
+        }
+
+        //Message detail
+        composable(Screen.MessageMessaging.route) {
+            MessageMessaging(navController)
         }
     }
 }
@@ -273,7 +280,10 @@ fun Loaded_Tg_Message(
                     ) { room ->
                         RoomItem(
                             room = room,
-                            onClick = onRoomClick
+                            onClick = {
+                                onRoomClick(room.roomId) // 執行原本的點擊邏輯 (依你的定義傳入對應的 String)
+                                navController.navigate(Screen.MessageMessaging.route) // 執行導頁
+                            }
                         )
                         Spacer(modifier = Modifier.height(6.dp))
                     }
@@ -398,7 +408,6 @@ fun RoomItem(
 
                     Spacer(modifier = Modifier.width(2.dp))
                 }
-
 
 
                 //online status
