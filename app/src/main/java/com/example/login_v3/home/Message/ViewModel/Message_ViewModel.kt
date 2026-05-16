@@ -32,6 +32,7 @@ class ChatRoomsViewModel @Inject constructor(
                 response.rooms.forEach { room ->
                     val status = room.partner?.status
                     val name = room.partner?.displayName
+                    println("Debug_API: User: $name, Status: '$status'")
                 }
             }.onFailure { error ->
                 Log.e("ChatRoomsViewModel", "Fetch failed", error)
