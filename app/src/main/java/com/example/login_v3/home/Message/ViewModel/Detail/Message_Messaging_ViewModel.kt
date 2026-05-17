@@ -7,9 +7,10 @@ import com.example.login_v3.data.repository.dm.ChatRoomsRepository
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.launch
 import javax.inject.Inject
-import androidx.compose.runtime.State
-import androidx.compose.runtime.mutableStateOf
 import com.example.login_v3.data.api.api_class.Message
+import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.asStateFlow
 
 
 sealed interface MessagesUiState {
@@ -23,28 +24,22 @@ class ChatViewModel @Inject constructor(
     private val repository: ChatRoomsRepository
 ) : ViewModel() {
 
-    // 內部的可變狀態，預設為 Loading
-    private val _uiState = mutableStateOf<MessagesUiState>(MessagesUiState.Loading)
+    // 1. 使用 MutableStateFlow，並設定初始值
+    private val _uiState = MutableStateFlow<MessagesUiState>(MessagesUiState.Loading)
 
-    // 公開給 Compose UI 讀取的唯讀狀態
-    val uiState: State<MessagesUiState> = _uiState
+    // 2. 使用 asStateFlow() 公開唯讀的 StateFlow
+    val uiState: StateFlow<MessagesUiState> = _uiState.asStateFlow()
 
-    /**
-     * 根據 roomId 獲取聊天訊息
-     */
     fun loadMessages(roomId: String) {
         viewModelScope.launch {
-            // 切換回載入中狀態（適用於切換房間或重新整理時）
             _uiState.value = MessagesUiState.Loading
 
-            // 呼叫你的 Repository 方法
             repository.getChatMessages(roomId)
                 .onSuccess { response ->
-                    // 成功：將訊息列表塞入 Success 狀態
+                    // 3. 更新 Flow 的值
                     _uiState.value = MessagesUiState.Success(messages = response.messages)
                 }
                 .onFailure { exception ->
-                    // 失敗：擷取錯誤訊息並塞入 Error 狀態
                     _uiState.value = MessagesUiState.Error(message = exception.message ?: "未知錯誤")
                 }
         }
