@@ -1,5 +1,6 @@
 package com.example.login_v3.home.Message.UI
 
+import android.R.attr.type
 import androidx.compose.animation.AnimatedContentTransitionScope
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.Canvas
@@ -65,9 +66,11 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.navigation.NavController
+import androidx.navigation.NavType
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
+import androidx.navigation.navArgument
 import coil.compose.AsyncImage
 import com.example.login_v3.data.api.api_class.ChatRoom
 import com.example.login_v3.data.api.api_class.fullContactAvatarUrl
@@ -84,7 +87,14 @@ sealed class Screen(val route: String) {
     object CreateContact : Screen("create_contact")
     object FriendsList : Screen("friends_list")
     object ScanQRcode : Screen("scan_QRcode")
-    object MessageMessaging : Screen("Message_Messaging")
+    object MessageMessaging : Screen("message_messaging/{roomId}") {
+        // 這是給上一頁 Loaded_Tg_Message 跳轉時產生的真實路徑
+        fun createRoute(roomId: String): String {
+            // 建議加上 URL 編碼，防止 roomId 含有斜線或特殊字元導致二次閃退
+            val encodedId = java.net.URLEncoder.encode(roomId, "UTF-8")
+            return "message_messaging/$encodedId"
+        }
+    }
 }
 
 @Composable
@@ -94,6 +104,7 @@ fun Tg_Message(
     val navController = rememberNavController()
 
     NavHost(
+
         navController = navController,
         startDestination = Screen.Messages.route,
         // 進入時的動畫（新頁面出現）
@@ -149,9 +160,25 @@ fun Tg_Message(
         }
 
         //Message detail
-        composable(Screen.MessageMessaging.route) {
-            MessageMessaging(navController)
+        // 這樣寫就完全沒問題了！因為 route 內部已經包含了 /{roomId}
+        composable(
+            route = Screen.MessageMessaging.route,
+            arguments = listOf(
+                navArgument("roomId") { type = NavType.StringType }
+            )
+        ) { backStackEntry ->
+            // 安全取出參數
+            val roomId = backStackEntry.arguments?.getString("roomId").orEmpty()
+
+            MessageMessaging(
+                roomId = roomId,
+                navController = navController,
+                onBackClick = {
+                    navController.popBackStack()
+                }
+            )
         }
+
     }
 }
 
@@ -279,10 +306,10 @@ fun Loaded_Tg_Message(
                         key = { it.roomId } // 增加效能，防止列表閃爍
                     ) { room ->
                         RoomItem(
+                            navController = navController,
                             room = room,
                             onClick = {
-                                onRoomClick(room.roomId) // 執行原本的點擊邏輯 (依你的定義傳入對應的 String)
-                                navController.navigate(Screen.MessageMessaging.route) // 執行導頁
+                                onRoomClick(room.roomId)
                             }
                         )
                         Spacer(modifier = Modifier.height(6.dp))
@@ -298,6 +325,7 @@ fun Loaded_Tg_Message(
 
 @Composable
 fun RoomItem(
+    navController: NavController,
     room: ChatRoom,
     onClick: (String) -> Unit
 ) {
@@ -305,7 +333,10 @@ fun RoomItem(
         modifier = Modifier
             .fillMaxWidth()
             .padding(horizontal = 12.dp, vertical = 6.dp) // 增加外邊距，讓 Card 之間有呼吸感
-            .clickable { onClick(room.roomId) },
+            .clickable {
+                // 💡 修改這裡：動態帶入真實的 roomId
+                navController.navigate(Screen.MessageMessaging.createRoute(room.roomId))
+            },
         shape = RoundedCornerShape(16.dp), // 較大的圓角看起來更現代
         colors = CardDefaults.cardColors(
             containerColor = Color.Transparent // ✅ 透明背景
