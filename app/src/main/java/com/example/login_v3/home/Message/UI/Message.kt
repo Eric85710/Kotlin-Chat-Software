@@ -87,12 +87,11 @@ sealed class Screen(val route: String) {
     object CreateContact : Screen("create_contact")
     object FriendsList : Screen("friends_list")
     object ScanQRcode : Screen("scan_QRcode")
-    object MessageMessaging : Screen("message_messaging/{roomId}") {
-        // 這是給上一頁 Loaded_Tg_Message 跳轉時產生的真實路徑
+    object MessageMessaging : Screen("message_messaging?roomId={roomId}") {
         fun createRoute(roomId: String): String {
-            // 建議加上 URL 編碼，防止 roomId 含有斜線或特殊字元導致二次閃退
             val encodedId = java.net.URLEncoder.encode(roomId, "UTF-8")
-            return "message_messaging/$encodedId"
+            // 2. 修改這裡：帶入對應的格式
+            return "message_messaging?roomId=$encodedId"
         }
     }
 }
@@ -104,41 +103,20 @@ fun Tg_Message(
     val navController = rememberNavController()
 
     NavHost(
-
         navController = navController,
         startDestination = Screen.Messages.route,
-        // 進入時的動畫（新頁面出現）
-        enterTransition = {
-            slideIntoContainer(
-                towards = AnimatedContentTransitionScope.SlideDirection.Left,
-                animationSpec = tween(700)
-            )
-        },
-        // 退出時的動畫（舊頁面消失）
-        exitTransition = {
-            slideOutOfContainer(
-                towards = AnimatedContentTransitionScope.SlideDirection.Left,
-                animationSpec = tween(700)
-            )
-        },
-        // 按返回鍵進入時的動畫
-        popEnterTransition = {
-            slideIntoContainer(
-                towards = AnimatedContentTransitionScope.SlideDirection.Right,
-                animationSpec = tween(700)
-            )
-        },
-        // 按返回鍵退出時的動畫
-        popExitTransition = {
-            slideOutOfContainer(
-                towards = AnimatedContentTransitionScope.SlideDirection.Right,
-                animationSpec = tween(700)
-            )
-        }
     ) {
         // 你的訊息主頁面
+        // 你的訊息主頁面
         composable(Screen.Messages.route) {
-            Loaded_Tg_Message(navController)
+            Loaded_Tg_Message(
+                navController = navController,
+                onRoomClick = { roomId ->
+                    // ✅ 使用你寫好的 createRoute(roomId) 帶入參數並導航
+                    val route = Screen.MessageMessaging.createRoute(roomId)
+                    navController.navigate(route)
+                }
+            )
         }
 
         // 新建聯絡頁面
@@ -160,15 +138,24 @@ fun Tg_Message(
         }
 
         //Message detail
-        // 這樣寫就完全沒問題了！因為 route 內部已經包含了 /{roomId}
         composable(
-            route = Screen.MessageMessaging.route,
+            route = Screen.MessageMessaging.route, // 現在是 "message_messaging?roomId={roomId}"
             arguments = listOf(
-                navArgument("roomId") { type = NavType.StringType }
+                navArgument("roomId") {
+                    type = NavType.StringType
+                    nullable = true        // 查詢參數建議改為允許為空
+                    defaultValue = ""      // 給予預設值
+                }
             )
         ) { backStackEntry ->
-            // 安全取出參數
-            val roomId = backStackEntry.arguments?.getString("roomId").orEmpty()
+            // 這裡維持你寫好的安全解碼邏輯
+            val encodedRoomId = backStackEntry.arguments?.getString("roomId").orEmpty()
+
+            val roomId = try {
+                java.net.URLDecoder.decode(encodedRoomId, "UTF-8")
+            } catch (e: Exception) {
+                encodedRoomId
+            }
 
             MessageMessaging(
                 roomId = roomId,
