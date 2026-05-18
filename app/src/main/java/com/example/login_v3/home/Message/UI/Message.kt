@@ -89,9 +89,8 @@ sealed class Screen(val route: String) {
     object ScanQRcode : Screen("scan_QRcode")
     object MessageMessaging : Screen("message_messaging?roomId={roomId}") {
         fun createRoute(roomId: String): String {
-            val encodedId = java.net.URLEncoder.encode(roomId, "UTF-8")
-            // 2. 修改這裡：帶入對應的格式
-            return "message_messaging?roomId=$encodedId"
+            // 🚀 修正：直接帶入原始 roomId，不進行 URL Encode
+            return "message_messaging?roomId=$roomId"
         }
     }
 }
@@ -139,23 +138,17 @@ fun Tg_Message(
 
         //Message detail
         composable(
-            route = Screen.MessageMessaging.route, // 現在是 "message_messaging?roomId={roomId}"
+            route = Screen.MessageMessaging.route,
             arguments = listOf(
                 navArgument("roomId") {
                     type = NavType.StringType
-                    nullable = true        // 查詢參數建議改為允許為空
-                    defaultValue = ""      // 給予預設值
+                    nullable = true
+                    defaultValue = ""
                 }
             )
         ) { backStackEntry ->
-            // 這裡維持你寫好的安全解碼邏輯
-            val encodedRoomId = backStackEntry.arguments?.getString("roomId").orEmpty()
-
-            val roomId = try {
-                java.net.URLDecoder.decode(encodedRoomId, "UTF-8")
-            } catch (e: Exception) {
-                encodedRoomId
-            }
+            // 🚀 修正：直接抓取 arguments 的字串，不再進行 URL Decode
+            val roomId = backStackEntry.arguments?.getString("roomId").orEmpty()
 
             MessageMessaging(
                 roomId = roomId,

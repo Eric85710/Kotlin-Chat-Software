@@ -45,24 +45,16 @@ fun MessageMessaging(
     onBackClick: () -> Unit,
     viewModel: ChatViewModel = hiltViewModel()
 ) {
-    // 加上 collectAsStateWithLifecycle() 轉換它
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
-
 
     LaunchedEffect(roomId) {
         viewModel.loadMessages(roomId)
-        Log.d("ChatDebug", "UI State 變更為: ${uiState::class.simpleName}")
     }
 
     Scaffold(
         topBar = {
             TopAppBar(
                 title = { Text("聊天室 ($roomId)") },
-                navigationIcon = {
-                    IconButton(onClick = onBackClick) {
-                        Text("<")
-                    }
-                }
             )
         }
     ) { innerPadding ->
@@ -96,7 +88,7 @@ fun MessageMessaging(
 
 @Composable
 fun MessageList(
-    messages: List<Message>, //  這裡是正確的 Message
+    messages: List<Message>,
     modifier: Modifier = Modifier
 ) {
     val currentUserId = "user_123"
@@ -106,7 +98,6 @@ fun MessageList(
         contentPadding = PaddingValues(16.dp),
         verticalArrangement = Arrangement.spacedBy(8.dp)
     ) {
-        // items 內部拿到的 message 會依循 List<Message> 的型態
         items(messages) { message ->
             val isMe = message.senderId == currentUserId
             MessageRow(message = message, isMe = isMe)
@@ -116,7 +107,7 @@ fun MessageList(
 
 @Composable
 fun MessageRow(
-    message: Message, // ✅ 修正這裡：將 Screen.Message 改為 Message
+    message: Message,
     isMe: Boolean
 ) {
     Row(
@@ -140,13 +131,13 @@ fun MessageRow(
             Column {
                 if (!isMe) {
                     Text(
-                        text = message.senderId, // ✅ 這樣型態對了，就能抓到欄位了！
+                        text = message.senderId,
                         style = MaterialTheme.typography.labelSmall,
                         color = Color.Gray
                     )
                 }
                 Text(
-                    text = message.content, // ✅ 這樣型態對了，就能抓到欄位了！
+                    text = message.content,
                     style = MaterialTheme.typography.bodyMedium
                 )
             }
