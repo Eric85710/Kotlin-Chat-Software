@@ -54,6 +54,7 @@ fun MessageMessaging(
     Scaffold(
         topBar = {
             TopAppBar(
+                //need to be sender id
                 title = { Text("聊天室 ($roomId)") },
             )
         }
