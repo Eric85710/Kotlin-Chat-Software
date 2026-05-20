@@ -87,10 +87,9 @@ sealed class Screen(val route: String) {
     object CreateContact : Screen("create_contact")
     object FriendsList : Screen("friends_list")
     object ScanQRcode : Screen("scan_QRcode")
-    object MessageMessaging : Screen("message_messaging?roomId={roomId}") {
-        fun createRoute(roomId: String): String {
-            // 🚀 修正：直接帶入原始 roomId，不進行 URL Encode
-            return "message_messaging?roomId=$roomId"
+    object MessageMessaging : Screen("message_messaging?roomId={roomId}&roomName={roomName}") {
+        fun createRoute(roomId: String, roomName: String): String {
+            return "message_messaging?roomId=$roomId&roomName=$roomName"
         }
     }
 }
@@ -106,13 +105,12 @@ fun Tg_Message(
         startDestination = Screen.Messages.route,
     ) {
         // 你的訊息主頁面
-        // 你的訊息主頁面
         composable(Screen.Messages.route) {
             Loaded_Tg_Message(
                 navController = navController,
-                onRoomClick = { roomId ->
-                    // ✅ 使用你寫好的 createRoute(roomId) 帶入參數並導航
-                    val route = Screen.MessageMessaging.createRoute(roomId)
+                // 🚀 完美接起傳出來的兩個參數，不再發生 No value passed 的狀況！
+                onRoomClick = { roomId, roomName ->
+                    val route = Screen.MessageMessaging.createRoute(roomId, roomName)
                     navController.navigate(route)
                 }
             )
@@ -144,14 +142,22 @@ fun Tg_Message(
                     type = NavType.StringType
                     nullable = true
                     defaultValue = ""
+                },
+                // 🚀 修正：新增接收 roomName 的導航參數
+                navArgument("roomName") {
+                    type = NavType.StringType
+                    nullable = true
+                    defaultValue = "聊天室"
                 }
             )
         ) { backStackEntry ->
-            // 🚀 修正：直接抓取 arguments 的字串，不再進行 URL Decode
             val roomId = backStackEntry.arguments?.getString("roomId").orEmpty()
+            // 🚀 修正：抓取名字
+            val roomName = backStackEntry.arguments?.getString("roomName") ?: "聊天室"
 
             MessageMessaging(
                 roomId = roomId,
+                roomName = roomName, // 🚀 傳入 UI 中
                 navController = navController,
                 onBackClick = {
                     navController.popBackStack()
@@ -163,12 +169,18 @@ fun Tg_Message(
 }
 
 
+val ChatRoom.displayTitle: String
+    get() = when (roomType) {
+        "direct", "dm" -> partner?.displayName ?: partner?.username ?: "未知使用者"
+        else -> roomName ?: "未命名群組"
+    }
+
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun Loaded_Tg_Message(
     navController: NavController,
     viewModel: ChatRoomsViewModel = hiltViewModel(),
-    onRoomClick: (String) -> Unit = {}
+    onRoomClick: (String, String) -> Unit = { _, _ -> }
 ) {
     var expanded by remember { mutableStateOf(false) }
 
@@ -288,8 +300,8 @@ fun Loaded_Tg_Message(
                         RoomItem(
                             navController = navController,
                             room = room,
-                            onClick = {
-                                onRoomClick(room.roomId)
+                            onClick = { roomId, roomName ->
+                                onRoomClick(roomId, roomName)
                             }
                         )
                         Spacer(modifier = Modifier.height(6.dp))
@@ -307,16 +319,18 @@ fun Loaded_Tg_Message(
 fun RoomItem(
     navController: NavController,
     room: ChatRoom,
-    onClick: (String) -> Unit
+    // 🚀 修正 2：onClick 改成攜帶兩個參數 (roomId, roomName)
+    onClick: (String, String) -> Unit
 ) {
     Card(
         modifier = Modifier
             .fillMaxWidth()
             .padding(horizontal = 12.dp, vertical = 6.dp) // 增加外邊距，讓 Card 之間有呼吸感
             .clickable {
-                // 💡 修改這裡：動態帶入真實的 roomId
-                navController.navigate(Screen.MessageMessaging.createRoute(room.roomId))
-            },
+                // 🚀 修正：直接呼叫傳進來的 lambda 函式即可，不要包含 createRoute 唷！
+                onClick(room.roomId, room.displayTitle)
+            }
+        ,
         shape = RoundedCornerShape(16.dp), // 較大的圓角看起來更現代
         colors = CardDefaults.cardColors(
             containerColor = Color.Transparent // ✅ 透明背景

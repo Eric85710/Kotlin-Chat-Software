@@ -41,6 +41,7 @@ import com.example.login_v3.navigation.Screen
 @Composable
 fun MessageMessaging(
     roomId: String,
+    roomName: String,
     navController: NavController,
     onBackClick: () -> Unit,
     viewModel: ChatViewModel = hiltViewModel()
@@ -55,7 +56,7 @@ fun MessageMessaging(
         topBar = {
             TopAppBar(
                 //need to be sender id
-                title = { Text("聊天室 ($roomId)") },
+                title = { Text(roomName) },
             )
         }
     ) { innerPadding ->
