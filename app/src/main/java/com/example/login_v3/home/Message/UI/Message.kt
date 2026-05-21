@@ -169,10 +169,13 @@ fun Tg_Message(
 }
 
 
-val ChatRoom.displayTitle: String
-    get() = when (roomType) {
-        "direct", "dm" -> partner?.displayName ?: partner?.username ?: "未知使用者"
-        else -> roomName ?: "未命名群組"
+val ChatRoom?.displayTitle: String
+    get() {
+        if (this == null) return "未知聊天室"
+        return when (roomType) {
+            "direct", "dm" -> partner?.displayName ?: partner?.username ?: "未知使用者"
+            else -> roomName ?: "未命名群組"
+        }
     }
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -322,6 +325,8 @@ fun RoomItem(
     // 🚀 修正 2：onClick 改成攜帶兩個參數 (roomId, roomName)
     onClick: (String, String) -> Unit
 ) {
+    val title = room.displayTitle
+
     Card(
         modifier = Modifier
             .fillMaxWidth()
