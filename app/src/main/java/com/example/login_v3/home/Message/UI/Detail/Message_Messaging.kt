@@ -10,12 +10,18 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material.icons.filled.ArrowBack
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
@@ -30,18 +36,17 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
-import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavController
 import com.example.login_v3.data.api.api_class.Message
 import com.example.login_v3.home.Message.ViewModel.Detail.ChatViewModel
 import com.example.login_v3.home.Message.ViewModel.Detail.MessagesUiState
+import com.example.login_v3.home.Message.ViewModel.UserStatus
 import com.example.login_v3.navigation.Screen
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun MessageMessaging(
     roomId: String,
-    roomName: String,
     navController: NavController,
     onBackClick: () -> Unit,
     viewModel: ChatViewModel = hiltViewModel()
@@ -51,12 +56,47 @@ fun MessageMessaging(
     LaunchedEffect(roomId) {
         viewModel.loadMessages(roomId)
     }
+    // 根據目前的 uiState 來動態決定 TopBar 要顯示什麼文字
+    val topBarTitle = when (val state = uiState) {
+        is MessagesUiState.Success -> state.roomTitle
+        is MessagesUiState.Error -> "載入失敗"
+        is MessagesUiState.Loading -> "載入中..."
+    }
 
     Scaffold(
         topBar = {
             TopAppBar(
-                //need to be sender id
-                title = { Text(roomName) },
+                title = {
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(8.dp)
+                    ) {
+                        Text(text = topBarTitle)
+
+                        // ✨ 如果是 Success 狀態，且對方是在線狀態（ONLINE），就顯示綠色小圓點
+                        if (uiState is MessagesUiState.Success) {
+                            val successState = uiState as MessagesUiState.Success
+                            if (successState.partnerStatus == UserStatus.ONLINE) {
+                                Box(
+                                    modifier = Modifier
+                                        .size(10.dp)
+                                        .background(
+                                            color = UserStatus.ONLINE.color,
+                                            shape = CircleShape
+                                        )
+                                )
+                            }
+                        }
+                    }
+                },
+                navigationIcon = {
+                    IconButton(onClick = onBackClick) {
+                        Icon(
+                            imageVector = Icons.Default.ArrowBack,
+                            contentDescription = "返回"
+                        )
+                    }
+                }
             )
         }
     ) { innerPadding ->
@@ -66,6 +106,7 @@ fun MessageMessaging(
                 .padding(innerPadding),
             contentAlignment = Alignment.Center
         ) {
+            // 根據不同的狀態渲染主畫面內容
             when (val state = uiState) {
                 is MessagesUiState.Loading -> {
                     CircularProgressIndicator()
@@ -74,6 +115,7 @@ fun MessageMessaging(
                     if (state.messages.isEmpty()) {
                         Text("目前沒有新訊息")
                     } else {
+                        // ⚠️ 記得把原來的 state.messages 傳進去
                         MessageList(messages = state.messages)
                     }
                 }

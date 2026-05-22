@@ -79,6 +79,7 @@ import com.example.login_v3.home.Message.UI.Detail.Message_add_contact
 import com.example.login_v3.home.Message.UI.Detail.Message_contact_list
 import com.example.login_v3.home.Message.UI.Detail.Scan_QRcode
 import com.example.login_v3.home.Message.ViewModel.ChatRoomsViewModel
+import com.example.login_v3.home.Message.ViewModel.UserStatus
 import com.example.login_v3.navigation.BottomBarViewModel
 
 
@@ -87,9 +88,9 @@ sealed class Screen(val route: String) {
     object CreateContact : Screen("create_contact")
     object FriendsList : Screen("friends_list")
     object ScanQRcode : Screen("scan_QRcode")
-    object MessageMessaging : Screen("message_messaging?roomId={roomId}&roomName={roomName}") {
-        fun createRoute(roomId: String, roomName: String): String {
-            return "message_messaging?roomId=$roomId&roomName=$roomName"
+    object MessageMessaging : Screen("message_messaging?roomId={roomId}") {
+        fun createRoute(roomId: String): String {
+            return "message_messaging?roomId=$roomId"
         }
     }
 }
@@ -108,9 +109,9 @@ fun Tg_Message(
         composable(Screen.Messages.route) {
             Loaded_Tg_Message(
                 navController = navController,
-                // 🚀 完美接起傳出來的兩個參數，不再發生 No value passed 的狀況！
-                onRoomClick = { roomId, roomName ->
-                    val route = Screen.MessageMessaging.createRoute(roomId, roomName)
+                // ✨ 2. 這裡的點擊事件如果原本有傳 roomName，現在直接忽略，只傳 roomId 給路由
+                onRoomClick = { roomId, _ ->
+                    val route = Screen.MessageMessaging.createRoute(roomId)
                     navController.navigate(route)
                 }
             )
@@ -138,26 +139,19 @@ fun Tg_Message(
         composable(
             route = Screen.MessageMessaging.route,
             arguments = listOf(
+                // ✨ 3. 只保留 roomId 的參數宣告，完全刪除 roomName 的 navArgument
                 navArgument("roomId") {
                     type = NavType.StringType
                     nullable = true
                     defaultValue = ""
-                },
-                // 🚀 修正：新增接收 roomName 的導航參數
-                navArgument("roomName") {
-                    type = NavType.StringType
-                    nullable = true
-                    defaultValue = "聊天室"
                 }
             )
         ) { backStackEntry ->
             val roomId = backStackEntry.arguments?.getString("roomId").orEmpty()
-            // 🚀 修正：抓取名字
-            val roomName = backStackEntry.arguments?.getString("roomName") ?: "聊天室"
 
+            // ✨ 4. 呼叫新版的 MessageMessaging，不再傳入 roomName 參數
             MessageMessaging(
                 roomId = roomId,
-                roomName = roomName, // 🚀 傳入 UI 中
                 navController = navController,
                 onBackClick = {
                     navController.popBackStack()
@@ -458,24 +452,6 @@ fun RoomItem(
             }
 
 
-        }
-    }
-}
-
-enum class UserStatus(val color: Color) {
-    ONLINE(Color.Green),
-    AWAY(Color.Yellow),
-    OFFLINE(Color.Gray),
-    UNKNOWN(Color.DarkGray);
-
-    companion object {
-        fun fromString(status: String?): UserStatus {
-            return when (status?.lowercase()) {
-                "online" -> ONLINE
-                "away" -> AWAY
-                "offline" -> OFFLINE
-                else -> UNKNOWN
-            }
         }
     }
 }

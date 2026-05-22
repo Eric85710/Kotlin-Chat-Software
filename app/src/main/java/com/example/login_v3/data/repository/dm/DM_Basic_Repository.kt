@@ -1,6 +1,7 @@
 package com.example.login_v3.data.repository.dm
 
 import com.example.login_v3.data.api.TecnologiaApi
+import com.example.login_v3.data.api.api_class.ChatRoom
 import com.example.login_v3.data.api.api_class.MessageResponse
 import com.example.login_v3.data.api.api_class.RoomListResponse
 import javax.inject.Inject
@@ -45,6 +46,21 @@ class ChatRoomsRepository @Inject constructor(
             }
         } catch (e: Exception) {
             // 捕捉網路斷線 (IOException) 或解析失敗 (JsonDataException) 等狀況
+            Result.failure(e)
+        }
+    }
+
+    // 在 ChatRoomsRepository 裡面加入：
+    suspend fun getChatRoom(roomId: String): Result<ChatRoom?> {
+        return try {
+            // 呼叫你原本就有的 fetchRooms() 獲取所有房間
+            val responseResult = fetchRooms()
+
+            responseResult.map { roomListResponse ->
+                // 從列表裡面找出 roomId 相同的那間房間
+                roomListResponse.rooms.find { it.roomId == roomId }
+            }
+        } catch (e: Exception) {
             Result.failure(e)
         }
     }
