@@ -47,13 +47,9 @@ class ChatViewModel @Inject constructor(
                 // 2. 根據房間資訊決定標題邏輯
                 val room = roomResult.getOrNull()
                 val (title, status) = if (room != null) {
-                    if (room.roomType == "DM") {
-                        val name = room.partner?.displayName ?: room.partner?.username ?: "未知用戶"
-                        val userStatus = UserStatus.fromString(room.partner?.status)
-                        Pair(name, userStatus)
-                    } else {
-                        Pair(room.roomName ?: "未命名群組", UserStatus.UNKNOWN)
-                    }
+                    val name = room.partner?.displayName ?: room.partner?.username ?: "未知用戶"
+                    val userStatus = UserStatus.fromString(room.partner?.status)
+                    Pair(name, userStatus)
                 } else {
                     // 如果真的拿不到房間資訊，給個安全預設值
                     Pair("聊天室", UserStatus.UNKNOWN)
