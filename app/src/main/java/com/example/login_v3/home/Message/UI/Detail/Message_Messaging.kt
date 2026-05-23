@@ -30,11 +30,13 @@ import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.unit.dp
@@ -47,6 +49,7 @@ import com.example.login_v3.data.api.api_class.Message
 import com.example.login_v3.home.Message.ViewModel.Detail.ChatViewModel
 import com.example.login_v3.home.Message.ViewModel.Detail.MessagesUiState
 import com.example.login_v3.home.Message.ViewModel.UserStatus
+import com.example.login_v3.navigation.BottomBarViewModel
 import com.example.login_v3.navigation.Screen
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -55,13 +58,20 @@ fun MessageMessaging(
     roomId: String,
     navController: NavController,
     onBackClick: () -> Unit,
-    viewModel: ChatViewModel = hiltViewModel()
+    viewModel: ChatViewModel = hiltViewModel(),
+    bottomBarViewModel: BottomBarViewModel
 ) {
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
 
     LaunchedEffect(roomId) {
         viewModel.loadMessages(roomId)
     }
+
+    DisposableEffect(Unit) {
+        bottomBarViewModel.setVisible(false)
+        onDispose { bottomBarViewModel.setVisible(true) }
+    }
+
     // 根據目前的 uiState 來動態決定 TopBar 要顯示什麼文字
     val topBarTitle = when (val state = uiState) {
         is MessagesUiState.Success -> state.roomTitle
@@ -110,7 +120,17 @@ fun MessageMessaging(
         Box(
             modifier = Modifier
                 .fillMaxSize()
-                .padding(innerPadding),
+                .padding(innerPadding)
+                .background(
+                    brush = Brush.verticalGradient(
+                        colors = listOf(
+                            Color(0xFFDA7029),
+                            Color(0xFF777777),
+                            Color(0xFFB34800)
+                        )
+                    )
+                )
+            ,
             contentAlignment = Alignment.Center
         ) {
             // 根據不同的狀態渲染主畫面內容

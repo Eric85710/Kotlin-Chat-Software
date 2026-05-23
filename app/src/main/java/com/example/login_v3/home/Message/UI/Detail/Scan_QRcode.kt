@@ -7,10 +7,12 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.navigation.NavController
+import com.example.login_v3.navigation.BottomBarViewModel
 
 @Composable
 fun Scan_QRcode(
-    navController: NavController
+    navController: NavController,
+    bottomBarViewModel: BottomBarViewModel
 ){
     Column(
         modifier = Modifier
