@@ -61,6 +61,7 @@ class ChatViewModel @Inject constructor(
                     messages = messagesResponse.messages
                 )
 
+                //已讀功能
                 launch {
                     repository.markAsRead(roomId)
                         .onFailure { error ->
