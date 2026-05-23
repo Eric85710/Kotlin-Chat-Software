@@ -59,9 +59,9 @@ data class Attachment(
 )
 @JsonClass(generateAdapter = true)
 data class Reaction(
-    @Json(name = "emoji") val emoji: String,
-    @Json(name = "count") val count: Int,
-    @Json(name = "me_reacted") val meReacted: Boolean
+    @Json(name = "emoji") val emoji: String = "",
+    @Json(name = "count") val count: Int = 0,
+    @Json(name = "me_reacted") val meReacted: Boolean = false
 )
 
 val Partner.fullContactAvatarUrl: Any

@@ -80,7 +80,7 @@ interface TecnologiaApi {
     ): Response<UserSearchResponse>
 
 
-    //Get dm list
+    // Get dm list
     @GET("api/dm/rooms")
     suspend fun getChatRooms(): Response<RoomListResponse>
 
@@ -89,5 +89,11 @@ interface TecnologiaApi {
     suspend fun getChatMessages(
         @Path("room_id") roomId: String
     ): Response<MessageResponse>
+
+    // 標記聊天室已讀
+    @POST("api/dm/{room_id}/read")
+    suspend fun markAsRead(
+        @Path("room_id") roomId: String
+    ): Response<Unit>
 
 }
