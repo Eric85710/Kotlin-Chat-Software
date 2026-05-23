@@ -80,6 +80,17 @@ fun MessageMessaging(
     }
 
     Scaffold(
+        modifier = Modifier
+            .fillMaxSize()
+            .background(
+                brush = Brush.verticalGradient(
+                    colors = listOf
+                        (Color(0xFFDA7029),
+                        Color(0xFF777777),
+                        Color(0xFFB34800))
+                )
+            ),
+        containerColor = Color.Transparent,
         topBar = {
             TopAppBar(
                 title = {
@@ -121,15 +132,6 @@ fun MessageMessaging(
             modifier = Modifier
                 .fillMaxSize()
                 .padding(innerPadding)
-                .background(
-                    brush = Brush.verticalGradient(
-                        colors = listOf(
-                            Color(0xFFDA7029),
-                            Color(0xFF777777),
-                            Color(0xFFB34800)
-                        )
-                    )
-                )
             ,
             contentAlignment = Alignment.Center
         ) {
