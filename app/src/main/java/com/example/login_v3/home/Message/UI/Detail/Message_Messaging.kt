@@ -124,7 +124,8 @@ fun MessageMessaging(
                     } else {
                         MessageList(
                             messages = state.messages,
-                            partnerAvatarUrl = state.partnerAvatarUrl
+                            partnerAvatarUrl = state.partnerAvatarUrl,
+                            partnerDisplayName = state.roomTitle
                         )
                     }
                 }
@@ -142,6 +143,7 @@ fun MessageMessaging(
 @Composable
 fun MessageList(
     partnerAvatarUrl: Any?,
+    partnerDisplayName: String,
     messages: List<Message>,
     modifier: Modifier = Modifier
 ) {
@@ -157,6 +159,7 @@ fun MessageList(
             MessageRow(
                 message = message,
                 partnerAvatarUrl = partnerAvatarUrl,
+                partnerDisplayName = partnerDisplayName,
                 isMe = isMe
             )
         }
@@ -167,7 +170,8 @@ fun MessageList(
 fun MessageRow(
     message: Message,
     isMe: Boolean,
-    partnerAvatarUrl: Any?
+    partnerAvatarUrl: Any? ,
+    partnerDisplayName: String
 ) {
     Row(
         modifier = Modifier.fillMaxWidth(),
@@ -199,8 +203,9 @@ fun MessageRow(
         ) {
             Column {
                 if (!isMe) {
+                    // ✨ 這裡成功的將原本的 message.senderId 改成對方的 display_name 了！
                     Text(
-                        text = message.senderId,
+                        text = partnerDisplayName,
                         style = MaterialTheme.typography.labelSmall,
                         color = Color.Gray
                     )
