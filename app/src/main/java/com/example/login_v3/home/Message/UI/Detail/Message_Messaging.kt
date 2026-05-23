@@ -1,6 +1,7 @@
 package com.example.login_v3.home.Message.UI.Detail
 
 import android.util.Log
+import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -18,6 +19,7 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material.icons.filled.AccountCircle
 import androidx.compose.material.icons.filled.ArrowBack
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
@@ -32,11 +34,15 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.navigation.NavController
+import coil.compose.AsyncImage
+import com.example.login_v3.R
 import com.example.login_v3.data.api.api_class.Message
 import com.example.login_v3.home.Message.ViewModel.Detail.ChatViewModel
 import com.example.login_v3.home.Message.ViewModel.Detail.MessagesUiState
@@ -71,6 +77,15 @@ fun MessageMessaging(
                         verticalAlignment = Alignment.CenterVertically,
                         horizontalArrangement = Arrangement.spacedBy(8.dp)
                     ) {
+                        //avatar
+                        if (uiState is MessagesUiState.Success) {
+                            val successState = uiState as MessagesUiState.Success
+                            UserAvatar(
+                                avatarUrl = successState.partnerAvatarUrl,
+                                modifier = Modifier.size(36.dp) // 適中的 TopBar 頭像大小
+                            )
+                        }
+
                         Text(text = topBarTitle)
 
                         // ✨ 如果是 Success 狀態，且對方是在線狀態（ONLINE），就顯示綠色小圓點
@@ -87,14 +102,6 @@ fun MessageMessaging(
                                 )
                             }
                         }
-                    }
-                },
-                navigationIcon = {
-                    IconButton(onClick = onBackClick) {
-                        Icon(
-                            imageVector = Icons.Default.ArrowBack,
-                            contentDescription = "返回"
-                        )
                     }
                 }
             )
@@ -115,8 +122,10 @@ fun MessageMessaging(
                     if (state.messages.isEmpty()) {
                         Text("目前沒有新訊息")
                     } else {
-                        // ⚠️ 記得把原來的 state.messages 傳進去
-                        MessageList(messages = state.messages)
+                        MessageList(
+                            messages = state.messages,
+                            partnerAvatarUrl = state.partnerAvatarUrl
+                        )
                     }
                 }
                 is MessagesUiState.Error -> {
@@ -132,6 +141,7 @@ fun MessageMessaging(
 
 @Composable
 fun MessageList(
+    partnerAvatarUrl: Any?,
     messages: List<Message>,
     modifier: Modifier = Modifier
 ) {
@@ -144,7 +154,11 @@ fun MessageList(
     ) {
         items(messages) { message ->
             val isMe = message.senderId == currentUserId
-            MessageRow(message = message, isMe = isMe)
+            MessageRow(
+                message = message,
+                partnerAvatarUrl = partnerAvatarUrl,
+                isMe = isMe
+            )
         }
     }
 }
@@ -152,12 +166,23 @@ fun MessageList(
 @Composable
 fun MessageRow(
     message: Message,
-    isMe: Boolean
+    isMe: Boolean,
+    partnerAvatarUrl: Any?
 ) {
     Row(
         modifier = Modifier.fillMaxWidth(),
         horizontalArrangement = if (isMe) Arrangement.End else Arrangement.Start
     ) {
+        // ✨ 如果是對方發的訊息，在對話框左邊顯示頭像
+        if (!isMe) {
+            UserAvatar(
+                avatarUrl = partnerAvatarUrl,
+                modifier = Modifier
+                    .padding(end = 8.dp)
+                    .size(32.dp) // 訊息旁的頭像稍微小一點
+            )
+        }
+
         Box(
             modifier = Modifier
                 .widthIn(max = 280.dp)
@@ -187,4 +212,20 @@ fun MessageRow(
             }
         }
     }
+}
+
+
+@Composable
+fun UserAvatar(
+    avatarUrl: Any?, // ✨ 改成 Any?
+    modifier: Modifier = Modifier
+) {
+    AsyncImage(
+        model = avatarUrl ?: R.drawable.avatar_v1, // 如果為 null，就用預設圖
+        contentDescription = "用戶頭像",
+        modifier = modifier
+            .background(Color.LightGray, shape = CircleShape)
+            .clip(CircleShape),
+        contentScale = ContentScale.Crop
+    )
 }

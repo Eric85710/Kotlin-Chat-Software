@@ -4,11 +4,13 @@ package com.example.login_v3.home.Message.ViewModel.Detail
 import android.util.Log
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.example.login_v3.R
 import com.example.login_v3.data.repository.dm.ChatRoomsRepository
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.launch
 import javax.inject.Inject
 import com.example.login_v3.data.api.api_class.Message
+import com.example.login_v3.data.api.api_class.fullContactAvatarUrl
 import com.example.login_v3.home.Message.ViewModel.UserStatus
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -20,8 +22,10 @@ sealed interface MessagesUiState {
     data class Success(
         val roomTitle: String,
         val partnerStatus: UserStatus,
+        val partnerAvatarUrl: Any?,
         val messages: List<Message>
     ) : MessagesUiState
+
     data class Error(val message: String) : MessagesUiState
 }
 
@@ -46,18 +50,22 @@ class ChatViewModel @Inject constructor(
 
                 // 2. 根據房間資訊決定標題邏輯
                 val room = roomResult.getOrNull()
-                val (title, status) = if (room != null) {
+                // ✨ 這裡改用 Any? 來接收擴充屬性的結果
+                val (title, status, avatarUrl: Any?) = if (room != null) {
                     val name = room.partner?.displayName ?: room.partner?.username ?: "未知用戶"
                     val userStatus = UserStatus.fromString(room.partner?.status)
-                    Pair(name, userStatus)
+                    // 👇 直接呼叫你寫好的擴充屬性
+                    val avatar = room.partner?.fullContactAvatarUrl
+                    Triple(name, userStatus, avatar)
                 } else {
-                    // 如果真的拿不到房間資訊，給個安全預設值
-                    Pair("聊天室", UserStatus.UNKNOWN)
+                    // 如果沒有房間資訊，就給預設的頭像資源
+                    Triple("聊天室", UserStatus.UNKNOWN, R.drawable.avatar_v1)
                 }
 
                 _uiState.value = MessagesUiState.Success(
                     roomTitle = title,
                     partnerStatus = status,
+                    partnerAvatarUrl = avatarUrl, // ✨ 這裡就會是完整的網址或 R.drawable.avatar_v1
                     messages = messagesResponse.messages
                 )
 
