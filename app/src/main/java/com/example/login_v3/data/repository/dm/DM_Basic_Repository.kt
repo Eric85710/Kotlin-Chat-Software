@@ -64,4 +64,21 @@ class ChatRoomsRepository @Inject constructor(
             Result.failure(e)
         }
     }
+
+    //read ed message
+    suspend fun markAsRead(roomId: String): Result<Unit> {
+        return try {
+            val response = api.markAsRead(roomId)
+
+            if (response.isSuccessful) {
+                // 204 成功時沒有 body，直接回傳 Unit 即可
+                Result.success(Unit)
+            } else {
+                val errorMsg = response.errorBody()?.string() ?: "未知錯誤"
+                Result.failure(Exception("標記已讀失敗，錯誤碼: ${response.code()}, 訊息: $errorMsg"))
+            }
+        } catch (e: Exception) {
+            Result.failure(e)
+        }
+    }
 }
