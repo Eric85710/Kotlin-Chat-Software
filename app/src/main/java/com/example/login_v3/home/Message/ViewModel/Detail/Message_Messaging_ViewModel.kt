@@ -60,6 +60,15 @@ class ChatViewModel @Inject constructor(
                     partnerStatus = status,
                     messages = messagesResponse.messages
                 )
+
+                launch {
+                    repository.markAsRead(roomId)
+                        .onFailure { error ->
+                            // 這裡通常不需要回報給 UI（不用跳 Error 畫面）
+                            // 只需要印個 Log 知道出事了就好
+                            Log.e("ChatViewModel", "標記已讀失敗: ${error.message}")
+                        }
+                }
             } else {
                 val exception = messagesResult.exceptionOrNull()
                 _uiState.value = MessagesUiState.Error(message = exception?.message ?: "未知錯誤")
