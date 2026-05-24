@@ -2,8 +2,10 @@ package com.example.login_v3.data.repository.dm
 
 import com.example.login_v3.data.api.TecnologiaApi
 import com.example.login_v3.data.api.api_class.ChatRoom
+import com.example.login_v3.data.api.api_class.Message
 import com.example.login_v3.data.api.api_class.MessageResponse
 import com.example.login_v3.data.api.api_class.RoomListResponse
+import com.example.login_v3.data.api.api_class.SendMessageRequest
 import javax.inject.Inject
 import javax.inject.Singleton
 
@@ -78,6 +80,40 @@ class ChatRoomsRepository @Inject constructor(
                 Result.failure(Exception("標記已讀失敗，錯誤碼: ${response.code()}, 訊息: $errorMsg"))
             }
         } catch (e: Exception) {
+            Result.failure(e)
+        }
+    }
+
+    //send message
+    suspend fun sendMessage(
+        roomId: String,
+        content: String,
+        replyToId: String? = null
+    ): Result<Message> {
+        return try {
+            // 打包 Request Body
+            val requestBody = SendMessageRequest(
+                content = content,
+                replyToId = replyToId
+            )
+
+            // 呼叫 API
+            val response = api.sendMessage(roomId, requestBody)
+
+            if (response.isSuccessful) {
+                val body = response.body()
+                if (body != null) {
+                    Result.success(body)
+                } else {
+                    Result.failure(Exception("發送成功但回應身體為空 (Empty response body)"))
+                }
+            } else {
+                // 抓取後端傳回的錯誤訊息
+                val errorMsg = response.errorBody()?.string() ?: "未知錯誤"
+                Result.failure(Exception("發送訊息失敗，錯誤碼: ${response.code()}, 訊息: $errorMsg"))
+            }
+        } catch (e: Exception) {
+            // 捕捉網路斷線或解析 JSON 失敗等狀況
             Result.failure(e)
         }
     }

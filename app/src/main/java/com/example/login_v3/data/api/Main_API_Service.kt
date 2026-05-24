@@ -96,4 +96,11 @@ interface TecnologiaApi {
         @Path("room_id") roomId: String
     ): Response<Unit>
 
+    //send DM message
+    @POST("api/dm/{room_id}/messages")
+    suspend fun sendMessage(
+        @Path("room_id") roomId: String,
+        @Body request: SendMessageRequest
+    ): Response<Message>
+
 }

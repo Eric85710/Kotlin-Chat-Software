@@ -115,3 +115,13 @@ data class Message(
         @Json(name = "me_reacted") val meReacted: Boolean
     )
 }
+
+
+
+
+//send message
+@JsonClass(generateAdapter = true)
+data class SendMessageRequest(
+    @Json(name = "content") val content: String,
+    @Json(name = "reply_to_id") val replyToId: String? = null
+)
