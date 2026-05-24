@@ -11,10 +11,12 @@ import kotlinx.coroutines.launch
 import javax.inject.Inject
 import com.example.login_v3.data.api.api_class.Message
 import com.example.login_v3.data.api.api_class.fullContactAvatarUrl
+import com.example.login_v3.data.repository.basic.TokenManager
 import com.example.login_v3.home.Message.ViewModel.UserStatus
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.first
 
 
 //message sending state
@@ -41,7 +43,8 @@ sealed interface MessagesUiState {
 
 @HiltViewModel
 class ChatViewModel @Inject constructor(
-    private val repository: ChatRoomsRepository
+    private val repository: ChatRoomsRepository,
+    private val tokenManager: TokenManager
 ) : ViewModel() {
 
     //UI state var
@@ -56,6 +59,9 @@ class ChatViewModel @Inject constructor(
         viewModelScope.launch {
             _uiState.value = MessagesUiState.Loading
 
+
+            //isMe
+            val currentLoggedInUserId = tokenManager.currentUserId.first() ?: ""
             // 1. 同時獲取房間資訊與訊息列表
             val roomResult = repository.getChatRoom(roomId) // ⚠️ 需確保 Repository 有提供此方法
             val messagesResult = repository.getChatMessages(roomId)
@@ -76,9 +82,6 @@ class ChatViewModel @Inject constructor(
                     // 如果沒有房間資訊，就給預設的頭像資源
                     Triple("聊天室", UserStatus.UNKNOWN, R.drawable.avatar_v1)
                 }
-
-
-                val currentLoggedInUserId = "user_123"
 
                 _uiState.value = MessagesUiState.Success(
                     roomTitle = title,

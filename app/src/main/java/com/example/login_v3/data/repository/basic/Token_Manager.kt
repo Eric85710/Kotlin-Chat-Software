@@ -14,7 +14,6 @@ import javax.inject.Inject
 class TokenManager @Inject constructor(
     private val dataStore: DataStore<Preferences>
 ) {
-    private val USER_ID_LIST = stringSetPreferencesKey("user_id_list")
     // 獲取所有已登入的使用者 ID 清單
     val allUserIds: Flow<Set<String>> = dataStore.data.map { preferences ->
         preferences[USER_ID_LIST] ?: emptySet()
