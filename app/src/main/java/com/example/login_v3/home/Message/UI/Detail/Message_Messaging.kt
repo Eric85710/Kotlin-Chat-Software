@@ -212,7 +212,6 @@ fun MessageList(
     messages: List<Message>,
     modifier: Modifier = Modifier
 ) {
-
     LazyColumn(
         modifier = modifier.fillMaxSize(),
         contentPadding = PaddingValues(16.dp),
@@ -224,7 +223,8 @@ fun MessageList(
                 message = message,
                 partnerAvatarUrl = partnerAvatarUrl,
                 partnerDisplayName = partnerDisplayName,
-                isMe = isMe
+                isMe = isMe,
+                currentUserId = currentUserId
             )
         }
     }
@@ -234,20 +234,21 @@ fun MessageList(
 fun MessageRow(
     message: Message,
     isMe: Boolean,
-    partnerAvatarUrl: Any? ,
-    partnerDisplayName: String
+    partnerAvatarUrl: Any?,
+    partnerDisplayName: String,
+    currentUserId: String // ✨ 新增參數
 ) {
     Row(
         modifier = Modifier.fillMaxWidth(),
         horizontalArrangement = if (isMe) Arrangement.End else Arrangement.Start
     ) {
-        // ✨ 如果是對方發的訊息，在對話框左邊顯示頭像
+        // 如果是對方發的訊息，在對話框左邊顯示頭像
         if (!isMe) {
             UserAvatar(
                 avatarUrl = partnerAvatarUrl,
                 modifier = Modifier
                     .padding(end = 8.dp)
-                    .size(32.dp) // 訊息旁的頭像稍微小一點
+                    .size(32.dp)
             )
         }
 
@@ -266,17 +267,27 @@ fun MessageRow(
                 .padding(horizontal = 12.dp, vertical = 8.dp)
         ) {
             Column {
-                if (!isMe) {
-                    // ✨ 這裡成功的將原本的 message.senderId 改成對方的 display_name 了！
+                // ✨ 這裡改成動態判斷顯示名稱
+                if (isMe) {
+                    // 如果是我，顯示自己的 currentUserId
+                    Text(
+                        text = currentUserId,
+                        style = MaterialTheme.typography.labelSmall,
+                        color = Color(0xFF4CAF50) // 可以給自己的名字換個顏色，比如綠色調，或者維持 Color.Gray
+                    )
+                } else {
+                    // 如果是對方，顯示對方的 partnerDisplayName
                     Text(
                         text = partnerDisplayName,
                         style = MaterialTheme.typography.labelSmall,
                         color = Color.Gray
                     )
                 }
+
                 Text(
                     text = message.content,
-                    style = MaterialTheme.typography.bodyMedium
+                    style = MaterialTheme.typography.bodyMedium,
+                    modifier = Modifier.padding(top = 2.dp) // 微調一下名字與內容的間距
                 )
             }
         }
