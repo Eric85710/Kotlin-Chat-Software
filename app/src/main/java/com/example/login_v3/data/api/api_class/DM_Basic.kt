@@ -100,7 +100,7 @@ data class Message(
     @Json(name = "forwarded_from_id") val forwardedFromId: String? = null,
     @Json(name = "forwarded_from_room_id") val forwardedFromRoomId: String? = null,
     @Json(name = "attachment") val attachment: Attachment? = null,
-    @Json(name = "reactions") val reactions: List<Reaction> = emptyList() // 若 API 沒給此欄位，給予空列表
+    @Json(name = "reactions") val reactions: List<Reaction>? = emptyList()
 ){
     @JsonClass(generateAdapter = true)
     data class Attachment(
@@ -115,9 +115,6 @@ data class Message(
         @Json(name = "me_reacted") val meReacted: Boolean
     )
 }
-
-
-
 
 //send message
 @JsonClass(generateAdapter = true)

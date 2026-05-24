@@ -1,6 +1,7 @@
 package com.example.login_v3.home.Message.UI.Detail
 
 import android.util.Log
+import android.widget.Toast
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
@@ -57,6 +58,7 @@ import com.example.login_v3.R
 import com.example.login_v3.data.api.api_class.Message
 import com.example.login_v3.home.Message.ViewModel.Detail.ChatViewModel
 import com.example.login_v3.home.Message.ViewModel.Detail.MessagesUiState
+import com.example.login_v3.home.Message.ViewModel.Detail.SendMessageState
 import com.example.login_v3.home.Message.ViewModel.UserStatus
 import com.example.login_v3.navigation.BottomBarViewModel
 import com.example.login_v3.navigation.Screen
@@ -72,7 +74,11 @@ fun MessageMessaging(
 ) {
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
 
+    //send message
+    val sendStatus by viewModel.sendMessageState.collectAsStateWithLifecycle()
+    val context = LocalContext.current
 
+    //進入時重整
     LaunchedEffect(roomId) {
         viewModel.loadMessages(roomId)
     }
@@ -80,6 +86,22 @@ fun MessageMessaging(
     DisposableEffect(Unit) {
         bottomBarViewModel.setVisible(false)
         onDispose { bottomBarViewModel.setVisible(true) }
+    }
+
+    // ✨ 監聽發送狀態，如果失敗了就彈出提示並重置狀態
+    LaunchedEffect(sendStatus) {
+        if (sendStatus is SendMessageState.Error) {
+            val errorMsg = (sendStatus as SendMessageState.Error).message
+            Toast.makeText(context, "發送失敗: $errorMsg", Toast.LENGTH_SHORT).show()
+            viewModel.resetSendMessageState()
+        } else if (sendStatus is SendMessageState.Success) {
+            // 發送成功後，重置狀態以便下一次發送
+            viewModel.resetSendMessageState()
+
+            // 【優化體驗】：你可以在這裡重新呼叫 viewModel.loadMessages(roomId) 刷新列表
+            // 或者如果你的 ViewModel 已經會自動把新訊息塞進 uiState，這裡就什麼都不用做。
+            viewModel.loadMessages(roomId)
+        }
     }
 
     // 根據目前的 uiState 來動態決定 TopBar 要顯示什麼文字
@@ -136,6 +158,15 @@ fun MessageMessaging(
                     }
                 }
             )
+        },
+        bottomBar = {
+            MessageInputBar(
+                isLoading = sendStatus is SendMessageState.Loading,
+                onSendClick = { text ->
+                    // 呼叫 ViewModel 的發送功能
+                    viewModel.sendMessage(roomId = roomId, content = text)
+                }
+            )
         }
     ) { innerPadding ->
         Box(
@@ -155,6 +186,7 @@ fun MessageMessaging(
                         Text("目前沒有新訊息")
                     } else {
                         MessageList(
+                            currentUserId = state.currentUserId,
                             messages = state.messages,
                             partnerAvatarUrl = state.partnerAvatarUrl,
                             partnerDisplayName = state.roomTitle
@@ -174,12 +206,12 @@ fun MessageMessaging(
 
 @Composable
 fun MessageList(
+    currentUserId: String,
     partnerAvatarUrl: Any?,
     partnerDisplayName: String,
     messages: List<Message>,
     modifier: Modifier = Modifier
 ) {
-    val currentUserId = "user_123"
 
     LazyColumn(
         modifier = modifier.fillMaxSize(),

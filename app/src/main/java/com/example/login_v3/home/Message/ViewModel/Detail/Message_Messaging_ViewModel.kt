@@ -17,13 +17,23 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 
 
+//message sending state
+sealed class SendMessageState {
+    object Idle : SendMessageState()      // 閒置狀態（預設）
+    object Loading : SendMessageState()   // 發送中
+    data class Success(val message: Message) : SendMessageState() // 發送成功
+    data class Error(val message: String) : SendMessageState()    // 發送失敗
+}
+
+
 sealed interface MessagesUiState {
     object Loading : MessagesUiState
     data class Success(
         val roomTitle: String,
         val partnerStatus: UserStatus,
         val partnerAvatarUrl: Any?,
-        val messages: List<Message>
+        val messages: List<Message>,
+        val currentUserId: String
     ) : MessagesUiState
 
     data class Error(val message: String) : MessagesUiState
@@ -34,8 +44,13 @@ class ChatViewModel @Inject constructor(
     private val repository: ChatRoomsRepository
 ) : ViewModel() {
 
+    //UI state var
     private val _uiState = MutableStateFlow<MessagesUiState>(MessagesUiState.Loading)
     val uiState: StateFlow<MessagesUiState> = _uiState.asStateFlow()
+
+    //message var
+    private val _sendMessageState = MutableStateFlow<SendMessageState>(SendMessageState.Idle)
+    val sendMessageState: StateFlow<SendMessageState> = _sendMessageState
 
     fun loadMessages(roomId: String) {
         viewModelScope.launch {
@@ -62,11 +77,15 @@ class ChatViewModel @Inject constructor(
                     Triple("聊天室", UserStatus.UNKNOWN, R.drawable.avatar_v1)
                 }
 
+
+                val currentLoggedInUserId = "user_123"
+
                 _uiState.value = MessagesUiState.Success(
                     roomTitle = title,
                     partnerStatus = status,
-                    partnerAvatarUrl = avatarUrl, // ✨ 這裡就會是完整的網址或 R.drawable.avatar_v1
-                    messages = messagesResponse.messages
+                    partnerAvatarUrl = avatarUrl,  //這裡就會是完整的網址或 R.drawable.avatar_v1
+                    messages = messagesResponse.messages,
+                    currentUserId = currentLoggedInUserId
                 )
 
                 //已讀功能
@@ -83,5 +102,39 @@ class ChatViewModel @Inject constructor(
                 _uiState.value = MessagesUiState.Error(message = exception?.message ?: "未知錯誤")
             }
         }
+    }
+
+
+    fun sendMessage(roomId: String, content: String, replyToId: String? = null) {
+        if (content.isBlank()) return
+
+        viewModelScope.launch {
+            _sendMessageState.value = SendMessageState.Loading
+
+            val result = repository.sendMessage(roomId, content, replyToId)
+
+            result.onSuccess { newMessage ->
+                _sendMessageState.value = SendMessageState.Success(newMessage)
+
+                // 😎【超讚的體驗優化】：發送成功後，直接把新訊息手動塞進現有的 UI 列表裡
+                val currentState = _uiState.value
+                if (currentState is MessagesUiState.Success) {
+                    // 把新訊息加到原本的列表最後面
+                    val updatedMessages = currentState.messages + newMessage
+
+                    // 更新 uiState，這樣 Compose 畫面不需要重新 load 網路就能立刻刷新！
+                    _uiState.value = currentState.copy(messages = updatedMessages)
+                }
+
+            }.onFailure { error ->
+                Log.e("ChatViewModel", "Send message failed", error)
+                _sendMessageState.value = SendMessageState.Error(error.message ?: "未知錯誤")
+            }
+        }
+    }
+
+    // ✨ 4. 新增：重設發送狀態的 function
+    fun resetSendMessageState() {
+        _sendMessageState.value = SendMessageState.Idle
     }
 }
