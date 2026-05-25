@@ -1,7 +1,10 @@
 package com.example.login_v3.home.Message.UI.Detail
 
+import android.net.Uri
 import android.util.Log
 import android.widget.Toast
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
@@ -26,6 +29,7 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.automirrored.filled.Send
 import androidx.compose.material.icons.filled.AccountCircle
+import androidx.compose.material.icons.filled.AddCircle
 import androidx.compose.material.icons.filled.ArrowBack
 import androidx.compose.material.icons.filled.Send
 import androidx.compose.material3.CircularProgressIndicator
@@ -167,8 +171,11 @@ fun MessageMessaging(
             MessageInputBar(
                 isLoading = sendStatus is SendMessageState.Loading,
                 onSendClick = { text ->
-                    // 呼叫 ViewModel 的發送功能
                     viewModel.sendMessage(roomId = roomId, content = text)
+                },
+                onImageSelected = { uri ->
+                    // ✨ 這裡呼叫你先前在 ViewModel 寫好的上傳圖片功能
+                    viewModel.uploadAttachment(roomId = roomId, fileUri = uri)
                 }
             )
         }
@@ -243,24 +250,23 @@ fun MessageRow(
     partnerDisplayName: String,
     currentUserId: String
 ) {
-    // 1. ✨ 升級防禦力的判斷邏輯
-    val contentLowerCase = message.content.lowercase()
-    val isImageUrl = contentLowerCase.startsWith("http") || contentLowerCase.contains("/uploads/")
+    // 1. ✨ 使用新的 attachment 欄位精準判斷是否為圖片，或是舊格式的網址判斷（相容舊資料）
+    val isAttachmentImage = message.attachment?.mimeType?.startsWith("image/") == true
 
-// 改用 contains 包含圖片副檔名，防止網址後面有自帶參數（例如 ?width=300 之類的）
-    val isImageFormat = contentLowerCase.contains(".jpg") ||
-            contentLowerCase.contains(".jpeg") ||
-            contentLowerCase.contains(".png") ||
-            contentLowerCase.contains(".webp") ||
-            contentLowerCase.contains(".heic")
+    // 保留你原本的舊資料防禦邏輯，避免舊的訊息爆掉
+    val contentLowerCase = (message.content ?: "").lowercase()
+    val isLegacyImage = contentLowerCase.startsWith("http") &&
+            (contentLowerCase.contains(".jpg") || contentLowerCase.contains(".png") || contentLowerCase.contains(".webp"))
 
-    val isImage = isImageUrl && isImageFormat
+    val isImage = isAttachmentImage || isLegacyImage
 
-    // 2. ✨ 補全圖片網址：如果網址是 /uploads/ 開頭，自動幫它加上後端的 Domain
-    val finalImageModel = if (message.content.startsWith("/")) {
-        "http://192.168.0.217${message.content}" // ⚠️ 請把這裡替換成你實際的後端伺服器網域
+    // 2. 補全圖片網址
+    // 2. 補全圖片網址
+    val rawContent = message.content ?: ""
+    val finalImageModel = if (rawContent.startsWith("/")) {
+        "http://192.168.0.217$rawContent"
     } else {
-        message.content
+        rawContent
     }
 
     Row(
@@ -291,7 +297,6 @@ fun MessageRow(
                 .padding(horizontal = 12.dp, vertical = 8.dp)
         ) {
             Column {
-
                 if (isImage) {
                     Box(
                         modifier = Modifier
@@ -301,7 +306,7 @@ fun MessageRow(
                             .background(Color.LightGray)
                     ) {
                         AsyncImage(
-                            model = finalImageModel, // ✨ 這裡要傳入補全後的完整網址
+                            model = finalImageModel,
                             contentDescription = "聊天圖片",
                             contentScale = ContentScale.Fit,
                             modifier = Modifier
@@ -312,7 +317,7 @@ fun MessageRow(
                     }
                 } else {
                     Text(
-                        text = message.content,
+                        text = rawContent,
                         style = MaterialTheme.typography.bodyMedium
                     )
                 }
@@ -326,12 +331,19 @@ fun MessageRow(
 fun MessageInputBar(
     isLoading: Boolean,
     onSendClick: (String) -> Unit,
+    onImageSelected: (Uri) -> Unit, // ✨ 新增：選取圖片後的回呼
     modifier: Modifier = Modifier
 ) {
     var textInput by remember { mutableStateOf("") }
 
-    // 當發送成功、外面將 isLoading 從 true 變回 false 時，可以順便清空輸入框
-    // 這裡直接在點擊發送時清空，或由外面控制皆可。
+    // ✨ 建立相簿選取器的 Launcher
+    val imagePickerLauncher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.GetContent()
+    ) { uri: Uri? ->
+        if (uri != null) {
+            onImageSelected(uri) // 將選到的圖片 Uri 丟回給上層
+        }
+    }
 
     Surface(
         tonalElevation = 2.dp,
@@ -343,6 +355,19 @@ fun MessageInputBar(
                 .padding(horizontal = 8.dp, vertical = 4.dp),
             verticalAlignment = Alignment.CenterVertically
         ) {
+
+            // ✨ 新增：相簿按鈕
+            IconButton(
+                onClick = { imagePickerLauncher.launch("image/*") },
+                enabled = !isLoading
+            ) {
+                Icon(
+                    imageVector = Icons.Default.AddCircle, // 你也可以改用 Icons.Default.Image
+                    contentDescription = "選擇圖片",
+                    tint = Color(0xFFDA7029)
+                )
+            }
+
             TextField(
                 value = textInput,
                 onValueChange = { textInput = it },
@@ -362,7 +387,7 @@ fun MessageInputBar(
                 onClick = {
                     if (textInput.isNotBlank() && !isLoading) {
                         onSendClick(textInput)
-                        textInput = "" // 點擊後立即清空輸入框
+                        textInput = ""
                     }
                 },
                 enabled = textInput.isNotBlank() && !isLoading
