@@ -291,13 +291,6 @@ fun MessageRow(
                 .padding(horizontal = 12.dp, vertical = 8.dp)
         ) {
             Column {
-                Text(
-                    text = if (isMe) currentUserId else partnerDisplayName,
-                    style = MaterialTheme.typography.labelSmall,
-                    color = if (isMe) Color(0xFF4CAF50) else Color.Gray
-                )
-
-                Spacer(modifier = Modifier.height(4.dp))
 
                 if (isImage) {
                     Box(
