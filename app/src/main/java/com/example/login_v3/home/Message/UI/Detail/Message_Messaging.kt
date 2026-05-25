@@ -215,9 +215,10 @@ fun MessageList(
     LazyColumn(
         modifier = modifier.fillMaxSize(),
         contentPadding = PaddingValues(16.dp),
-        verticalArrangement = Arrangement.spacedBy(8.dp)
+        verticalArrangement = Arrangement.spacedBy(8.dp),
+        reverseLayout = true // ✨ 保持 true，讓畫面底部作為起點，並預設滾動到最下方
     ) {
-        items(messages) { message ->
+        items(messages) { message -> // ✨ 直接帶入原始的 messages
             val isMe = message.senderId == currentUserId
             MessageRow(
                 message = message,
