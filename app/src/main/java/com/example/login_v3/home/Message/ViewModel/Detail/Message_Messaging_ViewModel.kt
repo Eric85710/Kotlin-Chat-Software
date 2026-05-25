@@ -1,6 +1,7 @@
 package com.example.login_v3.home.Message.ViewModel.Detail
 
 
+import android.net.Uri
 import android.util.Log
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
@@ -108,6 +109,7 @@ class ChatViewModel @Inject constructor(
     }
 
 
+    //upload image
     fun sendMessage(roomId: String, content: String, replyToId: String? = null) {
         if (content.isBlank()) return
 
@@ -136,7 +138,36 @@ class ChatViewModel @Inject constructor(
         }
     }
 
-    // ✨ 4. 新增：重設發送狀態的 function
+
+    //upload file
+    fun uploadAttachment(roomId: String, fileUri: Uri) {
+        viewModelScope.launch {
+            // 1. 將發送狀態切換為 Loading，讓 UI 顯示進度條
+            _sendMessageState.value = SendMessageState.Loading
+
+            // 2. 呼叫 Repository 處理檔案並上傳
+            val result = repository.uploadAttachment(roomId, fileUri)
+
+            result.onSuccess { newMessage ->
+                // 3. 上傳成功，更新發送狀態
+                _sendMessageState.value = SendMessageState.Success(newMessage)
+
+                // 😎【體驗優化】：跟發送文字訊息一樣，直接把帶有圖片的新訊息塞進現有的 UI 列表裡
+                val currentState = _uiState.value
+                if (currentState is MessagesUiState.Success) {
+                    val updatedMessages = currentState.messages + newMessage
+                    _uiState.value = currentState.copy(messages = updatedMessages)
+                }
+
+            }.onFailure { error ->
+                Log.e("ChatViewModel", "Upload attachment failed", error)
+                // 4. 上傳失敗，通知 UI 顯示錯誤
+                _sendMessageState.value = SendMessageState.Error(error.message ?: "上傳失敗，請稍後再試")
+            }
+        }
+    }
+
+    //新增：重設發送狀態的 function
     fun resetSendMessageState() {
         _sendMessageState.value = SendMessageState.Idle
     }

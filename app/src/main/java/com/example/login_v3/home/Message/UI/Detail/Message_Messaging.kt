@@ -321,21 +321,6 @@ fun MessageRow(
     }
 }
 
-@Composable
-fun UserAvatar(
-    avatarUrl: Any?, // ✨ 改成 Any?
-    modifier: Modifier = Modifier
-) {
-    AsyncImage(
-        model = avatarUrl ?: R.drawable.avatar_v1, // 如果為 null，就用預設圖
-        contentDescription = "用戶頭像",
-        modifier = modifier
-            .background(Color.LightGray, shape = CircleShape)
-            .clip(CircleShape),
-        contentScale = ContentScale.Crop
-    )
-}
-
 
 @Composable
 fun MessageInputBar(
@@ -394,4 +379,20 @@ fun MessageInputBar(
             }
         }
     }
+}
+
+
+@Composable
+fun UserAvatar(
+    avatarUrl: Any?, // ✨ 改成 Any?
+    modifier: Modifier = Modifier
+) {
+    AsyncImage(
+        model = avatarUrl ?: R.drawable.avatar_v1, // 如果為 null，就用預設圖
+        contentDescription = "用戶頭像",
+        modifier = modifier
+            .background(Color.LightGray, shape = CircleShape)
+            .clip(CircleShape),
+        contentScale = ContentScale.Crop
+    )
 }

@@ -103,4 +103,11 @@ interface TecnologiaApi {
         @Body request: SendMessageRequest
     ): Response<Message>
 
+    //send image
+    @Multipart
+    @POST("api/dm/{room_id}/attachment")
+    suspend fun uploadAttachment(
+        @Path("room_id") roomId: String,
+        @Part file: MultipartBody.Part
+    ): Response<Message>
 }
