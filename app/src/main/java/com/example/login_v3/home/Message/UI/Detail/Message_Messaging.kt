@@ -4,13 +4,17 @@ import android.util.Log
 import android.widget.Toast
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.widthIn
@@ -237,13 +241,31 @@ fun MessageRow(
     isMe: Boolean,
     partnerAvatarUrl: Any?,
     partnerDisplayName: String,
-    currentUserId: String // ✨ 新增參數
+    currentUserId: String
 ) {
+    // 1. ✨ 升級防禦力的判斷邏輯
+    val contentLowerCase = message.content.lowercase()
+    val isImageUrl = contentLowerCase.startsWith("http") || contentLowerCase.contains("/uploads/")
+
+// 改用 contains 包含圖片副檔名，防止網址後面有自帶參數（例如 ?width=300 之類的）
+    val isImageFormat = contentLowerCase.contains(".jpg") ||
+            contentLowerCase.contains(".jpeg") ||
+            contentLowerCase.contains(".png") ||
+            contentLowerCase.contains(".webp") // 順便支援 webp 格式
+
+    val isImage = isImageUrl && isImageFormat
+
+    // 2. ✨ 補全圖片網址：如果網址是 /uploads/ 開頭，自動幫它加上後端的 Domain
+    val finalImageModel = if (message.content.startsWith("/")) {
+        "http://192.168.0.217${message.content}" // ⚠️ 請把這裡替換成你實際的後端伺服器網域
+    } else {
+        message.content
+    }
+
     Row(
         modifier = Modifier.fillMaxWidth(),
         horizontalArrangement = if (isMe) Arrangement.End else Arrangement.Start
     ) {
-        // 如果是對方發的訊息，在對話框左邊顯示頭像
         if (!isMe) {
             UserAvatar(
                 avatarUrl = partnerAvatarUrl,
@@ -268,33 +290,42 @@ fun MessageRow(
                 .padding(horizontal = 12.dp, vertical = 8.dp)
         ) {
             Column {
-                // ✨ 這裡改成動態判斷顯示名稱
-                if (isMe) {
-                    // 如果是我，顯示自己的 currentUserId
-                    Text(
-                        text = currentUserId,
-                        style = MaterialTheme.typography.labelSmall,
-                        color = Color(0xFF4CAF50) // 可以給自己的名字換個顏色，比如綠色調，或者維持 Color.Gray
-                    )
+                Text(
+                    text = if (isMe) currentUserId else partnerDisplayName,
+                    style = MaterialTheme.typography.labelSmall,
+                    color = if (isMe) Color(0xFF4CAF50) else Color.Gray
+                )
+
+                Spacer(modifier = Modifier.height(4.dp))
+
+                if (isImage) {
+                    Box(
+                        modifier = Modifier
+                            .padding(top = 4.dp)
+                            .widthIn(max = 240.dp)
+                            .clip(RoundedCornerShape(8.dp))
+                            .background(Color.LightGray)
+                    ) {
+                        AsyncImage(
+                            model = finalImageModel, // ✨ 這裡要傳入補全後的完整網址
+                            contentDescription = "聊天圖片",
+                            contentScale = ContentScale.Fit,
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .heightIn(max = 300.dp)
+                                .clickable { /* 點擊放大 */ }
+                        )
+                    }
                 } else {
-                    // 如果是對方，顯示對方的 partnerDisplayName
                     Text(
-                        text = partnerDisplayName,
-                        style = MaterialTheme.typography.labelSmall,
-                        color = Color.Gray
+                        text = message.content,
+                        style = MaterialTheme.typography.bodyMedium
                     )
                 }
-
-                Text(
-                    text = message.content,
-                    style = MaterialTheme.typography.bodyMedium,
-                    modifier = Modifier.padding(top = 2.dp) // 微調一下名字與內容的間距
-                )
             }
         }
     }
 }
-
 
 @Composable
 fun UserAvatar(
