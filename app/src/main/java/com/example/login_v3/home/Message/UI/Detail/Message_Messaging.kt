@@ -251,7 +251,8 @@ fun MessageRow(
     val isImageFormat = contentLowerCase.contains(".jpg") ||
             contentLowerCase.contains(".jpeg") ||
             contentLowerCase.contains(".png") ||
-            contentLowerCase.contains(".webp") // 順便支援 webp 格式
+            contentLowerCase.contains(".webp") ||
+            contentLowerCase.contains(".heic")
 
     val isImage = isImageUrl && isImageFormat
 
