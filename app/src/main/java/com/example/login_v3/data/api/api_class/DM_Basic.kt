@@ -125,3 +125,9 @@ data class SendMessageRequest(
     @Json(name = "content") val content: String,
     @Json(name = "reply_to_id") val replyToId: String? = null
 )
+
+//message reaction
+@JsonClass(generateAdapter = true)
+data class MessageReactionUsersResponse(
+    @Json(name = "users") val users: List<String>
+)
