@@ -48,6 +48,9 @@ class ChatViewModel @Inject constructor(
     private val tokenManager: TokenManager
 ) : ViewModel() {
 
+    private val _replyingMessage = MutableStateFlow<Message?>(null)
+    val replyingMessage: StateFlow<Message?> = _replyingMessage.asStateFlow()
+
     //UI state var
     private val _uiState = MutableStateFlow<MessagesUiState>(MessagesUiState.Loading)
     val uiState: StateFlow<MessagesUiState> = _uiState.asStateFlow()
