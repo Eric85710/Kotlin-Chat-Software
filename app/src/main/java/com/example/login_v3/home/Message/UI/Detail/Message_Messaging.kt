@@ -40,6 +40,7 @@ import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.Photo
 import androidx.compose.material.icons.filled.Send
 import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -305,6 +306,13 @@ fun MessageMessaging(
                                     messageId = message.id,
                                     emoji = emoji
                                 )
+                            },
+                            onAddReaction = { message, emoji ->
+                                viewModel.addMessageReaction(
+                                    roomId = roomId,
+                                    messageId = message.id,
+                                    emoji = emoji
+                                )
                             }
                         )
                     }
@@ -328,6 +336,7 @@ fun MessageList(
     messages: List<Message>,
     onReplyClick: (Message) -> Unit,
     onReactionClick: (Message, String) -> Unit,
+    onAddReaction: (Message, String) -> Unit,
     modifier: Modifier = Modifier
 ) {
     LazyColumn(
@@ -345,7 +354,8 @@ fun MessageList(
                 isMe = isMe,
                 currentUserId = currentUserId,
                 onReplyClick = onReplyClick,
-                onReactionClick = onReactionClick
+                onReactionClick = onReactionClick,
+                onAddReaction = onAddReaction
             )
         }
     }
@@ -359,7 +369,8 @@ fun MessageRow(
     partnerDisplayName: String,
     currentUserId: String,
     onReplyClick: (Message) -> Unit,
-    onReactionClick: (Message, String) -> Unit
+    onReactionClick: (Message, String) -> Unit,
+    onAddReaction: (Message, String) -> Unit
 ) {
     val isAttachmentImage = message.attachment?.mimeType?.startsWith("image/") == true
     val contentLowerCase = (message.content ?: "").lowercase()
@@ -370,13 +381,17 @@ fun MessageRow(
     val rawContent = message.content ?: ""
     val finalImageModel = if (rawContent.startsWith("/")) "http://192.168.0.217$rawContent" else rawContent
 
+    //emoji value
+    var showEmojiPanel by remember { mutableStateOf(false) }
+    val commonEmojis = listOf("👍", "❤️", "😂", "😮", "😢", "🙏")
+
     Row(
         modifier = Modifier
             .fillMaxWidth()
             // 💡 讓使用者長按整條訊息就能觸發回覆
             .combinedClickable(
                 onLongClick = { onReplyClick(message) },
-                onClick = { /* 可做其他事或留空 */ }
+                onClick = { showEmojiPanel = true }     // 💡 點一下開啟 Emoji 面板
             ),
         horizontalArrangement = if (isMe) Arrangement.End else Arrangement.Start
     ) {
@@ -470,6 +485,31 @@ fun MessageRow(
                             text = rawContent,
                             style = MaterialTheme.typography.bodyMedium
                         )
+                    }
+                }
+
+                DropdownMenu(
+                    expanded = showEmojiPanel,
+                    onDismissRequest = { showEmojiPanel = false },
+                    modifier = Modifier.background(Color.White, RoundedCornerShape(24.dp))
+                ) {
+                    Row(
+                        modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp),
+                        horizontalArrangement = Arrangement.spacedBy(12.dp)
+                    ) {
+                        commonEmojis.forEach { emoji ->
+                            Text(
+                                text = emoji,
+                                fontSize = 24.sp,
+                                modifier = Modifier
+                                    .clip(CircleShape)
+                                    .clickable {
+                                        onAddReaction(message, emoji) // 觸發新增 Reaction API
+                                        showEmojiPanel = false        // 關閉面板
+                                    }
+                                    .padding(4.dp)
+                            )
+                        }
                     }
                 }
             }
