@@ -31,6 +31,7 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.automirrored.filled.Send
 import androidx.compose.material.icons.filled.AccountCircle
+import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.AddCircle
 import androidx.compose.material.icons.filled.ArrowBack
 import androidx.compose.material.icons.filled.Close
@@ -40,6 +41,7 @@ import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
@@ -383,66 +385,98 @@ fun MessageRow(
 @Composable
 fun MessageInputBar(
     isLoading: Boolean,
-    replyingMessage: Message?,         // 💡 新增
-    onCancelReply: () -> Unit,         // 💡 新增
+    replyingMessage: Message?,
+    onCancelReply: () -> Unit,
     onSendClick: (String) -> Unit,
     onImageSelected: (Uri) -> Unit
 ) {
     var textState by remember { mutableStateOf("") }
 
-    Column(
-        modifier = Modifier
-            .fillMaxWidth()
-            .background(Color.White) // 或者是你的背景色
+    // 💡 使用打包器，確保軟鍵盤彈出時系統會正確計算高度
+    Surface(
+        modifier = Modifier.fillMaxWidth(),
+        tonalElevation = 2.dp,
+        color = Color.White // 確保底色不透明，不會透出後方的聊天訊息
     ) {
-        // 💡 如果目前處於回覆狀態，就在輸入框上方橫向塞一個預覽 UI
-        AnimatedVisibility(visible = replyingMessage != null) {
-            if (replyingMessage != null) {
-                Row(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .background(Color(0xFFF5F5F5))
-                        .padding(horizontal = 16.dp, vertical = 8.dp),
-                    verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.SpaceBetween
-                ) {
-                    Column(modifier = Modifier.weight(1f)) {
-                        Text(
-                            text = "正在回覆訊息",
-                            style = MaterialTheme.typography.bodySmall.copy(fontWeight = FontWeight.Bold),
-                            color = Color(0xFFDA7029)
-                        )
-                        Text(
-                            text = replyingMessage.content,
-                            style = MaterialTheme.typography.bodySmall,
-                            color = Color.Gray,
-                            maxLines = 1,
-                            overflow = TextOverflow.Ellipsis
-                        )
-                    }
-                    // 取消回覆的 X 按鈕
-                    IconButton(onClick = onCancelReply, modifier = Modifier.size(24.dp)) {
-                        Icon(
-                            imageVector = Icons.Default.Close,
-                            contentDescription = "取消回覆",
-                            tint = Color.Gray
-                        )
+        Column(modifier = Modifier.fillMaxWidth()) {
+
+            // 1. 回覆預覽列
+            AnimatedVisibility(visible = replyingMessage != null) {
+                if (replyingMessage != null) {
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .background(Color(0xFFF5F5F5))
+                            .padding(horizontal = 16.dp, vertical = 8.dp),
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.SpaceBetween
+                    ) {
+                        Column(modifier = Modifier.weight(1f)) {
+                            Text(
+                                text = "正在回覆訊息",
+                                style = MaterialTheme.typography.bodySmall.copy(fontWeight = FontWeight.Bold),
+                                color = Color(0xFFDA7029)
+                            )
+                            Text(
+                                text = replyingMessage.content,
+                                style = MaterialTheme.typography.bodySmall,
+                                color = Color.Gray,
+                                maxLines = 1,
+                                overflow = TextOverflow.Ellipsis
+                            )
+                        }
+                        IconButton(onClick = onCancelReply, modifier = Modifier.size(24.dp)) {
+                            Icon(
+                                imageVector = Icons.Default.Close,
+                                contentDescription = "取消回覆",
+                                tint = Color.Gray
+                            )
+                        }
                     }
                 }
             }
-        }
 
-        // 下方維持你原本既有的輸入框 Row 排版
-        Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(8.dp),
-            verticalAlignment = Alignment.CenterVertically
-        ) {
-            // 你原本的 TextField, 選擇圖片按鈕, 送出按鈕...
-            // 送出時呼叫：
-            // onSendClick(textState)
-            // textState = ""
+            // 2. 💡 實際的輸入工具列 (確保有 padding 且元件垂直置中)
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = 8.dp, vertical = 4.dp),
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                // 圖片選擇按鈕 (範例，可換成你的實作)
+                IconButton(onClick = { /* 觸發你的圖片選取器，回傳 URI */ }) {
+                    Icon(imageVector = Icons.Default.Add, contentDescription = "選擇圖片", tint = Color.Gray)
+                }
+
+                // 輸入文字框
+                OutlinedTextField(
+                    value = textState,
+                    onValueChange = { textState = it },
+                    modifier = Modifier
+                        .weight(1f)
+                        .padding(horizontal = 4.dp),
+                    placeholder = { Text("請輸入訊息...") },
+                    maxLines = 4, // 避免使用者打太多字時無限長高
+                    shape = RoundedCornerShape(20.dp)
+                )
+
+                // 送出按鈕
+                IconButton(
+                    onClick = {
+                        if (textState.isNotBlank() && !isLoading) {
+                            onSendClick(textState)
+                            textState = "" // 送出後清空輸入框
+                        }
+                    },
+                    enabled = textState.isNotBlank() && !isLoading
+                ) {
+                    if (isLoading) {
+                        CircularProgressIndicator(modifier = Modifier.size(24.dp), strokeWidth = 2.dp)
+                    } else {
+                        Icon(imageVector = Icons.Default.Send, contentDescription = "送出", tint = Color(0xFFDA7029))
+                    }
+                }
+            }
         }
     }
 }
