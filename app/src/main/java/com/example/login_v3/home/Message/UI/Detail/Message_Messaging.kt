@@ -13,6 +13,8 @@ import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.ExperimentalLayoutApi
+import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
@@ -35,12 +37,14 @@ import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.AddCircle
 import androidx.compose.material.icons.filled.ArrowBack
 import androidx.compose.material.icons.filled.Close
+import androidx.compose.material.icons.filled.Photo
 import androidx.compose.material.icons.filled.Send
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.ModalBottomSheet
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Surface
@@ -48,6 +52,7 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.TextField
 import androidx.compose.material3.TextFieldDefaults
 import androidx.compose.material3.TopAppBar
+import androidx.compose.material3.rememberModalBottomSheetState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
@@ -67,14 +72,17 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.navigation.NavController
 import coil.compose.AsyncImage
 import com.example.login_v3.R
 import com.example.login_v3.data.api.api_class.Message
+import com.example.login_v3.data.api.api_class.Reaction
 import com.example.login_v3.home.Message.ViewModel.Detail.ChatViewModel
 import com.example.login_v3.home.Message.ViewModel.Detail.MessagesUiState
+import com.example.login_v3.home.Message.ViewModel.Detail.ReactionUsersState
 import com.example.login_v3.home.Message.ViewModel.Detail.SendMessageState
 import com.example.login_v3.home.Message.ViewModel.UserStatus
 import com.example.login_v3.navigation.BottomBarViewModel
@@ -99,6 +107,17 @@ fun MessageMessaging(
     //reply function
     val replyingMessage by viewModel.replyingMessage.collectAsStateWithLifecycle()
 
+    // 💡 1. 取得 ViewModel 裡的 Reaction 狀態
+    val reactionState by viewModel.reactionUsersState.collectAsStateWithLifecycle()
+    // 控制 BottomSheet 顯示的變數
+    var showReactionBottomSheet by remember { mutableStateOf(false) }
+
+    // 當狀態變成 Success 且不是空名單時，或者正在 Loading，就開啟 BottomSheet
+    LaunchedEffect(reactionState) {
+        if (reactionState is ReactionUsersState.Success || reactionState is ReactionUsersState.Loading) {
+            showReactionBottomSheet = true
+        }
+    }
     //進入時重整
     LaunchedEffect(roomId) {
         viewModel.loadMessages(roomId)
@@ -130,6 +149,69 @@ fun MessageMessaging(
         is MessagesUiState.Success -> state.roomTitle
         is MessagesUiState.Error -> "載入失敗"
         is MessagesUiState.Loading -> "載入中..."
+    }
+
+    // 💡 2. 渲染 BottomSheet 視窗
+    if (showReactionBottomSheet) {
+        ModalBottomSheet(
+            onDismissRequest = {
+                showReactionBottomSheet = false
+                viewModel.resetReactionUsersState() // 關閉時記得清空狀態，避免下次閃出舊資料
+            },
+            sheetState = rememberModalBottomSheetState()
+        ) {
+            Column(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(bottom = 32.dp, start = 16.dp, end = 16.dp),
+                horizontalAlignment = Alignment.CenterHorizontally
+            ) {
+                Text(
+                    text = "按讚的名單",
+                    style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold),
+                    modifier = Modifier.padding(bottom = 16.dp)
+                )
+
+                when (val state = reactionState) {
+                    is ReactionUsersState.Loading -> {
+                        CircularProgressIndicator(modifier = Modifier.padding(16.dp))
+                    }
+                    is ReactionUsersState.Success -> {
+                        if (state.users.isEmpty()) {
+                            Text("目前沒有人點擊", color = Color.Gray)
+                        } else {
+                            LazyColumn(
+                                modifier = Modifier.fillMaxWidth(),
+                                verticalArrangement = Arrangement.spacedBy(12.dp)
+                            ) {
+                                items(state.users) { userName ->
+                                    Row(
+                                        verticalAlignment = Alignment.CenterVertically,
+                                        modifier = Modifier.fillMaxWidth().padding(vertical = 4.dp)
+                                    ) {
+                                        // 這裡可以用一個預設頭像，或是單純顯示文字
+                                        Icon(
+                                            imageVector = Icons.Default.AccountCircle,
+                                            contentDescription = null,
+                                            tint = Color.Gray,
+                                            modifier = Modifier.size(36.dp).padding(end = 8.dp)
+                                        )
+                                        Text(
+                                            text = userName,
+                                            style = MaterialTheme.typography.bodyLarge
+                                        )
+                                    }
+                                }
+                            }
+                        }
+                    }
+                    is ReactionUsersState.Error -> {
+                        Text(text = state.message, color = MaterialTheme.colorScheme.error)
+                    }
+                    else -> {}
+                }
+            }
+        }
     }
 
     Scaffold(
@@ -216,7 +298,14 @@ fun MessageMessaging(
                             messages = state.messages,
                             partnerAvatarUrl = state.partnerAvatarUrl,
                             partnerDisplayName = state.roomTitle,
-                            onReplyClick = { message -> viewModel.setReplyingMessage(message) }
+                            onReplyClick = { message -> viewModel.setReplyingMessage(message) },
+                            onReactionClick = { message, emoji ->
+                                viewModel.loadMessageReactionUsers(
+                                    roomId = roomId,
+                                    messageId = message.id,
+                                    emoji = emoji
+                                )
+                            }
                         )
                     }
                 }
@@ -238,6 +327,7 @@ fun MessageList(
     partnerDisplayName: String,
     messages: List<Message>,
     onReplyClick: (Message) -> Unit,
+    onReactionClick: (Message, String) -> Unit,
     modifier: Modifier = Modifier
 ) {
     LazyColumn(
@@ -254,7 +344,8 @@ fun MessageList(
                 partnerDisplayName = partnerDisplayName,
                 isMe = isMe,
                 currentUserId = currentUserId,
-                onReplyClick = onReplyClick
+                onReplyClick = onReplyClick,
+                onReactionClick = onReactionClick
             )
         }
     }
@@ -267,7 +358,8 @@ fun MessageRow(
     partnerAvatarUrl: Any?,
     partnerDisplayName: String,
     currentUserId: String,
-    onReplyClick: (Message) -> Unit // 💡 新增參數
+    onReplyClick: (Message) -> Unit,
+    onReactionClick: (Message, String) -> Unit
 ) {
     val isAttachmentImage = message.attachment?.mimeType?.startsWith("image/") == true
     val contentLowerCase = (message.content ?: "").lowercase()
@@ -295,87 +387,99 @@ fun MessageRow(
             )
         }
 
-        Box(
-            modifier = Modifier
-                .widthIn(max = 280.dp)
-                .background(
-                    color = if (isMe) Color(0xFFDCF8C6) else Color(0xFFECEFF1),
-                    shape = RoundedCornerShape(
-                        topStart = 12.dp, topEnd = 12.dp,
-                        bottomStart = if (isMe) 12.dp else 0.dp,
-                        bottomEnd = if (isMe) 0.dp else 12.dp
-                    )
-                )
-                .padding(horizontal = 12.dp, vertical = 8.dp)
+        Column(
+            horizontalAlignment = if (isMe) Alignment.End else Alignment.Start
         ) {
-            Column {
-                // 💡 【核心：渲染被回覆的訊息內容】
-                message.repliedMessage?.let { replied ->
-                    val repliedSenderName = if (replied.senderId == currentUserId) "你" else partnerDisplayName
+            Box(
+                modifier = Modifier
+                    .widthIn(max = 280.dp)
+                    .background(
+                        color = if (isMe) Color(0xFFDCF8C6) else Color(0xFFECEFF1),
+                        shape = RoundedCornerShape(
+                            topStart = 12.dp, topEnd = 12.dp,
+                            bottomStart = if (isMe) 12.dp else 0.dp,
+                            bottomEnd = if (isMe) 0.dp else 12.dp
+                        )
+                    )
+                    .padding(horizontal = 12.dp, vertical = 8.dp)
+            ) {
+                Column {
+                    // 💡 【核心：渲染被回覆的訊息內容】
+                    message.repliedMessage?.let { replied ->
+                        val repliedSenderName = if (replied.senderId == currentUserId) "你" else partnerDisplayName
 
-                    // 被回覆的小氣泡外框
-                    Row(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .padding(bottom = 6.dp)
-                            .clip(RoundedCornerShape(4.dp))
-                            // 💡 修正這裡：直接根據 isMe 決定傳入哪一個 Color 物件即可
-                            .background(if (isMe) Color(0xFFC7EBB2) else Color(0xFFE0E0E0))
-                            .drawBehind {
-                                // 在左側畫一條精緻的提示線 (類似 LINE / Telegram)
-                                drawLine(
-                                    color = Color.Gray,
-                                    start = Offset(0f, 0f),
-                                    end = Offset(0f, size.height),
-                                    strokeWidth = 6f
-                                )
-                            }
-                            .padding(start = 8.dp, top = 4.dp, bottom = 4.dp, end = 4.dp),
-                        verticalAlignment = Alignment.CenterVertically
-                    ) {
-                        Column {
-                            Text(
-                                text = repliedSenderName,
-                                style = MaterialTheme.typography.bodySmall.copy(fontWeight = FontWeight.Bold),
-                                color = Color(0xFF1E88E5),
-                                maxLines = 1
-                            )
-                            Text(
-                                // 如果被回覆的是圖片，顯示 [圖片]，否則顯示文字內容
-                                text = if (replied.attachment?.mimeType?.startsWith("image/") == true) "[圖片]" else replied.content,
-                                style = MaterialTheme.typography.bodySmall,
-                                color = Color.DarkGray,
-                                maxLines = 1, // 最多一行，避免太長
-                                overflow = TextOverflow.Ellipsis
-                            )
-                        }
-                    }
-                }
-
-                // 2. 原本的訊息主體內容（文字或圖片）
-                if (isImage) {
-                    Box(
-                        modifier = Modifier
-                            .padding(top = 4.dp)
-                            .widthIn(max = 240.dp)
-                            .clip(RoundedCornerShape(8.dp))
-                            .background(Color.LightGray)
-                    ) {
-                        AsyncImage(
-                            model = finalImageModel,
-                            contentDescription = "聊天圖片",
-                            contentScale = ContentScale.Fit,
+                        // 被回覆的小氣泡外框
+                        Row(
                             modifier = Modifier
                                 .fillMaxWidth()
-                                .heightIn(max = 300.dp)
+                                .padding(bottom = 6.dp)
+                                .clip(RoundedCornerShape(4.dp))
+                                // 💡 修正這裡：直接根據 isMe 決定傳入哪一個 Color 物件即可
+                                .background(if (isMe) Color(0xFFC7EBB2) else Color(0xFFE0E0E0))
+                                .drawBehind {
+                                    // 在左側畫一條精緻的提示線 (類似 LINE / Telegram)
+                                    drawLine(
+                                        color = Color.Gray,
+                                        start = Offset(0f, 0f),
+                                        end = Offset(0f, size.height),
+                                        strokeWidth = 6f
+                                    )
+                                }
+                                .padding(start = 8.dp, top = 4.dp, bottom = 4.dp, end = 4.dp),
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Column {
+                                Text(
+                                    text = repliedSenderName,
+                                    style = MaterialTheme.typography.bodySmall.copy(fontWeight = FontWeight.Bold),
+                                    color = Color(0xFF1E88E5),
+                                    maxLines = 1
+                                )
+                                Text(
+                                    // 如果被回覆的是圖片，顯示 [圖片]，否則顯示文字內容
+                                    text = if (replied.attachment?.mimeType?.startsWith("image/") == true) "[圖片]" else replied.content,
+                                    style = MaterialTheme.typography.bodySmall,
+                                    color = Color.DarkGray,
+                                    maxLines = 1, // 最多一行，避免太長
+                                    overflow = TextOverflow.Ellipsis
+                                )
+                            }
+                        }
+                    }
+
+                    // 2. 原本的訊息主體內容（文字或圖片）
+                    if (isImage) {
+                        Box(
+                            modifier = Modifier
+                                .padding(top = 4.dp)
+                                .widthIn(max = 240.dp)
+                                .clip(RoundedCornerShape(8.dp))
+                                .background(Color.LightGray)
+                        ) {
+                            AsyncImage(
+                                model = finalImageModel,
+                                contentDescription = "聊天圖片",
+                                contentScale = ContentScale.Fit,
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .heightIn(max = 300.dp)
+                            )
+                        }
+                    } else {
+                        Text(
+                            text = rawContent,
+                            style = MaterialTheme.typography.bodyMedium
                         )
                     }
-                } else {
-                    Text(
-                        text = rawContent,
-                        style = MaterialTheme.typography.bodyMedium
-                    )
                 }
+            }
+
+            // 💡 ✨ 新增：如果這條訊息有 Reaction，就顯示在氣泡的正下方
+            if (!message.reactions.isNullOrEmpty()) {
+                ReactionRow(
+                    reactions = message.reactions,
+                    onReactionClick = { emoji -> onReactionClick(message, emoji) }
+                )
             }
         }
     }
@@ -391,6 +495,16 @@ fun MessageInputBar(
     onImageSelected: (Uri) -> Unit
 ) {
     var textState by remember { mutableStateOf("") }
+
+    val imagePickerLauncher =
+        rememberLauncherForActivityResult(
+            contract = ActivityResultContracts.GetContent()
+        ) { uri: Uri? ->
+
+            uri?.let {
+                onImageSelected(it)
+            }
+        }
 
     // 💡 使用打包器，確保軟鍵盤彈出時系統會正確計算高度
     Surface(
@@ -444,8 +558,17 @@ fun MessageInputBar(
                 verticalAlignment = Alignment.CenterVertically
             ) {
                 // 圖片選擇按鈕 (範例，可換成你的實作)
-                IconButton(onClick = { /* 觸發你的圖片選取器，回傳 URI */ }) {
-                    Icon(imageVector = Icons.Default.Add, contentDescription = "選擇圖片", tint = Color.Gray)
+                // ✅ 圖片按鈕
+                IconButton(
+                    onClick = {
+                        imagePickerLauncher.launch("image/*")
+                    }
+                ) {
+                    Icon(
+                        imageVector = Icons.Default.Photo,
+                        contentDescription = "選擇圖片",
+                        tint = Color.Gray
+                    )
                 }
 
                 // 輸入文字框
@@ -495,4 +618,43 @@ fun UserAvatar(
             .clip(CircleShape),
         contentScale = ContentScale.Crop
     )
+}
+
+
+@Composable
+fun ReactionRow(
+    reactions: List<Reaction>,
+    onReactionClick: (String) -> Unit
+) {
+    // 使用 FlowRow，如果貼圖太多會自動折行
+    OptIn(ExperimentalLayoutApi::class)
+    FlowRow(
+        modifier = Modifier.padding(top = 4.dp, start = 4.dp, end = 4.dp),
+        horizontalArrangement = Arrangement.spacedBy(4.dp),
+        verticalArrangement = Arrangement.spacedBy(4.dp)
+    ) {
+        reactions.forEach { reaction ->
+            if (reaction.count > 0) {
+                Row(
+                    modifier = Modifier
+                        .clip(CircleShape)
+                        .background(
+                            // 如果我自己有按讚，背景變稍微深色/藍色點綴，否則為淡灰色
+                            if (reaction.meReacted) Color(0xFFBBDEFB) else Color(0xFFEEEEEE)
+                        )
+                        .clickable { onReactionClick(reaction.emoji) }
+                        .padding(horizontal = 8.dp, vertical = 4.dp),
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(4.dp)
+                ) {
+                    Text(text = reaction.emoji, fontSize = 14.sp)
+                    Text(
+                        text = reaction.count.toString(),
+                        style = MaterialTheme.typography.bodySmall.copy(fontWeight = FontWeight.Bold),
+                        color = if (reaction.meReacted) Color(0xFF1976D2) else Color.DarkGray
+                    )
+                }
+            }
+        }
+    }
 }

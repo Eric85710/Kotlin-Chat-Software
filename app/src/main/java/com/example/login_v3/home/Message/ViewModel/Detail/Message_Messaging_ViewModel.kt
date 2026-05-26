@@ -215,6 +215,11 @@ class ChatViewModel @Inject constructor(
         }
     }
 
+    // 💡 請確保這段程式碼有確實待在 ChatViewModel 裡面
+    fun resetReactionUsersState() {
+        _reactionUsersState.value = ReactionUsersState.Idle
+    }
+
     //新增：重設發送狀態的 function
     fun resetSendMessageState() {
         _sendMessageState.value = SendMessageState.Idle
