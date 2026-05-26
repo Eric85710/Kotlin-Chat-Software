@@ -110,15 +110,8 @@ fun MessageMessaging(
 
     // 💡 1. 取得 ViewModel 裡的 Reaction 狀態
     val reactionState by viewModel.reactionUsersState.collectAsStateWithLifecycle()
-    // 控制 BottomSheet 顯示的變數
-    var showReactionBottomSheet by remember { mutableStateOf(false) }
 
-    // 當狀態變成 Success 且不是空名單時，或者正在 Loading，就開啟 BottomSheet
-    LaunchedEffect(reactionState) {
-        if (reactionState is ReactionUsersState.Success || reactionState is ReactionUsersState.Loading) {
-            showReactionBottomSheet = true
-        }
-    }
+
     //進入時重整
     LaunchedEffect(roomId) {
         viewModel.loadMessages(roomId)
@@ -150,69 +143,6 @@ fun MessageMessaging(
         is MessagesUiState.Success -> state.roomTitle
         is MessagesUiState.Error -> "載入失敗"
         is MessagesUiState.Loading -> "載入中..."
-    }
-
-    // 💡 2. 渲染 BottomSheet 視窗
-    if (showReactionBottomSheet) {
-        ModalBottomSheet(
-            onDismissRequest = {
-                showReactionBottomSheet = false
-                viewModel.resetReactionUsersState() // 關閉時記得清空狀態，避免下次閃出舊資料
-            },
-            sheetState = rememberModalBottomSheetState()
-        ) {
-            Column(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(bottom = 32.dp, start = 16.dp, end = 16.dp),
-                horizontalAlignment = Alignment.CenterHorizontally
-            ) {
-                Text(
-                    text = "按讚的名單",
-                    style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold),
-                    modifier = Modifier.padding(bottom = 16.dp)
-                )
-
-                when (val state = reactionState) {
-                    is ReactionUsersState.Loading -> {
-                        CircularProgressIndicator(modifier = Modifier.padding(16.dp))
-                    }
-                    is ReactionUsersState.Success -> {
-                        if (state.users.isEmpty()) {
-                            Text("目前沒有人點擊", color = Color.Gray)
-                        } else {
-                            LazyColumn(
-                                modifier = Modifier.fillMaxWidth(),
-                                verticalArrangement = Arrangement.spacedBy(12.dp)
-                            ) {
-                                items(state.users) { userName ->
-                                    Row(
-                                        verticalAlignment = Alignment.CenterVertically,
-                                        modifier = Modifier.fillMaxWidth().padding(vertical = 4.dp)
-                                    ) {
-                                        // 這裡可以用一個預設頭像，或是單純顯示文字
-                                        Icon(
-                                            imageVector = Icons.Default.AccountCircle,
-                                            contentDescription = null,
-                                            tint = Color.Gray,
-                                            modifier = Modifier.size(36.dp).padding(end = 8.dp)
-                                        )
-                                        Text(
-                                            text = userName,
-                                            style = MaterialTheme.typography.bodyLarge
-                                        )
-                                    }
-                                }
-                            }
-                        }
-                    }
-                    is ReactionUsersState.Error -> {
-                        Text(text = state.message, color = MaterialTheme.colorScheme.error)
-                    }
-                    else -> {}
-                }
-            }
-        }
     }
 
     Scaffold(
@@ -301,12 +231,27 @@ fun MessageMessaging(
                             partnerDisplayName = state.roomTitle,
                             onReplyClick = { message -> viewModel.setReplyingMessage(message) },
                             onReactionClick = { message, emoji ->
-                                viewModel.loadMessageReactionUsers(
-                                    roomId = roomId,
-                                    messageId = message.id,
-                                    emoji = emoji
-                                )
+                                // 尋找該訊息內，對應點擊到的 Reaction 物件
+                                val targetReaction = message.reactions?.find { it.emoji == emoji }
+
+                                if (targetReaction?.meReacted == true) {
+                                    // 我自己已經點過了 ➡️ 觸發「移除/收回」
+                                    viewModel.removeMessageReaction(
+                                        roomId = roomId,
+                                        messageId = message.id,
+                                        emoji = emoji
+                                    )
+                                } else {
+                                    // 我沒點過（別人點的） ➡️ 觸發「新增/一起點」
+                                    viewModel.addMessageReaction(
+                                        roomId = roomId,
+                                        messageId = message.id,
+                                        emoji = emoji
+                                    )
+                                }
                             },
+
+                            // 點選彈出面板（Panel）的新 Emoji
                             onAddReaction = { message, emoji ->
                                 viewModel.addMessageReaction(
                                     roomId = roomId,
