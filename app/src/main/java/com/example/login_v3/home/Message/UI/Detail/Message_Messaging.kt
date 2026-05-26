@@ -255,8 +255,9 @@ fun MessageRow(
 
     // 保留你原本的舊資料防禦邏輯，避免舊的訊息爆掉
     val contentLowerCase = (message.content ?: "").lowercase()
+    val imageExtensions = listOf(".jpg", ".jpeg", ".png", ".webp", ".heic", ".heif")
     val isLegacyImage = contentLowerCase.startsWith("http") &&
-            (contentLowerCase.contains(".jpg") || contentLowerCase.contains(".png") || contentLowerCase.contains(".webp"))
+            imageExtensions.any { contentLowerCase.contains(it) }
 
     val isImage = isAttachmentImage || isLegacyImage
 
@@ -336,12 +337,11 @@ fun MessageInputBar(
 ) {
     var textInput by remember { mutableStateOf("") }
 
-    // ✨ 建立相簿選取器的 Launcher
     val imagePickerLauncher = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.GetContent()
     ) { uri: Uri? ->
         if (uri != null) {
-            onImageSelected(uri) // 將選到的圖片 Uri 丟回給上層
+            onImageSelected(uri)
         }
     }
 
