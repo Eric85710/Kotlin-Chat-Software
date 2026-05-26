@@ -51,18 +51,6 @@ data class LastMessage(
     @Json(name = "forwarded_from_id") val forwardedFromId: String?,
     @Json(name = "forwarded_from_room_id") val forwardedFromRoomId: String?
 )
-@JsonClass(generateAdapter = true)
-data class Attachment(
-    @Json(name = "filename") val filename: String,
-    @Json(name = "mime_type") val mimeType: String,
-    @Json(name = "size") val size: Long
-)
-@JsonClass(generateAdapter = true)
-data class Reaction(
-    @Json(name = "emoji") val emoji: String = "",
-    @Json(name = "count") val count: Int = 0,
-    @Json(name = "me_reacted") val meReacted: Boolean = false
-)
 
 val Partner.fullContactAvatarUrl: Any
     get() = if (avatarUrl.isNullOrBlank()) {
@@ -76,6 +64,22 @@ val Partner.fullContactAvatarUrl: Any
 
 
 //Message DM
+// 抽到最外層，讓 ChatRoom、LastMessage、Message 共同使用
+@JsonClass(generateAdapter = true)
+data class Attachment(
+    @Json(name = "filename") val filename: String,
+    @Json(name = "mime_type") val mimeType: String,
+    @Json(name = "size") val size: Long
+)
+
+@JsonClass(generateAdapter = true)
+data class Reaction(
+    @Json(name = "emoji") val emoji: String = "",
+    @Json(name = "count") val count: Int = 0,
+    @Json(name = "me_reacted") val meReacted: Boolean = false
+)
+
+// --- Message DM 相關 ---
 @JsonClass(generateAdapter = true)
 data class MessageResponse(
     @Json(name = "has_more") val hasMore: Boolean,
@@ -97,27 +101,14 @@ data class Message(
     @Json(name = "is_edited") val isEdited: Boolean,
     @Json(name = "is_deleted") val isDeleted: Boolean,
     @Json(name = "reply_to_id") val replyToId: String? = null,
-    @kotlin.jvm.Transient // 讓某些序列化工具忽略，Moshi 預設也會忽略沒有 @Json 的 var
+    @kotlin.jvm.Transient
     var repliedMessage: Message? = null,
 
     @Json(name = "forwarded_from_id") val forwardedFromId: String? = null,
     @Json(name = "forwarded_from_room_id") val forwardedFromRoomId: String? = null,
-    @Json(name = "attachment") val attachment: Attachment? = null,
-    @Json(name = "reactions") val reactions: List<Reaction>? = emptyList()
-){
-    @JsonClass(generateAdapter = true)
-    data class Attachment(
-        @Json(name = "filename") val filename: String,
-        @Json(name = "mime_type") val mimeType: String,
-        @Json(name = "size") val size: Long
-    )
-    @JsonClass(generateAdapter = true)
-    data class Reaction(
-        @Json(name = "emoji") val emoji: String,
-        @Json(name = "count") val count: Int,
-        @Json(name = "me_reacted") val meReacted: Boolean
-    )
-}
+    @Json(name = "attachment") val attachment: Attachment? = null, // 直接使用外層的 Attachment
+    @Json(name = "reactions") val reactions: List<Reaction>? = emptyList() // 直接使用外層的 Reaction
+)
 
 //send message
 @JsonClass(generateAdapter = true)

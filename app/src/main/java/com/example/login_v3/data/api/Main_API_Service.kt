@@ -110,4 +110,12 @@ interface TecnologiaApi {
         @Path("room_id") roomId: String,
         @Part file: MultipartBody.Part
     ): Response<Message>
+
+    //get emoji reaction
+    @GET("api/dm/{room_id}/messages/{msg_id}/reactions/{emoji}")
+    suspend fun getMessageReactionUsers(
+        @Path("room_id") roomId: String,
+        @Path("msg_id") msgId: String,
+        @Path("emoji") emoji: String
+    ): Response<MessageReactionUsersResponse>
 }

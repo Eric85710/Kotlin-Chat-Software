@@ -8,6 +8,7 @@ import android.provider.OpenableColumns
 import com.example.login_v3.data.api.TecnologiaApi
 import com.example.login_v3.data.api.api_class.ChatRoom
 import com.example.login_v3.data.api.api_class.Message
+import com.example.login_v3.data.api.api_class.MessageReactionUsersResponse
 import com.example.login_v3.data.api.api_class.MessageResponse
 import com.example.login_v3.data.api.api_class.RoomListResponse
 import com.example.login_v3.data.api.api_class.SendMessageRequest
@@ -216,6 +217,33 @@ class ChatRoomsRepository @Inject constructor(
                 Result.failure(Exception("上傳檔案失敗，錯誤碼: ${response.code()}, 訊息: $errorMsg"))
             }
         } catch (e: Exception) {
+            Result.failure(e)
+        }
+    }
+
+    // 取得點擊特定訊息中某個 Emoji 的使用者清單
+    suspend fun getMessageReactionUsers(
+        roomId: String,
+        messageId: String,
+        emoji: String
+    ): Result<MessageReactionUsersResponse> {
+        return try {
+            // 呼叫 API
+            val response = api.getMessageReactionUsers(roomId, messageId, emoji)
+
+            if (response.isSuccessful) {
+                val body = response.body()
+                if (body != null) {
+                    Result.success(body)
+                } else {
+                    Result.failure(Exception("回應成功但回應身體為空 (Empty response body)"))
+                }
+            } else {
+                val errorMsg = response.errorBody()?.string() ?: "未知錯誤"
+                Result.failure(Exception("取得反應使用者失敗，錯誤碼: ${response.code()}, 訊息: $errorMsg"))
+            }
+        } catch (e: Exception) {
+            // 捕捉網路斷線等異常狀況
             Result.failure(e)
         }
     }
