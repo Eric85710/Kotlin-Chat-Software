@@ -47,18 +47,26 @@ class ChatRoomsRepository @Inject constructor(
             if (response.isSuccessful) {
                 val body = response.body()
                 if (body != null) {
+
+                    // 💡 核心邏輯：將訊息列表轉成 Map，方便用 ID 快速查找
+                    val messageMap = body.messages.associateBy { it.id }
+
+                    // 走訪每一條訊息，如果它有 replyToId，就去 Map 裡面找出那一條訊息塞給它
+                    body.messages.forEach { message ->
+                        if (!message.replyToId.isNullOrBlank()) {
+                            message.repliedMessage = messageMap[message.replyToId]
+                        }
+                    }
+
                     Result.success(body)
                 } else {
-                    // 如果後端 200 OK 但給空身體，這裏處理
                     Result.failure(Exception("回應身體為空 (Empty response body)"))
                 }
             } else {
-                // 建議把後端的錯誤訊息也抓出來（如果後端有寫 error body 的話）
                 val errorMsg = response.errorBody()?.string() ?: "未知錯誤"
                 Result.failure(Exception("網路請求失敗，錯誤碼: ${response.code()}, 訊息: $errorMsg"))
             }
         } catch (e: Exception) {
-            // 捕捉網路斷線 (IOException) 或解析失敗 (JsonDataException) 等狀況
             Result.failure(e)
         }
     }

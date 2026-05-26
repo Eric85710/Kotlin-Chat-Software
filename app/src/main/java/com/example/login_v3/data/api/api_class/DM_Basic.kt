@@ -97,6 +97,9 @@ data class Message(
     @Json(name = "is_edited") val isEdited: Boolean,
     @Json(name = "is_deleted") val isDeleted: Boolean,
     @Json(name = "reply_to_id") val replyToId: String? = null,
+    @kotlin.jvm.Transient // 讓某些序列化工具忽略，Moshi 預設也會忽略沒有 @Json 的 var
+    var repliedMessage: Message? = null,
+
     @Json(name = "forwarded_from_id") val forwardedFromId: String? = null,
     @Json(name = "forwarded_from_room_id") val forwardedFromRoomId: String? = null,
     @Json(name = "attachment") val attachment: Attachment? = null,
