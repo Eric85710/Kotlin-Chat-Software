@@ -19,6 +19,13 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.first
 
+//emoji reaction state
+sealed class ReactionUsersState {
+    object Idle : ReactionUsersState()                                          // 沒點擊時的閒置狀態
+    object Loading : ReactionUsersState()                                       // 載入中
+    data class Success(val users: List<String>) : ReactionUsersState()          // 成功取得名單
+    data class Error(val message: String) : ReactionUsersState()                // 取得失敗
+}
 
 //message sending state
 sealed class SendMessageState {
@@ -179,6 +186,31 @@ class ChatViewModel @Inject constructor(
                 Log.e("ChatViewModel", "Upload attachment failed", error)
                 // 4. 上傳失敗，通知 UI 顯示錯誤
                 _sendMessageState.value = SendMessageState.Error(error.message ?: "上傳失敗，請稍後再試")
+            }
+        }
+    }
+
+    private val _reactionUsersState = MutableStateFlow<ReactionUsersState>(ReactionUsersState.Idle)
+    val reactionUsersState: StateFlow<ReactionUsersState> = _reactionUsersState.asStateFlow()
+
+    /**
+     * 💡 新增：載入點擊特定 Emoji 的使用者名單
+     */
+    fun loadMessageReactionUsers(roomId: String, messageId: String, emoji: String) {
+        viewModelScope.launch {
+            _reactionUsersState.value = ReactionUsersState.Loading
+
+            val result = repository.getMessageReactionUsers(
+                roomId = roomId,
+                messageId = messageId,
+                emoji = emoji
+            )
+
+            result.onSuccess { response ->
+                _reactionUsersState.value = ReactionUsersState.Success(response.users)
+            }.onFailure { error ->
+                Log.e("ChatViewModel", "Get reaction users failed", error)
+                _reactionUsersState.value = ReactionUsersState.Error(error.message ?: "無法取得按讚名單")
             }
         }
     }
