@@ -97,18 +97,15 @@ fun MessageMessaging(
     }
 
     // ✨ 監聽發送狀態，如果失敗了就彈出提示並重置狀態
+    // 修改後的 LaunchedEffect
     LaunchedEffect(sendStatus) {
         if (sendStatus is SendMessageState.Error) {
             val errorMsg = (sendStatus as SendMessageState.Error).message
             Toast.makeText(context, "發送失敗: $errorMsg", Toast.LENGTH_SHORT).show()
             viewModel.resetSendMessageState()
         } else if (sendStatus is SendMessageState.Success) {
-            // 發送成功後，重置狀態以便下一次發送
+            // ✨ 發送成功後，只重置狀態。讓 ViewModel 的 uiState 自動推播新訊息給 UI 即可！
             viewModel.resetSendMessageState()
-
-            // 【優化體驗】：你可以在這裡重新呼叫 viewModel.loadMessages(roomId) 刷新列表
-            // 或者如果你的 ViewModel 已經會自動把新訊息塞進 uiState，這裡就什麼都不用做。
-            viewModel.loadMessages(roomId)
         }
     }
 

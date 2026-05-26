@@ -1,6 +1,8 @@
 package com.example.login_v3.data.repository.dm
 
 import android.content.Context
+import android.graphics.Bitmap
+import android.graphics.BitmapFactory
 import android.net.Uri
 import android.provider.OpenableColumns
 import com.example.login_v3.data.api.TecnologiaApi
@@ -13,6 +15,7 @@ import dagger.hilt.android.qualifiers.ApplicationContext
 import okhttp3.MediaType.Companion.toMediaTypeOrNull
 import okhttp3.MultipartBody
 import okhttp3.RequestBody.Companion.toRequestBody
+import java.io.ByteArrayOutputStream
 import javax.inject.Inject
 import javax.inject.Singleton
 
@@ -130,10 +133,10 @@ class ChatRoomsRepository @Inject constructor(
     //upload file
     suspend fun uploadAttachment(roomId: String, fileUri: Uri): Result<Message> {
         return try {
-            // 1. 透過 ContentResolver 取得檔案的遮罩名稱與大小
             val contentResolver = context.contentResolver
             var fileName = "upload_file"
 
+            // 1. 透過 ContentResolver 取得檔案的名稱
             contentResolver.query(fileUri, null, null, null, null)?.use { cursor ->
                 val nameIndex = cursor.getColumnIndex(OpenableColumns.DISPLAY_NAME)
                 if (nameIndex != -1 && cursor.moveToFirst()) {
@@ -141,15 +144,51 @@ class ChatRoomsRepository @Inject constructor(
                 }
             }
 
-            // 2. 取得檔案的 MIME 類型 (例如 image/jpeg, image/png)
-            val mimeType = contentResolver.getType(fileUri) ?: "application/octet-stream"
+            // 2. 取得原始 MIME 類型
+            val rawMimeType = contentResolver.getType(fileUri) ?: "application/octet-stream"
 
-            // 3. 讀取檔案 Byte 陣列並轉換為 RequestBody
-            val inputStream = contentResolver.openInputStream(fileUri)
-                ?: return Result.failure(Exception("無法開啟檔案輸入流 (InputStream is null)"))
+            val fileBytes: ByteArray
+            val finalMimeType: String
 
-            val fileBytes = inputStream.use { it.readBytes() }
-            val requestBody = fileBytes.toRequestBody(mimeType.toMediaTypeOrNull())
+            // ✨【關鍵轉檔邏輯】：如果是 HEIC/HEIF，在前端直接壓成 JPG
+            if (rawMimeType == "image/heic" || rawMimeType == "image/heif") {
+                val inputStream = contentResolver.openInputStream(fileUri)
+                    ?: return Result.failure(Exception("無法開啟檔案輸入流"))
+
+                // 利用 BitmapFactory 解碼，Android 系統會自動幫你把 HEIC 解成標準 Bitmap
+                val bitmap = BitmapFactory.decodeStream(inputStream)
+                inputStream.close()
+
+                if (bitmap != null) {
+                    val outputStream = ByteArrayOutputStream()
+                    // 壓縮成 JPEG 格式，品質設為 85-90（兼顧畫質與檔案大小）
+                    bitmap.compress(Bitmap.CompressFormat.JPEG, 90, outputStream)
+                    fileBytes = outputStream.toByteArray()
+                    outputStream.close()
+                    bitmap.recycle() // 釋放記憶體
+
+                    finalMimeType = "image/jpeg"
+
+                    // 修改副檔名為 .jpg，讓後端正確識別儲存
+                    val dotIndex = fileName.lastIndexOf(".")
+                    fileName = if (dotIndex != -1) {
+                        "${fileName.substring(0, dotIndex)}.jpg"
+                    } else {
+                        "$fileName.jpg"
+                    }
+                } else {
+                    return Result.failure(Exception("HEIC 圖片解碼失敗"))
+                }
+            } else {
+                // 非 HEIC 檔案（普通的 JPG, PNG 等），走原本的邏輯，直接讀取原始 Byte
+                val inputStream = contentResolver.openInputStream(fileUri)
+                    ?: return Result.failure(Exception("無法開啟檔案輸入流"))
+                fileBytes = inputStream.use { it.readBytes() }
+                finalMimeType = rawMimeType
+            }
+
+            // 3. 轉換為 RequestBody
+            val requestBody = fileBytes.toRequestBody(finalMimeType.toMediaTypeOrNull())
 
             // 4. 打包成 MultipartBody.Part (後端接收的 Key 值設定為 "file")
             val multipartBody = MultipartBody.Part.createFormData("file", fileName, requestBody)
@@ -171,6 +210,5 @@ class ChatRoomsRepository @Inject constructor(
         } catch (e: Exception) {
             Result.failure(e)
         }
-
     }
 }
