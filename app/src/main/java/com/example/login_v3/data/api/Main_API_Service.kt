@@ -9,6 +9,7 @@ import retrofit2.http.Header
 import retrofit2.http.Multipart
 import retrofit2.http.PATCH
 import retrofit2.http.POST
+import retrofit2.http.PUT
 import retrofit2.http.Part
 import retrofit2.http.Path
 import retrofit2.http.Query
@@ -118,4 +119,12 @@ interface TecnologiaApi {
         @Path("msg_id") msgId: String,
         @Path("emoji") emoji: String
     ): Response<MessageReactionUsersResponse>
+
+    //add emoji reaction
+    @PUT("api/dm/{room_id}/messages/{msg_id}/reactions/{emoji}")
+    suspend fun addMessageReaction(
+        @Path("room_id") roomId: String,
+        @Path("msg_id") msgId: String,
+        @Path("emoji") emoji: String
+    ): Response<Unit>
 }
