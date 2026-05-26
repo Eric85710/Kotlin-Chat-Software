@@ -227,6 +227,19 @@ class ChatViewModel @Inject constructor(
             }
         }
     }
+    //delete emoji reaction
+    fun removeMessageReaction(roomId: String, messageId: String, emoji: String) {
+        viewModelScope.launch {
+            val result = repository.deleteMessageReaction(roomId, messageId, emoji)
+
+            result.onSuccess {
+                // 移除成功後，重新拉取最新訊息列表以刷新 UI
+                loadMessages(roomId)
+            }.onFailure { error ->
+                Log.e("ChatViewModel", "Remove reaction failed", error)
+            }
+        }
+    }
 
     // 💡 請確保這段程式碼有確實待在 ChatViewModel 裡面
     fun resetReactionUsersState() {
