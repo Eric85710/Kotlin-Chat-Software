@@ -268,4 +268,25 @@ class ChatRoomsRepository @Inject constructor(
             Result.failure(e)
         }
     }
+
+    // 移除訊息的 Emoji 反應
+    suspend fun deleteMessageReaction(
+        roomId: String,
+        messageId: String,
+        emoji: String
+    ): Result<Unit> {
+        return try {
+            val response = api.deleteMessageReaction(roomId, messageId, emoji)
+
+            if (response.isSuccessful) {
+                // 204 成功時沒有 body，直接回傳 Unit
+                Result.success(Unit)
+            } else {
+                val errorMsg = response.errorBody()?.string() ?: "未知錯誤"
+                Result.failure(Exception("移除反應失敗，錯誤碼: ${response.code()}, 訊息: $errorMsg"))
+            }
+        } catch (e: Exception) {
+            Result.failure(e)
+        }
+    }
 }
