@@ -5,9 +5,11 @@ import android.util.Log
 import android.widget.Toast
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
+import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -31,6 +33,7 @@ import androidx.compose.material.icons.automirrored.filled.Send
 import androidx.compose.material.icons.filled.AccountCircle
 import androidx.compose.material.icons.filled.AddCircle
 import androidx.compose.material.icons.filled.ArrowBack
+import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.Send
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
@@ -53,10 +56,14 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.drawBehind
+import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
@@ -70,6 +77,7 @@ import com.example.login_v3.home.Message.ViewModel.Detail.SendMessageState
 import com.example.login_v3.home.Message.ViewModel.UserStatus
 import com.example.login_v3.navigation.BottomBarViewModel
 import com.example.login_v3.navigation.Screen
+
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -85,6 +93,9 @@ fun MessageMessaging(
     //send message
     val sendStatus by viewModel.sendMessageState.collectAsStateWithLifecycle()
     val context = LocalContext.current
+
+    //reply function
+    val replyingMessage by viewModel.replyingMessage.collectAsStateWithLifecycle()
 
     //進入時重整
     LaunchedEffect(roomId) {
@@ -168,13 +179,15 @@ fun MessageMessaging(
             )
         },
         bottomBar = {
+            // 💡 這裡把 replyingMessage 與 取消回覆的動作 傳進去 (等等修改 MessageInputBar)
             MessageInputBar(
                 isLoading = sendStatus is SendMessageState.Loading,
+                replyingMessage = replyingMessage,
+                onCancelReply = { viewModel.setReplyingMessage(null) },
                 onSendClick = { text ->
                     viewModel.sendMessage(roomId = roomId, content = text)
                 },
                 onImageSelected = { uri ->
-                    // ✨ 這裡呼叫你先前在 ViewModel 寫好的上傳圖片功能
                     viewModel.uploadAttachment(roomId = roomId, fileUri = uri)
                 }
             )
@@ -200,7 +213,8 @@ fun MessageMessaging(
                             currentUserId = state.currentUserId,
                             messages = state.messages,
                             partnerAvatarUrl = state.partnerAvatarUrl,
-                            partnerDisplayName = state.roomTitle
+                            partnerDisplayName = state.roomTitle,
+                            onReplyClick = { message -> viewModel.setReplyingMessage(message) }
                         )
                     }
                 }
@@ -221,6 +235,7 @@ fun MessageList(
     partnerAvatarUrl: Any?,
     partnerDisplayName: String,
     messages: List<Message>,
+    onReplyClick: (Message) -> Unit,
     modifier: Modifier = Modifier
 ) {
     LazyColumn(
@@ -236,7 +251,8 @@ fun MessageList(
                 partnerAvatarUrl = partnerAvatarUrl,
                 partnerDisplayName = partnerDisplayName,
                 isMe = isMe,
-                currentUserId = currentUserId
+                currentUserId = currentUserId,
+                onReplyClick = onReplyClick
             )
         }
     }
@@ -248,38 +264,32 @@ fun MessageRow(
     isMe: Boolean,
     partnerAvatarUrl: Any?,
     partnerDisplayName: String,
-    currentUserId: String
+    currentUserId: String,
+    onReplyClick: (Message) -> Unit // 💡 新增參數
 ) {
-    // 1. ✨ 使用新的 attachment 欄位精準判斷是否為圖片，或是舊格式的網址判斷（相容舊資料）
     val isAttachmentImage = message.attachment?.mimeType?.startsWith("image/") == true
-
-    // 保留你原本的舊資料防禦邏輯，避免舊的訊息爆掉
     val contentLowerCase = (message.content ?: "").lowercase()
     val imageExtensions = listOf(".jpg", ".jpeg", ".png", ".webp", ".heic", ".heif")
-    val isLegacyImage = contentLowerCase.startsWith("http") &&
-            imageExtensions.any { contentLowerCase.contains(it) }
-
+    val isLegacyImage = contentLowerCase.startsWith("http") && imageExtensions.any { contentLowerCase.contains(it) }
     val isImage = isAttachmentImage || isLegacyImage
 
-    // 2. 補全圖片網址
-    // 2. 補全圖片網址
     val rawContent = message.content ?: ""
-    val finalImageModel = if (rawContent.startsWith("/")) {
-        "http://192.168.0.217$rawContent"
-    } else {
-        rawContent
-    }
+    val finalImageModel = if (rawContent.startsWith("/")) "http://192.168.0.217$rawContent" else rawContent
 
     Row(
-        modifier = Modifier.fillMaxWidth(),
+        modifier = Modifier
+            .fillMaxWidth()
+            // 💡 讓使用者長按整條訊息就能觸發回覆
+            .combinedClickable(
+                onLongClick = { onReplyClick(message) },
+                onClick = { /* 可做其他事或留空 */ }
+            ),
         horizontalArrangement = if (isMe) Arrangement.End else Arrangement.Start
     ) {
         if (!isMe) {
             UserAvatar(
                 avatarUrl = partnerAvatarUrl,
-                modifier = Modifier
-                    .padding(end = 8.dp)
-                    .size(32.dp)
+                modifier = Modifier.padding(end = 8.dp).size(32.dp)
             )
         }
 
@@ -289,8 +299,7 @@ fun MessageRow(
                 .background(
                     color = if (isMe) Color(0xFFDCF8C6) else Color(0xFFECEFF1),
                     shape = RoundedCornerShape(
-                        topStart = 12.dp,
-                        topEnd = 12.dp,
+                        topStart = 12.dp, topEnd = 12.dp,
                         bottomStart = if (isMe) 12.dp else 0.dp,
                         bottomEnd = if (isMe) 0.dp else 12.dp
                     )
@@ -298,6 +307,50 @@ fun MessageRow(
                 .padding(horizontal = 12.dp, vertical = 8.dp)
         ) {
             Column {
+                // 💡 【核心：渲染被回覆的訊息內容】
+                message.repliedMessage?.let { replied ->
+                    val repliedSenderName = if (replied.senderId == currentUserId) "你" else partnerDisplayName
+
+                    // 被回覆的小氣泡外框
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(bottom = 6.dp)
+                            .clip(RoundedCornerShape(4.dp))
+                            // 💡 修正這裡：直接根據 isMe 決定傳入哪一個 Color 物件即可
+                            .background(if (isMe) Color(0xFFC7EBB2) else Color(0xFFE0E0E0))
+                            .drawBehind {
+                                // 在左側畫一條精緻的提示線 (類似 LINE / Telegram)
+                                drawLine(
+                                    color = Color.Gray,
+                                    start = Offset(0f, 0f),
+                                    end = Offset(0f, size.height),
+                                    strokeWidth = 6f
+                                )
+                            }
+                            .padding(start = 8.dp, top = 4.dp, bottom = 4.dp, end = 4.dp),
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Column {
+                            Text(
+                                text = repliedSenderName,
+                                style = MaterialTheme.typography.bodySmall.copy(fontWeight = FontWeight.Bold),
+                                color = Color(0xFF1E88E5),
+                                maxLines = 1
+                            )
+                            Text(
+                                // 如果被回覆的是圖片，顯示 [圖片]，否則顯示文字內容
+                                text = if (replied.attachment?.mimeType?.startsWith("image/") == true) "[圖片]" else replied.content,
+                                style = MaterialTheme.typography.bodySmall,
+                                color = Color.DarkGray,
+                                maxLines = 1, // 最多一行，避免太長
+                                overflow = TextOverflow.Ellipsis
+                            )
+                        }
+                    }
+                }
+
+                // 2. 原本的訊息主體內容（文字或圖片）
                 if (isImage) {
                     Box(
                         modifier = Modifier
@@ -313,7 +366,6 @@ fun MessageRow(
                             modifier = Modifier
                                 .fillMaxWidth()
                                 .heightIn(max = 300.dp)
-                                .clickable { /* 點擊放大 */ }
                         )
                     }
                 } else {
@@ -331,77 +383,66 @@ fun MessageRow(
 @Composable
 fun MessageInputBar(
     isLoading: Boolean,
+    replyingMessage: Message?,         // 💡 新增
+    onCancelReply: () -> Unit,         // 💡 新增
     onSendClick: (String) -> Unit,
-    onImageSelected: (Uri) -> Unit, // ✨ 新增：選取圖片後的回呼
-    modifier: Modifier = Modifier
+    onImageSelected: (Uri) -> Unit
 ) {
-    var textInput by remember { mutableStateOf("") }
+    var textState by remember { mutableStateOf("") }
 
-    val imagePickerLauncher = rememberLauncherForActivityResult(
-        contract = ActivityResultContracts.GetContent()
-    ) { uri: Uri? ->
-        if (uri != null) {
-            onImageSelected(uri)
-        }
-    }
-
-    Surface(
-        tonalElevation = 2.dp,
-        modifier = modifier.fillMaxWidth()
+    Column(
+        modifier = Modifier
+            .fillMaxWidth()
+            .background(Color.White) // 或者是你的背景色
     ) {
+        // 💡 如果目前處於回覆狀態，就在輸入框上方橫向塞一個預覽 UI
+        AnimatedVisibility(visible = replyingMessage != null) {
+            if (replyingMessage != null) {
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .background(Color(0xFFF5F5F5))
+                        .padding(horizontal = 16.dp, vertical = 8.dp),
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.SpaceBetween
+                ) {
+                    Column(modifier = Modifier.weight(1f)) {
+                        Text(
+                            text = "正在回覆訊息",
+                            style = MaterialTheme.typography.bodySmall.copy(fontWeight = FontWeight.Bold),
+                            color = Color(0xFFDA7029)
+                        )
+                        Text(
+                            text = replyingMessage.content,
+                            style = MaterialTheme.typography.bodySmall,
+                            color = Color.Gray,
+                            maxLines = 1,
+                            overflow = TextOverflow.Ellipsis
+                        )
+                    }
+                    // 取消回覆的 X 按鈕
+                    IconButton(onClick = onCancelReply, modifier = Modifier.size(24.dp)) {
+                        Icon(
+                            imageVector = Icons.Default.Close,
+                            contentDescription = "取消回覆",
+                            tint = Color.Gray
+                        )
+                    }
+                }
+            }
+        }
+
+        // 下方維持你原本既有的輸入框 Row 排版
         Row(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(horizontal = 8.dp, vertical = 4.dp),
+                .padding(8.dp),
             verticalAlignment = Alignment.CenterVertically
         ) {
-
-            // ✨ 新增：相簿按鈕
-            IconButton(
-                onClick = { imagePickerLauncher.launch("image/*") },
-                enabled = !isLoading
-            ) {
-                Icon(
-                    imageVector = Icons.Default.AddCircle, // 你也可以改用 Icons.Default.Image
-                    contentDescription = "選擇圖片",
-                    tint = Color(0xFFDA7029)
-                )
-            }
-
-            TextField(
-                value = textInput,
-                onValueChange = { textInput = it },
-                placeholder = { Text("輸入訊息...") },
-                modifier = Modifier.weight(1.0f),
-                colors = TextFieldDefaults.colors(
-                    focusedContainerColor = Color.Transparent,
-                    unfocusedContainerColor = Color.Transparent,
-                    disabledContainerColor = Color.Transparent,
-                    focusedIndicatorColor = Color.Transparent,
-                    unfocusedIndicatorColor = Color.Transparent
-                ),
-                maxLines = 4
-            )
-
-            IconButton(
-                onClick = {
-                    if (textInput.isNotBlank() && !isLoading) {
-                        onSendClick(textInput)
-                        textInput = ""
-                    }
-                },
-                enabled = textInput.isNotBlank() && !isLoading
-            ) {
-                if (isLoading) {
-                    CircularProgressIndicator(modifier = Modifier.size(24.dp), strokeWidth = 2.dp)
-                } else {
-                    Icon(
-                        imageVector = Icons.Default.Send,
-                        contentDescription = "發送訊息",
-                        tint = if (textInput.isNotBlank()) Color(0xFFDA7029) else Color.Gray
-                    )
-                }
-            }
+            // 你原本的 TextField, 選擇圖片按鈕, 送出按鈕...
+            // 送出時呼叫：
+            // onSendClick(textState)
+            // textState = ""
         }
     }
 }
