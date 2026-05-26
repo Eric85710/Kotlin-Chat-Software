@@ -48,8 +48,13 @@ class ChatViewModel @Inject constructor(
     private val tokenManager: TokenManager
 ) : ViewModel() {
 
+    //reply function
     private val _replyingMessage = MutableStateFlow<Message?>(null)
     val replyingMessage: StateFlow<Message?> = _replyingMessage.asStateFlow()
+    // 💡 新增：當使用者點選某條訊息的「回覆」按鈕時呼叫
+    fun setReplyingMessage(message: Message?) {
+        _replyingMessage.value = message
+    }
 
     //UI state var
     private val _uiState = MutableStateFlow<MessagesUiState>(MessagesUiState.Loading)
@@ -119,10 +124,18 @@ class ChatViewModel @Inject constructor(
         viewModelScope.launch {
             _sendMessageState.value = SendMessageState.Loading
 
-            val result = repository.sendMessage(roomId, content, replyToId)
+            // 💡 取得當前是否有正在回覆的訊息 ID
+            val replyToId = _replyingMessage.value?.id
+
+            val result = repository.sendMessage(
+                roomId = roomId,
+                content = content,
+                replyToId = replyToId
+            )
 
             result.onSuccess { newMessage ->
                 _sendMessageState.value = SendMessageState.Success(newMessage)
+                _replyingMessage.value = null
 
                 // 😎【超讚的體驗優化】：發送成功後，直接把新訊息手動塞進現有的 UI 列表裡
                 val currentState = _uiState.value
