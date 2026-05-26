@@ -4,6 +4,7 @@ import com.example.login_v3.data.api.api_class.*
 import okhttp3.MultipartBody
 import retrofit2.Response
 import retrofit2.http.Body
+import retrofit2.http.DELETE
 import retrofit2.http.GET
 import retrofit2.http.Header
 import retrofit2.http.Multipart
@@ -123,6 +124,14 @@ interface TecnologiaApi {
     //add emoji reaction
     @PUT("api/dm/{room_id}/messages/{msg_id}/reactions/{emoji}")
     suspend fun addMessageReaction(
+        @Path("room_id") roomId: String,
+        @Path("msg_id") msgId: String,
+        @Path("emoji") emoji: String
+    ): Response<Unit>
+
+    //delete emoji reaction
+    @DELETE("api/dm/{room_id}/messages/{msg_id}/reactions/{emoji}")
+    suspend fun deleteMessageReaction(
         @Path("room_id") roomId: String,
         @Path("msg_id") msgId: String,
         @Path("emoji") emoji: String
