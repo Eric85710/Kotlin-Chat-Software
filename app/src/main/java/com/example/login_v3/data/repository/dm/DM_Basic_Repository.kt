@@ -247,4 +247,25 @@ class ChatRoomsRepository @Inject constructor(
             Result.failure(e)
         }
     }
+
+    // 新增訊息的 Emoji 反應
+    suspend fun addMessageReaction(
+        roomId: String,
+        messageId: String,
+        emoji: String
+    ): Result<Unit> {
+        return try {
+            val response = api.addMessageReaction(roomId, messageId, emoji)
+
+            if (response.isSuccessful) {
+                // 204 成功時沒有 body，直接回傳 Unit
+                Result.success(Unit)
+            } else {
+                val errorMsg = response.errorBody()?.string() ?: "未知錯誤"
+                Result.failure(Exception("新增反應失敗，錯誤碼: ${response.code()}, 訊息: $errorMsg"))
+            }
+        } catch (e: Exception) {
+            Result.failure(e)
+        }
+    }
 }

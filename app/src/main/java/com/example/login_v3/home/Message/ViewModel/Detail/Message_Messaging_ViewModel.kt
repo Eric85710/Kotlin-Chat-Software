@@ -193,9 +193,7 @@ class ChatViewModel @Inject constructor(
     private val _reactionUsersState = MutableStateFlow<ReactionUsersState>(ReactionUsersState.Idle)
     val reactionUsersState: StateFlow<ReactionUsersState> = _reactionUsersState.asStateFlow()
 
-    /**
-     * 💡 新增：載入點擊特定 Emoji 的使用者名單
-     */
+    //get emoji reaction
     fun loadMessageReactionUsers(roomId: String, messageId: String, emoji: String) {
         viewModelScope.launch {
             _reactionUsersState.value = ReactionUsersState.Loading
@@ -211,6 +209,21 @@ class ChatViewModel @Inject constructor(
             }.onFailure { error ->
                 Log.e("ChatViewModel", "Get reaction users failed", error)
                 _reactionUsersState.value = ReactionUsersState.Error(error.message ?: "無法取得按讚名單")
+            }
+        }
+    }
+    //add emoji reaction
+    fun addMessageReaction(roomId: String, messageId: String, emoji: String) {
+        viewModelScope.launch {
+            val result = repository.addMessageReaction(roomId, messageId, emoji)
+
+            result.onSuccess {
+                // 😎【超讚體驗優化】：點擊成功後，除了通知後端，
+                // 也可以選擇直接呼叫 loadMessages(roomId) 來重新拉取最新帶有按讚數量的訊息列表
+                loadMessages(roomId)
+            }.onFailure { error ->
+                Log.e("ChatViewModel", "Add reaction failed", error)
+                // 這裡可以依需求決定要不要用 Toast 提示使用者點擊失敗
             }
         }
     }
