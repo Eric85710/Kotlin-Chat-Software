@@ -289,4 +289,22 @@ class ChatRoomsRepository @Inject constructor(
             Result.failure(e)
         }
     }
+
+    // 刪除訊息
+    suspend fun deleteMessage(roomId: String, messageId: String): Result<Unit> {
+        return try {
+            val response = api.deleteMessage(roomId, messageId)
+
+            if (response.isSuccessful) {
+                // 後端回傳 204 No Content 成功時沒有 body，直接回傳 Unit 即可
+                Result.success(Unit)
+            } else {
+                val errorMsg = response.errorBody()?.string() ?: "未知錯誤"
+                Result.failure(Exception("刪除訊息失敗，錯誤碼: ${response.code()}, 訊息: $errorMsg"))
+            }
+        } catch (e: Exception) {
+            // 捕捉網路斷線等異常狀況
+            Result.failure(e)
+        }
+    }
 }
