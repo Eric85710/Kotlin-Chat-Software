@@ -36,6 +36,15 @@ sealed class SendMessageState {
 }
 
 
+// 刪除訊息狀態
+sealed class DeleteMessageState {
+    object Idle : DeleteMessageState()                                     // 閒置
+    object Loading : DeleteMessageState()                                  // 刪除中
+    object Success : DeleteMessageState()                                  // 刪除成功
+    data class Error(val message: String) : DeleteMessageState()           // 刪除失敗
+}
+
+
 sealed interface MessagesUiState {
     object Loading : MessagesUiState
     data class Success(
@@ -239,6 +248,52 @@ class ChatViewModel @Inject constructor(
                 Log.e("ChatViewModel", "Remove reaction failed", error)
             }
         }
+    }
+
+    // 儲存刪除狀態的變數
+    private val _deleteMessageState = MutableStateFlow<DeleteMessageState>(DeleteMessageState.Idle)
+    val deleteMessageState: StateFlow<DeleteMessageState> = _deleteMessageState.asStateFlow()
+
+    // 刪除訊息的 function
+    fun deleteMessage(roomId: String, messageId: String) {
+        viewModelScope.launch {
+            _deleteMessageState.value = DeleteMessageState.Loading
+
+            val result = repository.deleteMessage(roomId, messageId)
+
+            result.onSuccess {
+                _deleteMessageState.value = DeleteMessageState.Success
+
+                // 😎【超讚的體驗優化】：不重新 call loadMessages，直接在本地修改該訊息的狀態
+                val currentState = _uiState.value
+                if (currentState is MessagesUiState.Success) {
+
+                    val updatedMessages = currentState.messages.map { message ->
+                        if (message.id == messageId) {
+                            // 將該則訊息改為已刪除狀態（利用 copy 複製，並帶入對應欄位）
+                            message.copy(
+                                isDeleted = true,
+                                content = "此訊息已被刪除" // 可選擇在這裡直接改 content，或交由 UI 根據 isDeleted 顯示對應文字
+                            )
+                        } else {
+                            message
+                        }
+                    }
+
+                    // 更新 uiState，Compose 畫面會立刻連動刷新
+                    _uiState.value = currentState.copy(messages = updatedMessages)
+                }
+
+            }.onFailure { error ->
+                Log.e("ChatViewModel", "Delete message failed", error)
+                _deleteMessageState.value = DeleteMessageState.Error(error.message ?: "刪除訊息失敗")
+            }
+        }
+    }
+
+    // 重設刪除狀態的 function (供 UI 重置狀態使用)
+    fun resetDeleteMessageState() {
+        _deleteMessageState.value = DeleteMessageState.Idle
     }
 
     // 💡 請確保這段程式碼有確實待在 ChatViewModel 裡面
