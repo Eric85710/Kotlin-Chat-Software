@@ -136,4 +136,11 @@ interface TecnologiaApi {
         @Path("msg_id") msgId: String,
         @Path("emoji") emoji: String
     ): Response<Unit>
+
+    //delete message
+    @DELETE("api/dm/{room_id}/messages/{msg_id}")
+    suspend fun deleteMessage(
+        @Path("room_id") roomId: String,
+        @Path("msg_id") msgId: String
+    ): Response<Unit>
 }
