@@ -36,8 +36,8 @@ object NetworkModule {
     @Singleton
     fun provideRetrofit(moshi: Moshi, okHttpClient: OkHttpClient): Retrofit {
         return Retrofit.Builder()
-            .baseUrl("http://192.168.0.217/")
-            .client(okHttpClient) // 🔥 關鍵：將攔截器綁定到 Retrofit
+            .baseUrl("https://192.168.0.217/")
+            .client(okHttpClient)   // 關鍵：將攔截器綁定到 Retrofit
             .addConverterFactory(MoshiConverterFactory.create(moshi))
             .build()
     }
@@ -48,6 +48,9 @@ object NetworkModule {
         return OkHttpClient.Builder()
             .connectTimeout(15, TimeUnit.SECONDS)
             .readTimeout(15, TimeUnit.SECONDS)
+            // 🟢 修正 2：如果使用 IP 且噴出 Hostname 錯誤才需要加這段。
+            // 如果後端憑證的 SAN/CN 已經有包含 192.168.0.217，這行可以刪除。
+            .hostnameVerifier { hostname, _ -> hostname == "192.168.0.217" }
             .addInterceptor { chain ->
                 // 1. 動態獲取「目前選中帳號」的 Token
                 // 使用 first() 確保只取目前最新的那一個值
