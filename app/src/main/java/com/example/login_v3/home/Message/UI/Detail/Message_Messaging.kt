@@ -520,11 +520,6 @@ fun MessageInputBar(
                         ) {
                             Column(modifier = Modifier.weight(1f)) {
                                 Text(
-                                    text = "正在回覆訊息",
-                                    style = MaterialTheme.typography.bodySmall.copy(fontWeight = FontWeight.Bold),
-                                    color = Color(0xFFDA7029)
-                                )
-                                Text(
                                     text = replyingMessage.content,
                                     style = MaterialTheme.typography.bodySmall,
                                     color = Color.Gray,
