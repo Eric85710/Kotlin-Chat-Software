@@ -64,6 +64,29 @@ class ChatViewModel @Inject constructor(
     private val tokenManager: TokenManager
 ) : ViewModel() {
 
+    // --- 訊息長按動作選單狀態 (Action Menu State) ---
+
+    // 1. 私有的 MutableStateFlow，用來控制長按選中的訊息
+    private val _actionMessage = MutableStateFlow<Message?>(null)
+
+    // 2. 公開給 Compose UI 觀察的唯讀 StateFlow
+    val actionMessage: StateFlow<Message?> = _actionMessage.asStateFlow()
+
+    /**
+     * 設定目前哪一則訊息被長按選取（開啟動作選單）
+     */
+    fun setActionMessage(message: Message?) {
+        _actionMessage.value = message
+    }
+
+    /**
+     * 清除目前選取的訊息狀態（關閉動作選單）
+     */
+    fun clearActionMessage() {
+        _actionMessage.value = null
+    }
+
+
     //reply function
     private val _replyingMessage = MutableStateFlow<Message?>(null)
     val replyingMessage: StateFlow<Message?> = _replyingMessage.asStateFlow()
@@ -264,23 +287,21 @@ class ChatViewModel @Inject constructor(
             result.onSuccess {
                 _deleteMessageState.value = DeleteMessageState.Success
 
-                // 😎【超讚的體驗優化】：不重新 call loadMessages，直接在本地修改該訊息的狀態
+                // ✨【優化】：刪除成功後，自動關閉長按選單
+                clearActionMessage()
+
                 val currentState = _uiState.value
                 if (currentState is MessagesUiState.Success) {
-
                     val updatedMessages = currentState.messages.map { message ->
                         if (message.id == messageId) {
-                            // 將該則訊息改為已刪除狀態（利用 copy 複製，並帶入對應欄位）
                             message.copy(
                                 isDeleted = true,
-                                content = "此訊息已被刪除" // 可選擇在這裡直接改 content，或交由 UI 根據 isDeleted 顯示對應文字
+                                content = "此訊息已被刪除"
                             )
                         } else {
                             message
                         }
                     }
-
-                    // 更新 uiState，Compose 畫面會立刻連動刷新
                     _uiState.value = currentState.copy(messages = updatedMessages)
                 }
 

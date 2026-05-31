@@ -113,6 +113,9 @@ fun MessageMessaging(
     // 💡 1. 取得 ViewModel 裡的 Reaction 狀態
     val reactionState by viewModel.reactionUsersState.collectAsStateWithLifecycle()
 
+    //message that selected
+    val actionMessage by viewModel.actionMessage.collectAsStateWithLifecycle()
+
 
     //進入時重整
     LaunchedEffect(roomId) {
@@ -331,6 +334,7 @@ fun MessageRow(
     //emoji value
     var showEmojiPanel by remember { mutableStateOf(false) }
     val commonEmojis = listOf("👍", "❤️", "😂", "😮", "😢", "🙏")
+
 
     Row(
         modifier = Modifier
