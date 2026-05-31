@@ -1,6 +1,7 @@
 package com.example.login_v3.home.Message.UI.Detail
 
 import android.net.Uri
+import android.util.Log
 import android.widget.Toast
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
@@ -307,6 +308,7 @@ fun MessageList(
     }
 }
 
+private fun String?.isNullTabOrBlank(): Boolean = this == null || this.trim().isBlank()
 @Composable
 fun MessageRow(
     message: Message,
@@ -324,8 +326,30 @@ fun MessageRow(
     val isLegacyImage = contentLowerCase.startsWith("http") && imageExtensions.any { contentLowerCase.contains(it) }
     val isImage = isAttachmentImage || isLegacyImage
 
+
     val rawContent = message.content ?: ""
-    val finalImageModel = if (rawContent.startsWith("/")) "http://192.168.0.217$rawContent" else rawContent
+    // 💡 核心修正：利用 remember 根據 message 狀態動態計算正確的圖片 URL
+    val finalImageModel = remember(message) {
+        // 1. 如果有 attachment，優先去拿裡面的 filename；如果沒有，再拿一般的 content
+        // 2. 假設後端儲存路徑通常是在某個特定資料夾（例如 /uploads/），如果 filename 沒帶路徑，記得補上
+        val rawPath = if (isAttachmentImage && !message.attachment?.filename.isNullTabOrBlank()) {
+            message.attachment!!.filename
+        } else {
+            message.content
+        }
+
+        when {
+            rawPath.isBlank() -> ""
+            rawPath.startsWith("https") -> rawPath // 已經是完整網址，直接回傳
+
+            // 💡 注意：請根據你後端圖片實際存放的路由修改這裡。
+            // 如果後端 filename 只有 "abc.jpg"，而實際上網址是 "http://192.168.0.217/uploads/abc.jpg"
+            // 你需要把下面改成 "/uploads/$rawPath"
+            rawPath.startsWith("/") -> "https://192.168.0.217$rawPath"
+
+            else -> "https://192.168.0.217/$rawPath"
+        }
+    }
 
     //emoji value
     var showEmojiPanel by remember { mutableStateOf(false) }
@@ -424,7 +448,15 @@ fun MessageRow(
                                 contentScale = ContentScale.Fit,
                                 modifier = Modifier
                                     .fillMaxWidth()
-                                    .heightIn(max = 300.dp)
+                                    .heightIn(max = 300.dp),
+                                // 🛠️ 移除了 unresolved 的 debugPlaceholder
+                                onError = { errorState ->
+                                    // 這樣就能在 Logcat 裡過濾 "ChatImageError" 關鍵字，看看到底是哪個網址拼錯了！
+                                    android.util.Log.e(
+                                        "ChatImageError",
+                                        "圖片載入失敗, 網址為: $finalImageModel, 原因: ${errorState.result.throwable}"
+                                    )
+                                }
                             )
                         }
                     } else {
