@@ -18,18 +18,14 @@ import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
-import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.heightIn
-import androidx.compose.foundation.layout.imePadding
-import androidx.compose.foundation.layout.navigationBars
 import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.widthIn
-import androidx.compose.foundation.layout.windowInsetsPadding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.CircleShape
@@ -498,14 +494,13 @@ fun MessageInputBar(
     Box(
         modifier = Modifier
             .fillMaxWidth()
-            .imePadding() // 1. 當鍵盤彈出時，自動為下方擠出鍵盤高度的空間
-            .windowInsetsPadding(WindowInsets.navigationBars) // 2. 鍵盤收起時，自動補上系統導覽列高度
-            .padding(horizontal = 16.dp, vertical = 8.dp) // 3. 懸浮外邊距
+            .navigationBarsPadding() // 自動適應 Android 系統導覽列高度
+            .padding(horizontal = 16.dp, vertical = 8.dp) // 懸浮的外邊距
     ) {
         // 使用 Surface 或 Card 來實作圓角與陰影懸浮感
         Surface(
             modifier = Modifier.fillMaxWidth(),
-            shape = RoundedCornerShape(24.dp), // 整體大圓角化
+            shape = RoundedCornerShape(16.dp), // 整體大圓角化
             color = Color.White,
             tonalElevation = 6.dp, // 頂級懸浮感
             shadowElevation = 6.dp  // 實體陰影
