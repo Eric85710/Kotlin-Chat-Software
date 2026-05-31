@@ -1,26 +1,20 @@
 package com.example.login_v3.home.Message.UI.Detail
 
 import android.net.Uri
-import android.util.Log
 import android.widget.Toast
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.animation.AnimatedVisibility
-import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.ExperimentalLayoutApi
-import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
@@ -32,12 +26,6 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.BasicTextField
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.filled.ArrowBack
-import androidx.compose.material.icons.automirrored.filled.Send
-import androidx.compose.material.icons.filled.AccountCircle
-import androidx.compose.material.icons.filled.Add
-import androidx.compose.material.icons.filled.AddCircle
-import androidx.compose.material.icons.filled.ArrowBack
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.Photo
 import androidx.compose.material.icons.filled.Send
@@ -47,15 +35,10 @@ import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.ModalBottomSheet
-import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
-import androidx.compose.material3.TextField
-import androidx.compose.material3.TextFieldDefaults
 import androidx.compose.material3.TopAppBar
-import androidx.compose.material3.rememberModalBottomSheetState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
@@ -82,14 +65,16 @@ import androidx.navigation.NavController
 import coil.compose.AsyncImage
 import com.example.login_v3.R
 import com.example.login_v3.data.api.api_class.Message
-import com.example.login_v3.data.api.api_class.Reaction
+import com.example.login_v3.home.Message.UI.Detail.Message_Messaging_detail.MessageActionMenuRow
+import com.example.login_v3.home.Message.UI.Detail.Message_Messaging_detail.MessageInputBar
+import com.example.login_v3.home.Message.UI.Detail.Message_Messaging_detail.ReactionRow
+import com.example.login_v3.home.Message.UI.Detail.Message_Messaging_detail.UserAvatar
 import com.example.login_v3.home.Message.ViewModel.Detail.ChatViewModel
 import com.example.login_v3.home.Message.ViewModel.Detail.MessagesUiState
-import com.example.login_v3.home.Message.ViewModel.Detail.ReactionUsersState
 import com.example.login_v3.home.Message.ViewModel.Detail.SendMessageState
 import com.example.login_v3.home.Message.ViewModel.UserStatus
 import com.example.login_v3.navigation.BottomBarViewModel
-import com.example.login_v3.navigation.Screen
+
 
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -199,18 +184,29 @@ fun MessageMessaging(
             )
         },
         bottomBar = {
-            // 💡 這裡把 replyingMessage 與 取消回覆的動作 傳進去 (等等修改 MessageInputBar)
-            MessageInputBar(
-                isLoading = sendStatus is SendMessageState.Loading,
-                replyingMessage = replyingMessage,
-                onCancelReply = { viewModel.setReplyingMessage(null) },
-                onSendClick = { text ->
-                    viewModel.sendMessage(roomId = roomId, content = text)
-                },
-                onImageSelected = { uri ->
-                    viewModel.uploadAttachment(roomId = roomId, fileUri = uri)
-                }
-            )
+            if (actionMessage != null) {
+                // 顯示動作選單
+                MessageActionMenuRow(
+                    message = actionMessage!!,
+                    onCancel = { viewModel.clearActionMessage() }, // 👈 呼叫 ViewModel 的清除
+                    onReplyClick = { msg ->
+                        viewModel.setReplyingMessage(msg)         // 👈 原本的回覆邏輯
+                        viewModel.clearActionMessage()            // 👈 點擊回覆後關閉動作選單
+                    },
+                    onDeleteClick = { msg ->
+                        viewModel.deleteMessage(roomId, msg.id)   // 👈 觸發刪除（內部成功後會自己關閉）
+                    }
+                )
+            } else {
+                // 顯示原本的輸入框
+                MessageInputBar(
+                    isLoading = sendStatus is SendMessageState.Loading,
+                    replyingMessage = replyingMessage,
+                    onCancelReply = { viewModel.setReplyingMessage(null) }, // 傳 null 等同清除
+                    onSendClick = { content -> viewModel.sendMessage(roomId, content) },
+                    onImageSelected = { uri -> viewModel.uploadAttachment(roomId, uri) }
+                )
+            }
         }
     ) { innerPadding ->
         Box(
@@ -234,7 +230,7 @@ fun MessageMessaging(
                             messages = state.messages,
                             partnerAvatarUrl = state.partnerAvatarUrl,
                             partnerDisplayName = state.roomTitle,
-                            onReplyClick = { message -> viewModel.setReplyingMessage(message) },
+                            onReplyClick = { message -> viewModel.setActionMessage(message) },
                             onReactionClick = { message, emoji ->
                                 // 尋找該訊息內，對應點擊到的 Reaction 物件
                                 val targetReaction = message.reactions?.find { it.emoji == emoji }
@@ -471,187 +467,6 @@ fun MessageRow(
                     reactions = message.reactions,
                     onReactionClick = { emoji -> onReactionClick(message, emoji) }
                 )
-            }
-        }
-    }
-}
-
-
-@Composable
-fun MessageInputBar(
-    isLoading: Boolean,
-    replyingMessage: Message?,
-    onCancelReply: () -> Unit,
-    onSendClick: (String) -> Unit,
-    onImageSelected: (Uri) -> Unit
-) {
-    var textState by remember { mutableStateOf("") }
-
-    val imagePickerLauncher =
-        rememberLauncherForActivityResult(
-            contract = ActivityResultContracts.GetContent()
-        ) { uri: Uri? ->
-            uri?.let { onImageSelected(it) }
-        }
-
-    // 💡 外層包裹一層 Box，並加上 padding 與 navigationBarsPadding，確保懸浮且不被系統列擋住
-    Box(
-        modifier = Modifier
-            .fillMaxWidth()
-            .navigationBarsPadding() // 自動適應 Android 系統導覽列高度
-            .padding(horizontal = 16.dp, vertical = 8.dp) // 懸浮的外邊距
-    ) {
-        // 使用 Surface 或 Card 來實作圓角與陰影懸浮感
-        Surface(
-            modifier = Modifier.fillMaxWidth(),
-            shape = RoundedCornerShape(16.dp), // 整體大圓角化
-            color = Color.White,
-            tonalElevation = 6.dp, // 頂級懸浮感
-            shadowElevation = 6.dp  // 實體陰影
-        ) {
-            Column(modifier = Modifier.fillMaxWidth()) {
-
-                // 1. 回覆預覽列 (加入頂部圓角修飾)
-                AnimatedVisibility(visible = replyingMessage != null) {
-                    if (replyingMessage != null) {
-                        Row(
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .background(Color(0xFFF8F9FA)) // 更輕盈的底色
-                                .padding(horizontal = 16.dp, vertical = 8.dp),
-                            verticalAlignment = Alignment.CenterVertically,
-                            horizontalArrangement = Arrangement.SpaceBetween
-                        ) {
-                            Column(modifier = Modifier.weight(1f)) {
-                                Text(
-                                    text = replyingMessage.content,
-                                    style = MaterialTheme.typography.bodySmall,
-                                    color = Color.Gray,
-                                    maxLines = 1,
-                                    overflow = TextOverflow.Ellipsis
-                                )
-                            }
-                            IconButton(onClick = onCancelReply, modifier = Modifier.size(24.dp)) {
-                                Icon(
-                                    imageVector = Icons.Default.Close,
-                                    contentDescription = "取消回覆",
-                                    tint = Color.Gray
-                                )
-                            }
-                        }
-                    }
-                }
-
-                // 2. 實際的輸入工具列
-                Row(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(horizontal = 8.dp, vertical = 6.dp),
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
-                    // 圖片選擇按鈕
-                    IconButton(onClick = { imagePickerLauncher.launch("image/*") }) {
-                        Icon(
-                            imageVector = Icons.Default.Photo,
-                            contentDescription = "選擇圖片",
-                            tint = Color.Gray
-                        )
-                    }
-
-                    // 輸入文字框 (改為內嵌樣式，去掉自帶的邊框，讓整體更有一體感)
-                    BasicTextField(
-                        value = textState,
-                        onValueChange = { textState = it },
-                        modifier = Modifier
-                            .weight(1f)
-                            .padding(horizontal = 8.dp),
-                        textStyle = MaterialTheme.typography.bodyLarge,
-                        decorationBox = { innerTextField ->
-                            if (textState.isEmpty()) {
-                                Text("請輸入訊息...", color = Color.LightGray)
-                            }
-                            innerTextField()
-                        }
-                    )
-
-                    // 送出按鈕
-                    IconButton(
-                        onClick = {
-                            if (textState.isNotBlank() && !isLoading) {
-                                onSendClick(textState)
-                                textState = ""
-                            }
-                        },
-                        enabled = textState.isNotBlank() && !isLoading
-                    ) {
-                        if (isLoading) {
-                            CircularProgressIndicator(modifier = Modifier.size(24.dp), strokeWidth = 2.dp)
-                        } else {
-                            // 加上小背景讓送出按鈕更有重點
-                            val iconColor = if (textState.isNotBlank()) Color(0xFFDA7029) else Color.LightGray
-                            Icon(
-                                imageVector = Icons.Default.Send,
-                                contentDescription = "送出",
-                                tint = iconColor
-                            )
-                        }
-                    }
-                }
-            }
-        }
-    }
-}
-
-
-@Composable
-fun UserAvatar(
-    avatarUrl: Any?, // ✨ 改成 Any?
-    modifier: Modifier = Modifier
-) {
-    AsyncImage(
-        model = avatarUrl ?: R.drawable.avatar_v1, // 如果為 null，就用預設圖
-        contentDescription = "用戶頭像",
-        modifier = modifier
-            .background(Color.LightGray, shape = CircleShape)
-            .clip(CircleShape),
-        contentScale = ContentScale.Crop
-    )
-}
-
-
-@Composable
-fun ReactionRow(
-    reactions: List<Reaction>,
-    onReactionClick: (String) -> Unit
-) {
-    // 使用 FlowRow，如果貼圖太多會自動折行
-    OptIn(ExperimentalLayoutApi::class)
-    FlowRow(
-        modifier = Modifier.padding(top = 4.dp, start = 4.dp, end = 4.dp),
-        horizontalArrangement = Arrangement.spacedBy(4.dp),
-        verticalArrangement = Arrangement.spacedBy(4.dp)
-    ) {
-        reactions.forEach { reaction ->
-            if (reaction.count > 0) {
-                Row(
-                    modifier = Modifier
-                        .clip(CircleShape)
-                        .background(
-                            // 如果我自己有按讚，背景變稍微深色/藍色點綴，否則為淡灰色
-                            if (reaction.meReacted) Color(0xFFBBDEFB) else Color(0xFFEEEEEE)
-                        )
-                        .clickable { onReactionClick(reaction.emoji) }
-                        .padding(horizontal = 8.dp, vertical = 4.dp),
-                    verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.spacedBy(4.dp)
-                ) {
-                    Text(text = reaction.emoji, fontSize = 14.sp)
-                    Text(
-                        text = reaction.count.toString(),
-                        style = MaterialTheme.typography.bodySmall.copy(fontWeight = FontWeight.Bold),
-                        color = if (reaction.meReacted) Color(0xFF1976D2) else Color.DarkGray
-                    )
-                }
             }
         }
     }
