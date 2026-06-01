@@ -184,6 +184,7 @@ fun MessageMessaging(
                 }
             )
         },
+        //to be animated
         bottomBar = {
             if (actionMessage != null) {
                 // 顯示動作選單
@@ -330,24 +331,32 @@ fun MessageRow(
     val rawContent = message.content ?: ""
     // 💡 核心修正：利用 remember 根據 message 狀態動態計算正確的圖片 URL
     val finalImageModel = remember(message) {
-        // 1. 如果有 attachment，優先去拿裡面的 filename；如果沒有，再拿一般的 content
-        // 2. 假設後端儲存路徑通常是在某個特定資料夾（例如 /uploads/），如果 filename 沒帶路徑，記得補上
-        val rawPath = if (isAttachmentImage && !message.attachment?.filename.isNullTabOrBlank()) {
+        // 1. 取得原始路徑（優先使用 attachment 的 filename，次之用 content）
+        val rawPath = if (isAttachmentImage && !message.attachment?.filename.isNullOrBlank()) {
             message.attachment!!.filename
         } else {
-            message.content
+            message.content ?: ""
         }
 
         when {
             rawPath.isBlank() -> ""
-            rawPath.startsWith("https") -> rawPath // 已經是完整網址，直接回傳
+            // 如果後端已經貼心地給了完整網址（包含 http 或 https），就直接使用
+            rawPath.startsWith("http") -> rawPath
 
-            // 💡 注意：請根據你後端圖片實際存放的路由修改這裡。
-            // 如果後端 filename 只有 "abc.jpg"，而實際上網址是 "http://192.168.0.217/uploads/abc.jpg"
-            // 你需要把下面改成 "/uploads/$rawPath"
-            rawPath.startsWith("/") -> "https://192.168.0.217$rawPath"
+            // 如果後端給的路徑已經包含 "/uploads/"（例如 "/uploads/attachment/dfec7f...jpg"）
+            rawPath.startsWith("/uploads/") -> "https://192.168.0.217$rawPath"
+            rawPath.contains("uploads/") -> "https://192.168.0.217/$rawPath"
 
-            else -> "https://192.168.0.217/$rawPath"
+            // 💡 關鍵處理：如果後端只給了純檔名（例如 "dfec7f...jpg"）或是 "attachment/dfec7f...jpg"
+            // 我們要在前方幫它手動補上標準的存放路徑 "/uploads/"
+            else -> {
+                val cleanPath = rawPath.removePrefix("/") // 移除可能重複的開頭斜線
+                if (cleanPath.startsWith("attachment/")) {
+                    "https://192.168.0.217/uploads/$cleanPath"
+                } else {
+                    "https://192.168.0.217/uploads/attachment/$cleanPath"
+                }
+            }
         }
     }
 
