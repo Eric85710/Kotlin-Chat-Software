@@ -260,6 +260,7 @@ fun Loaded_setting_profile_page(
             ) {
 
                 //display name
+                //move edit to top
                 Row() {
                     Text(text = "${profile.display_name}",
                         fontSize = 20.sp,
