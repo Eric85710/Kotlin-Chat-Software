@@ -5,6 +5,7 @@ import android.util.Log
 import android.widget.Toast
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
+import androidx.compose.animation.AnimatedContent
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
@@ -184,30 +185,35 @@ fun MessageMessaging(
                 }
             )
         },
-        //to be animated
         bottomBar = {
-            if (actionMessage != null) {
-                // 顯示動作選單
-                MessageActionMenuRow(
-                    message = actionMessage!!,
-                    onCancel = { viewModel.clearActionMessage() }, // 👈 呼叫 ViewModel 的清除
-                    onReplyClick = { msg ->
-                        viewModel.setReplyingMessage(msg)         // 👈 原本的回覆邏輯
-                        viewModel.clearActionMessage()            // 👈 點擊回覆後關閉動作選單
-                    },
-                    onDeleteClick = { msg ->
-                        viewModel.deleteMessage(roomId, msg.id)   // 👈 觸發刪除（內部成功後會自己關閉）
-                    }
-                )
-            } else {
-                // 顯示原本的輸入框
-                MessageInputBar(
-                    isLoading = sendStatus is SendMessageState.Loading,
-                    replyingMessage = replyingMessage,
-                    onCancelReply = { viewModel.setReplyingMessage(null) }, // 傳 null 等同清除
-                    onSendClick = { content -> viewModel.sendMessage(roomId, content) },
-                    onImageSelected = { uri -> viewModel.uploadAttachment(roomId, uri) }
-                )
+            // 👈 1. 直接將 actionMessage 作為 targetState
+            AnimatedContent(
+                targetState = actionMessage,
+                label = "BottomBarSwitchAnimation"
+            ) { currentActionMessage -> // 👈 2. 這裡拿到的 currentActionMessage 在動畫期間會保持不變
+                if (currentActionMessage != null) {
+                    // 顯示動作選單
+                    MessageActionMenuRow(
+                        message = currentActionMessage, // 👈 3. 乾淨安全，再也不需要寫 !! 了
+                        onCancel = { viewModel.clearActionMessage() },
+                        onReplyClick = { msg ->
+                            viewModel.setReplyingMessage(msg)
+                            viewModel.clearActionMessage()
+                        },
+                        onDeleteClick = { msg ->
+                            viewModel.deleteMessage(roomId, msg.id)
+                        }
+                    )
+                } else {
+                    // 顯示原本的輸入框
+                    MessageInputBar(
+                        isLoading = sendStatus is SendMessageState.Loading,
+                        replyingMessage = replyingMessage,
+                        onCancelReply = { viewModel.setReplyingMessage(null) },
+                        onSendClick = { content -> viewModel.sendMessage(roomId, content) },
+                        onImageSelected = { uri -> viewModel.uploadAttachment(roomId, uri) }
+                    )
+                }
             }
         }
     ) { innerPadding ->
