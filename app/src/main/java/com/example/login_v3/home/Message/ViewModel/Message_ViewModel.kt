@@ -30,17 +30,28 @@ class ChatRoomsViewModel @Inject constructor(
 
     fun loadRooms() {
         viewModelScope.launch {
+            Log.d("ChatRoomsDebug", "1. 開始呼叫 loadRooms()...")
             val result = repository.fetchRooms()
-            result.onSuccess { response ->
-                _roomsState.value = response.rooms
 
-                response.rooms.forEach { room ->
-                    val status = room.partner?.status
-                    val name = room.partner?.displayName
-                    println("Debug_API: User: $name, Status: '$status'")
+            result.onSuccess { response ->
+                val roomsList = response.rooms
+                Log.d("ChatRoomsDebug", "2. API 請求成功！拿到 ${roomsList?.size ?: 0} 個聊天室")
+
+                if (roomsList.isNullOrEmpty()) {
+                    Log.w("ChatRoomsDebug", "⚠️ 注意：後端回傳的 rooms 列表是空的(或為 null)！")
+                } else {
+                    roomsList.forEach { room ->
+                        Log.d("ChatRoomsDebug", "-> 房間 ID: ${room.roomId}, 名稱: ${room.roomName}, Partner: ${room.partner?.displayName}, 狀態: ${room.partner?.status}")
+                    }
                 }
+
+                // 更新狀態
+                _roomsState.value = roomsList ?: emptyList()
+                Log.d("ChatRoomsDebug", "3. _roomsState 已更新，當前長度: ${_roomsState.value.size}")
+
             }.onFailure { error ->
-                Log.e("ChatRoomsViewModel", "Fetch failed", error)
+                // ⭐ 這裡非常重要，一定要印出 stackTrace 才知道為什麼失敗（例如：JSON 解析失敗、404、網路斷線）
+                Log.e("ChatRoomsDebug", "❌ API 請求失敗 (onFailure)!!", error)
             }
         }
     }

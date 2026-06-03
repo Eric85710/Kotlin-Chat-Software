@@ -15,12 +15,12 @@ data class RoomListResponse(
 data class ChatRoom(
     @Json(name = "room_id") val roomId: String,
     @Json(name = "room_name") val roomName: String?,
-    @Json(name = "room_type") val roomType: String,
+    @Json(name = "room_type") val roomType: String? = null, // 🎯 修正這裡：改成 String? 並加上預設值，解決閃退問題！
     @Json(name = "room_icon_url") val roomIconUrl: String?,
-    @Json(name = "is_muted") val isMuted: Boolean,
-    @Json(name = "is_pinned") val isPinned: Boolean,
-    @Json(name = "unread_count") val unreadCount: Int,
-    @Json(name = "mention_count") val mentionCount: Int,
+    @Json(name = "is_muted") val isMuted: Boolean = false,   // 💡 安全防護：若後端漏傳，預設為 false
+    @Json(name = "is_pinned") val isPinned: Boolean = false, // 💡 安全防護：若後端漏傳，預設為 false
+    @Json(name = "unread_count") val unreadCount: Int = 0,   // 💡 安全防護：若後端漏傳，預設為 0
+    @Json(name = "mention_count") val mentionCount: Int = 0, // 💡 安全防護：若後端漏傳，預設為 0
     @Json(name = "partner") val partner: Partner?,
     @Json(name = "last_message") val lastMessage: LastMessage?
 )
