@@ -1,5 +1,7 @@
 package com.example.login_v3.home.Message.UI.Detail.Message_Messaging_detail
 
+import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -25,6 +27,7 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.blur
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
@@ -50,67 +53,81 @@ fun MessageActionMenuRow(
             .navigationBarsPadding() // 自動適應 Android 系統導覽列（手勢列）高度
             .padding(horizontal = 16.dp, vertical = 8.dp)
     ) {
-        Surface(
-            modifier = Modifier.fillMaxWidth(),
-            shape = RoundedCornerShape(16.dp), // 保持懸浮圓角感
-            color = Color.White,
-            tonalElevation = 6.dp,
-            shadowElevation = 6.dp
+
+
+        //glass effect
+        Box(
+            modifier = Modifier
+                .matchParentSize()
+                .blur(10.dp)
+        )
+        Box(
+            modifier = Modifier
+                .matchParentSize()
+                .background(
+                    color = MaterialTheme.colorScheme.primary,
+                    RoundedCornerShape(16.dp)
+                )
+                .border(
+                    1.dp,
+                    Color.White.copy(alpha = 0.3f),
+                    RoundedCornerShape(16.dp)
+                )
+        )
+
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(horizontal = 12.dp, vertical = 30.dp),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.SpaceBetween
         ) {
-            Row(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(horizontal = 12.dp, vertical = 30.dp),
-                verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.SpaceBetween
-            ) {
-                // 左側：取消關閉選單按鈕
-                IconButton(onClick = onCancel) {
-                    Icon(
-                        imageVector = Icons.Default.Close,
-                        contentDescription = "取消選取",
-                        tint = Color.Gray
-                    )
-                }
-
-                // 中間：各個功能按鈕
-                Row(
-                    horizontalArrangement = Arrangement.spacedBy(20.dp),
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
-                    // 1. 回覆
-                    ChatMenuButton(
-                        imageVector = Icons.Default.Reply,
-                        label = "回覆",
-                        onClick = { onReplyClick(message) }
-                    )
-
-                    // 2. 複製文字
-                    val isImage = message.content?.startsWith("http") == true || message.attachment != null
-                    ChatMenuButton(
-                        imageVector = Icons.Default.ContentCopy,
-                        label = "複製",
-                        enabled = !isImage,
-                        onClick = {
-                            message.content?.let { text ->
-                                clipboardManager.setText(AnnotatedString(text))
-                            }
-                            onCancel()
-                        }
-                    )
-
-                    // 3. 刪除
-                    ChatMenuButton(
-                        imageVector = Icons.Default.Delete,
-                        label = "刪除",
-                        tint = MaterialTheme.colorScheme.error,
-                        onClick = { onDeleteClick(message) }
-                    )
-                }
-
-                // 為了讓中間的按鈕群置中，右邊放一個等寬的 Spacer
-                Spacer(modifier = Modifier.size(48.dp))
+            // 左側：取消關閉選單按鈕
+            IconButton(onClick = onCancel) {
+                Icon(
+                    imageVector = Icons.Default.Close,
+                    contentDescription = "取消選取",
+                    tint = Color.Gray
+                )
             }
+
+            // 中間：各個功能按鈕
+            Row(
+                horizontalArrangement = Arrangement.spacedBy(20.dp),
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                // 1. 回覆
+                ChatMenuButton(
+                    imageVector = Icons.Default.Reply,
+                    label = "回覆",
+                    onClick = { onReplyClick(message) }
+                )
+
+                // 2. 複製文字
+                val isImage = message.content?.startsWith("http") == true || message.attachment != null
+                ChatMenuButton(
+                    imageVector = Icons.Default.ContentCopy,
+                    label = "複製",
+                    enabled = !isImage,
+                    onClick = {
+                        message.content?.let { text ->
+                            clipboardManager.setText(AnnotatedString(text))
+                        }
+                        onCancel()
+                    }
+                )
+
+                // 3. 刪除
+                ChatMenuButton(
+                    imageVector = Icons.Default.Delete,
+                    label = "刪除",
+                    tint = MaterialTheme.colorScheme.error,
+                    onClick = { onDeleteClick(message) }
+                )
+            }
+
+            // 為了讓中間的按鈕群置中，右邊放一個等寬的 Spacer
+            Spacer(modifier = Modifier.size(48.dp))
         }
     }
 }
@@ -138,7 +155,7 @@ fun ChatMenuButton(
             imageVector = imageVector,
             contentDescription = label,
             tint = contentColor,
-            modifier = Modifier.size(24.dp)
+            modifier = Modifier.size(32.dp)
         )
         Spacer(modifier = Modifier.height(2.dp))
         Text(
