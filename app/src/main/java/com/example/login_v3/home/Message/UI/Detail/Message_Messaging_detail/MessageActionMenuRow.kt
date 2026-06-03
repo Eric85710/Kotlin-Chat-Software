@@ -42,6 +42,7 @@ fun MessageActionMenuRow(
     onCancel: () -> Unit,
     onReplyClick: (Message) -> Unit, // 👈 修正：這裡只需要定義型態
     onDeleteClick: (Message) -> Unit,
+    isOwnMessage: Boolean,
     modifier: Modifier = Modifier
 ) {
     // 💡 取得系統剪貼簿，用來實作「複製文字」功能
@@ -117,13 +118,15 @@ fun MessageActionMenuRow(
                     }
                 )
 
-                // 3. 刪除
-                ChatMenuButton(
-                    imageVector = Icons.Default.Delete,
-                    label = "刪除",
-                    tint = MaterialTheme.colorScheme.error,
-                    onClick = { onDeleteClick(message) }
-                )
+                // 3. 刪除：只有在自己的訊息時才顯示 👈
+                if (isOwnMessage) {
+                    ChatMenuButton(
+                        imageVector = Icons.Default.Delete,
+                        label = "刪除",
+                        tint = MaterialTheme.colorScheme.error,
+                        onClick = { onDeleteClick(message) }
+                    )
+                }
             }
 
             // 為了讓中間的按鈕群置中，右邊放一個等寬的 Spacer

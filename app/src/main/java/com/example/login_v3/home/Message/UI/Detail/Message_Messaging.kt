@@ -186,15 +186,21 @@ fun MessageMessaging(
             )
         },
         bottomBar = {
-            // 👈 1. 直接將 actionMessage 作為 targetState
+            // 👈 直接將 actionMessage 作為 targetState
             AnimatedContent(
                 targetState = actionMessage,
                 label = "BottomBarSwitchAnimation"
-            ) { currentActionMessage -> // 👈 2. 這裡拿到的 currentActionMessage 在動畫期間會保持不變
+            ) { currentActionMessage ->
                 if (currentActionMessage != null) {
+
+                    // 💡 核心修正：從目前的 uiState 中安全地取出當前使用者的 ID 來做比較
+                    val currentUserId = (uiState as? MessagesUiState.Success)?.currentUserId
+                    val isOwnMessage = currentActionMessage.senderId == currentUserId
+
                     // 顯示動作選單
                     MessageActionMenuRow(
-                        message = currentActionMessage, // 👈 3. 乾淨安全，再也不需要寫 !! 了
+                        message = currentActionMessage,
+                        isOwnMessage = isOwnMessage, // 👈 記得要把這個新參數帶進去！
                         onCancel = { viewModel.clearActionMessage() },
                         onReplyClick = { msg ->
                             viewModel.setReplyingMessage(msg)
