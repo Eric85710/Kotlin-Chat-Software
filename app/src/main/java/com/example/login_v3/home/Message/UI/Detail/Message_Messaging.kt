@@ -44,6 +44,7 @@ import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -68,6 +69,7 @@ import coil.compose.AsyncImage
 import com.example.login_v3.R
 import com.example.login_v3.data.api.api_class.Message
 import com.example.login_v3.home.Message.UI.Detail.Message_Messaging_detail.MessageActionMenuRow
+import com.example.login_v3.home.Message.UI.Detail.Message_Messaging_detail.MessageEmojiBar
 import com.example.login_v3.home.Message.UI.Detail.Message_Messaging_detail.MessageInputBar
 import com.example.login_v3.home.Message.UI.Detail.Message_Messaging_detail.ReactionRow
 import com.example.login_v3.home.Message.UI.Detail.Message_Messaging_detail.UserAvatar
@@ -111,6 +113,18 @@ fun MessageMessaging(
     //message that selected
     val actionMessage by viewModel.actionMessage.collectAsStateWithLifecycle()
 
+    var emojiTargetMessage by remember { mutableStateOf<Message?>(null) }
+
+    // 🌟 核心：使用 derivedStateOf 統一控管狀態權限（長按優先權通常大於單擊）
+    val bottomBarState by remember {
+        derivedStateOf {
+            when {
+                actionMessage != null -> BottomBarState.ActionMenu(actionMessage!!)
+                emojiTargetMessage != null -> BottomBarState.EmojiMenu(emojiTargetMessage!!)
+                else -> BottomBarState.Input
+            }
+        }
+    }
 
     //進入時重整
     LaunchedEffect(roomId) {
@@ -194,39 +208,60 @@ fun MessageMessaging(
             )
         },
         bottomBar = {
-            // 👈 直接將 actionMessage 作為 targetState
+            // 👈 使用我們定義的 sealed interface 狀態機
             AnimatedContent(
-                targetState = actionMessage,
+                targetState = bottomBarState,
                 label = "BottomBarSwitchAnimation"
-            ) { currentActionMessage ->
-                if (currentActionMessage != null) {
+            ) { currentState ->
+                when (currentState) {
+                    is BottomBarState.Input -> {
+                        MessageInputBar(
+                            isLoading = sendStatus is SendMessageState.Loading,
+                            replyingMessage = replyingMessage,
+                            onCancelReply = { viewModel.setReplyingMessage(null) },
+                            onSendClick = { content -> viewModel.sendMessage(roomId, content) },
+                            onImageSelected = { uri -> viewModel.uploadAttachment(roomId, uri) }
+                        )
+                    }
 
-                    // 💡 核心修正：從目前的 uiState 中安全地取出當前使用者的 ID 來做比較
-                    val currentUserId = (uiState as? MessagesUiState.Success)?.currentUserId
-                    val isOwnMessage = currentActionMessage.senderId == currentUserId
+                    is BottomBarState.ActionMenu -> {
+                        val currentActionMessage = currentState.message
+                        val currentUserId = (uiState as? MessagesUiState.Success)?.currentUserId
+                        val isOwnMessage = currentActionMessage.senderId == currentUserId
 
-                    // 顯示動作選單
-                    MessageActionMenuRow(
-                        message = currentActionMessage,
-                        isOwnMessage = isOwnMessage, // 👈 記得要把這個新參數帶進去！
-                        onCancel = { viewModel.clearActionMessage() },
-                        onReplyClick = { msg ->
-                            viewModel.setReplyingMessage(msg)
-                            viewModel.clearActionMessage()
-                        },
-                        onDeleteClick = { msg ->
-                            viewModel.deleteMessage(roomId, msg.id)
-                        }
-                    )
-                } else {
-                    // 顯示原本的輸入框
-                    MessageInputBar(
-                        isLoading = sendStatus is SendMessageState.Loading,
-                        replyingMessage = replyingMessage,
-                        onCancelReply = { viewModel.setReplyingMessage(null) },
-                        onSendClick = { content -> viewModel.sendMessage(roomId, content) },
-                        onImageSelected = { uri -> viewModel.uploadAttachment(roomId, uri) }
-                    )
+                        MessageActionMenuRow(
+                            message = currentActionMessage,
+                            isOwnMessage = isOwnMessage,
+                            onCancel = { viewModel.clearActionMessage() },
+                            onReplyClick = { msg ->
+                                viewModel.setReplyingMessage(msg)
+                                viewModel.clearActionMessage()
+                            },
+                            onDeleteClick = { msg ->
+                                viewModel.deleteMessage(roomId, msg.id)
+                            }
+                        )
+                    }
+
+                    is BottomBarState.EmojiMenu -> {
+                        // 👈 渲染全新設計的獨立 Emoji Bar
+                        val currentEmojiMessage = currentState.message
+                        MessageEmojiBar(
+                            // 🌟 移除了 commonEmojis 參數，變得非常清爽！
+                            onEmojiClick = { emoji ->
+                                val targetReaction = currentEmojiMessage.reactions?.find { it.emoji == emoji }
+                                if (targetReaction?.meReacted == true) {
+                                    viewModel.removeMessageReaction(roomId, currentEmojiMessage.id, emoji)
+                                } else {
+                                    viewModel.addMessageReaction(roomId, currentEmojiMessage.id, emoji)
+                                }
+                                emojiTargetMessage = null // 點完後自動關閉
+                            },
+                            onCancel = {
+                                emojiTargetMessage = null // 點擊關閉
+                            }
+                        )
+                    }
                 }
             }
         }
@@ -252,35 +287,23 @@ fun MessageMessaging(
                             messages = state.messages,
                             partnerAvatarUrl = state.partnerAvatarUrl,
                             partnerDisplayName = state.roomTitle,
-                            onReplyClick = { message -> viewModel.setActionMessage(message) },
-                            onReactionClick = { message, emoji ->
-                                // 尋找該訊息內，對應點擊到的 Reaction 物件
-                                val targetReaction = message.reactions?.find { it.emoji == emoji }
-
-                                if (targetReaction?.meReacted == true) {
-                                    // 我自己已經點過了 ➡️ 觸發「移除/收回」
-                                    viewModel.removeMessageReaction(
-                                        roomId = roomId,
-                                        messageId = message.id,
-                                        emoji = emoji
-                                    )
-                                } else {
-                                    // 我沒點過（別人點的） ➡️ 觸發「新增/一起點」
-                                    viewModel.addMessageReaction(
-                                        roomId = roomId,
-                                        messageId = message.id,
-                                        emoji = emoji
-                                    )
-                                }
+                            onReplyClick = { message ->
+                                emojiTargetMessage = null
+                                viewModel.setActionMessage(message)
                             },
-
-                            // 點選彈出面板（Panel）的新 Emoji
-                            onAddReaction = { message, emoji ->
-                                viewModel.addMessageReaction(
-                                    roomId = roomId,
-                                    messageId = message.id,
-                                    emoji = emoji
-                                )
+                            // 💡 單擊事件：開啟 Emoji 選單，同時清空長按選單
+                            onRowClick = { message ->
+                                viewModel.clearActionMessage()
+                                emojiTargetMessage = message
+                            },
+                            onReactionClick = { message, emoji ->
+                                // 這是訊息氣泡下方既有 Reaction 小標籤的點擊事件，保持原樣即可
+                                val targetReaction = message.reactions?.find { it.emoji == emoji }
+                                if (targetReaction?.meReacted == true) {
+                                    viewModel.removeMessageReaction(roomId, message.id, emoji)
+                                } else {
+                                    viewModel.addMessageReaction(roomId, message.id, emoji)
+                                }
                             }
                         )
                     }
@@ -304,7 +327,7 @@ fun MessageList(
     messages: List<Message>,
     onReplyClick: (Message) -> Unit,
     onReactionClick: (Message, String) -> Unit,
-    onAddReaction: (Message, String) -> Unit,
+    onRowClick: (Message) -> Unit,
     modifier: Modifier = Modifier
 ) {
     LazyColumn(
@@ -323,7 +346,7 @@ fun MessageList(
                 currentUserId = currentUserId,
                 onReplyClick = onReplyClick,
                 onReactionClick = onReactionClick,
-                onAddReaction = onAddReaction
+                onRowClick = onRowClick
             )
         }
     }
@@ -339,7 +362,7 @@ fun MessageRow(
     currentUserId: String,
     onReplyClick: (Message) -> Unit,
     onReactionClick: (Message, String) -> Unit,
-    onAddReaction: (Message, String) -> Unit
+    onRowClick: (Message) -> Unit,
 ) {
     val isAttachmentImage = message.attachment?.mimeType?.startsWith("image/") == true
     val contentLowerCase = (message.content ?: "").lowercase()
@@ -390,8 +413,8 @@ fun MessageRow(
             .fillMaxWidth()
             // 💡 讓使用者長按整條訊息就能觸發回覆
             .combinedClickable(
-                onLongClick = { onReplyClick(message) },
-                onClick = { showEmojiPanel = true }     // 💡 點一下開啟 Emoji 面板
+                onLongClick = { onReplyClick(message) }, // 長按 -> 喚起 ActionMenu
+                onClick = { onRowClick(message) }       // 單擊 -> 喚起 EmojiMenu
             ),
         horizontalArrangement = if (isMe) Arrangement.End else Arrangement.Start
     ) {
@@ -511,10 +534,6 @@ fun MessageRow(
                                 fontSize = 24.sp,
                                 modifier = Modifier
                                     .clip(CircleShape)
-                                    .clickable {
-                                        onAddReaction(message, emoji) // 觸發新增 Reaction API
-                                        showEmojiPanel = false        // 關閉面板
-                                    }
                                     .padding(4.dp)
                             )
                         }
