@@ -79,6 +79,14 @@ import com.example.login_v3.navigation.BottomBarViewModel
 
 
 
+
+//bottom bar state
+sealed interface BottomBarState {
+    object Input : BottomBarState                                // 預設：輸入框
+    data class ActionMenu(val message: Message) : BottomBarState // 長按：動作選單
+    data class EmojiMenu(val message: Message) : BottomBarState  // 單擊：Emoji 工具列
+}
+
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun MessageMessaging(
