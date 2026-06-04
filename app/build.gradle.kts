@@ -89,4 +89,10 @@ dependencies {
 
     implementation("androidx.datastore:datastore-preferences:1.2.1")
 
+
+    //emoji pack
+    val emoji2Version = "1.5.0" // 請根據你當前環境選擇最新穩定版
+    implementation("androidx.emoji2:emoji2:$emoji2Version")
+    implementation("androidx.emoji2:emoji2-bundled:$emoji2Version") // 自帶字型包
+
 }

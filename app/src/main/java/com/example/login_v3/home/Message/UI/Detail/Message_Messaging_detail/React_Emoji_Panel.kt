@@ -28,82 +28,81 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 
+object EmojiProvider {
+    fun getSmileysAndPeople(): List<String> {
+        val emojis = mutableListOf<String>()
+
+        // 1. 經典表情區間 (Smiley Faces): 😀 到 🪟
+        for (i in 0x1F600..0x1F64F) {
+            if (Character.isValidCodePoint(i)) {
+                emojis.add(String(Character.toChars(i)))
+            }
+        }
+
+        // 2. 常用手勢與身體部位 (Body & Gestures): 👍 👏 等
+        for (i in 0x1F440..0x1F49F) {
+            if (Character.isValidCodePoint(i)) {
+                emojis.add(String(Character.toChars(i)))
+            }
+        }
+
+        return emojis
+    }
+}
+
 @Composable
 fun MessageEmojiBar(
     onEmojiClick: (String) -> Unit,
     onCancel: () -> Unit,
     modifier: Modifier = Modifier
 ) {
-    // 這裡可以無限塞入幾百個 Emoji 都沒問題了！
-    val emojiList = remember {
-        listOf(
-            "👍", "❤️", "😂", "😮", "😢", "🙏",
-            "🔥", "🎉", "👏", "👀", "✨", "💯",
-            "🤔", "🥳", "😎", "🚀", "💔", "💩",
-            "🤩", "🤯", "🙄", "🤫", "😴", "🤤",
-            "😭", "😡", "🤡", "👻", "👽", "🤖",
-            "👑", "🦄", "🐾", "🍕", "🍺", "☕️"
-        )
-    }
+    // emoji pack
+    val emojiList = remember { EmojiProvider.getSmileysAndPeople() }
 
     Surface(
         modifier = modifier
             .fillMaxWidth()
-            .height(300.dp), // 保持你設定的 300.dp 固定高度
+            .height(300.dp),
         color = Color(0xFFF5F5F5),
         tonalElevation = 4.dp
     ) {
         Column(
             modifier = Modifier
-                .navigationBarsPadding() // 確保不被系統海苔條遮擋
+                .navigationBarsPadding()
                 .padding(horizontal = 16.dp, vertical = 12.dp)
         ) {
-            // 【頂部功能列】：左邊放個小提示，右邊放關閉按鈕
+            // 頂部功能列 (標題與叉叉)
             Row(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(bottom = 8.dp),
+                modifier = Modifier.fillMaxWidth().padding(bottom = 8.dp),
                 horizontalArrangement = Arrangement.SpaceBetween,
                 verticalAlignment = Alignment.CenterVertically
             ) {
-                Text(
-                    text = "傳送回應",
-                    fontSize = 14.sp,
-                    fontWeight = FontWeight.Bold,
-                    color = Color.Gray
-                )
-
-                // 關閉按鈕
+                Text(text = "傳送回應", fontSize = 14.sp, fontWeight = FontWeight.Bold, color = Color.Gray)
                 Box(
-                    modifier = Modifier
-                        .clip(CircleShape)
-                        .clickable { onCancel() }
-                        .padding(8.dp),
-                    contentAlignment = Alignment.Center
+                    modifier = Modifier.clip(CircleShape).clickable { onCancel() }.padding(8.dp)
                 ) {
                     Text(text = "✕", color = Color.Gray, fontSize = 16.sp)
                 }
             }
 
-            // 【核心改動】：使用網格佈局，塞再多都不怕！
+            // 網格滾動區：塞了幾百個也能流暢滑動
             LazyVerticalGrid(
                 columns = GridCells.Fixed(6),
                 modifier = Modifier.fillMaxSize(),
                 horizontalArrangement = Arrangement.spacedBy(12.dp),
-                verticalArrangement = Arrangement.spacedBy(12.dp),
-                contentPadding = PaddingValues(bottom = 8.dp)
+                verticalArrangement = Arrangement.spacedBy(12.dp)
             ) {
                 items(emojiList) { emoji ->
                     Box(
                         modifier = Modifier
-                            .aspectRatio(1f) // 讓每個格子都是正方形，比較好對齊
+                            .aspectRatio(1f)
                             .clip(CircleShape)
                             .clickable { onEmojiClick(emoji) },
                         contentAlignment = Alignment.Center
                     ) {
                         Text(
                             text = emoji,
-                            fontSize = 28.sp // 稍微放大一點點，比較好點擊
+                            fontSize = 28.sp
                         )
                     }
                 }

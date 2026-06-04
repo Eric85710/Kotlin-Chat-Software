@@ -13,6 +13,8 @@ import com.example.login_v3.ui.theme.AppTheme
 import com.example.login_v3.ui.theme.Login_V3Theme
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.setValue
+import androidx.emoji2.bundled.BundledEmojiCompatConfig
+import androidx.emoji2.text.EmojiCompat
 import dagger.hilt.android.AndroidEntryPoint
 
 @AndroidEntryPoint
@@ -22,6 +24,10 @@ class MainActivity : ComponentActivity() {
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+
+        // emoji pack
+        val config = BundledEmojiCompatConfig(this)
+        EmojiCompat.init(config)
         enableEdgeToEdge()
 
         installSplashScreen()
