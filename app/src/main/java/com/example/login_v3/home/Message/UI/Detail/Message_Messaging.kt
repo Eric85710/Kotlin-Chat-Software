@@ -425,6 +425,7 @@ fun MessageRow(
     Row(
         modifier = Modifier
             .fillMaxWidth()
+            .then(if (isHighlight) Modifier.background(Color(0x33FF9800), RoundedCornerShape(12.dp)) else Modifier)
             // 💡 讓使用者長按整條訊息就能觸發回覆
             .combinedClickable(
                 onLongClick = { onReplyClick(message) }, // 長按 -> 喚起 ActionMenu
