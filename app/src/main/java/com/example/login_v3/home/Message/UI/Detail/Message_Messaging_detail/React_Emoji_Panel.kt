@@ -113,8 +113,8 @@ fun MessageEmojiBar(
     Box(
         modifier = Modifier
             .fillMaxWidth()
-            .height(300.dp)
-            .padding(horizontal = 16.dp, vertical = 8.dp)
+            .height(340.dp)
+            .padding(horizontal = 6.dp, vertical = 18.dp)
     ){
 
         //glass effect

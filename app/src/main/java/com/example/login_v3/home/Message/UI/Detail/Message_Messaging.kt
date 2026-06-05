@@ -8,6 +8,7 @@ import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.animation.AnimatedContent
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.layout.Arrangement
@@ -287,6 +288,8 @@ fun MessageMessaging(
                             messages = state.messages,
                             partnerAvatarUrl = state.partnerAvatarUrl,
                             partnerDisplayName = state.roomTitle,
+                            activeEmojiMessageId = emojiTargetMessage?.id,   // ✨ 新增短按目標 ID
+                            activeActionMessageId = actionMessage?.id,
                             onReplyClick = { message ->
                                 emojiTargetMessage = null
                                 viewModel.setActionMessage(message)
@@ -325,6 +328,8 @@ fun MessageList(
     partnerAvatarUrl: Any?,
     partnerDisplayName: String,
     messages: List<Message>,
+    activeEmojiMessageId: String?,
+    activeActionMessageId: String?,
     onReplyClick: (Message) -> Unit,
     onReactionClick: (Message, String) -> Unit,
     onRowClick: (Message) -> Unit,
@@ -343,6 +348,8 @@ fun MessageList(
                 partnerAvatarUrl = partnerAvatarUrl,
                 partnerDisplayName = partnerDisplayName,
                 isMe = isMe,
+                // 💡 判斷：不論是正在選 Emoji 還是正在開啟動作選單，只要命中就判定為高亮
+                isHighlight = message.id == activeEmojiMessageId || message.id == activeActionMessageId,
                 currentUserId = currentUserId,
                 onReplyClick = onReplyClick,
                 onReactionClick = onReactionClick,
@@ -359,6 +366,7 @@ fun MessageRow(
     isMe: Boolean,
     partnerAvatarUrl: Any?,
     partnerDisplayName: String,
+    isHighlight: Boolean,
     currentUserId: String,
     onReplyClick: (Message) -> Unit,
     onReactionClick: (Message, String) -> Unit,
@@ -403,9 +411,15 @@ fun MessageRow(
         }
     }
 
-    //emoji value
-    var showEmojiPanel by remember { mutableStateOf(false) }
-    val commonEmojis = listOf("👍", "❤️", "😂", "😮", "😢", "🙏")
+
+
+    // 💡 根據是否高亮，動態決定氣泡背景色（或是你想要的邊框效果）
+    val bubbleColor = when {
+        isMe && isHighlight -> Color(0xFFB4E197)   // 我發的：高亮時變成較深的草綠色
+        isMe -> Color(0xFFDCF8C6)                  // 我發的：平常的淺綠色
+        !isMe && isHighlight -> Color(0xFFCFD8DC)  // 對方發的：高亮時變成較深的灰色
+        else -> Color(0xFFECEFF1)                  // 對方發的：平常的淺灰色
+    }
 
 
     Row(
@@ -432,7 +446,7 @@ fun MessageRow(
                 modifier = Modifier
                     .widthIn(max = 280.dp)
                     .background(
-                        color = if (isMe) Color(0xFFDCF8C6) else Color(0xFFECEFF1),
+                        color = bubbleColor, // 💡 使用動態計算的背景色
                         shape = RoundedCornerShape(
                             topStart = 12.dp, topEnd = 12.dp,
                             bottomStart = if (isMe) 12.dp else 0.dp,
@@ -516,27 +530,6 @@ fun MessageRow(
                             text = rawContent,
                             style = MaterialTheme.typography.bodyMedium
                         )
-                    }
-                }
-
-                DropdownMenu(
-                    expanded = showEmojiPanel,
-                    onDismissRequest = { showEmojiPanel = false },
-                    modifier = Modifier.background(Color.White, RoundedCornerShape(24.dp))
-                ) {
-                    Row(
-                        modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp),
-                        horizontalArrangement = Arrangement.spacedBy(12.dp)
-                    ) {
-                        commonEmojis.forEach { emoji ->
-                            Text(
-                                text = emoji,
-                                fontSize = 24.sp,
-                                modifier = Modifier
-                                    .clip(CircleShape)
-                                    .padding(4.dp)
-                            )
-                        }
                     }
                 }
             }
