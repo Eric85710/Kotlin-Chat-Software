@@ -422,129 +422,131 @@ fun MessageRow(
     }
 
 
-    //message container
-    Row(
-        modifier = Modifier
-            .fillMaxWidth()
-            .then(if (isHighlight) Modifier.background(Color(0x33FF9800), RoundedCornerShape(12.dp)) else Modifier)
-        ,
-        horizontalArrangement = if (isMe) Arrangement.End else Arrangement.Start
-    ) {
-        if (!isMe) {
-            UserAvatar(
-                avatarUrl = partnerAvatarUrl,
-                modifier = Modifier.padding(end = 8.dp).size(32.dp)
-            )
-        }
-
-        Column(
-            horizontalAlignment = if (isMe) Alignment.End else Alignment.Start
+    Row() {
+        //message container
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .then(if (isHighlight) Modifier.background(Color(0x33FF9800), RoundedCornerShape(12.dp)) else Modifier)
+            ,
+            horizontalArrangement = if (isMe) Arrangement.End else Arrangement.Start
         ) {
-            Box(
-                modifier = Modifier
-                    .widthIn(max = 280.dp)
-                    // 💡 重點修正：將點擊/長按事件移到這裡，範圍只侷限在氣泡內
-                    // 注意：剪裁形狀（clip）建議放在點擊事件前或與形狀同步，確保點擊時的水波紋（Indication）不會超出圓角
-                    .clip(
-                        RoundedCornerShape(
-                            topStart = 12.dp, topEnd = 12.dp,
-                            bottomStart = if (isMe) 12.dp else 0.dp,
-                            bottomEnd = if (isMe) 0.dp else 12.dp
-                        )
-                    )
-                    //long press action short press react
-                    .combinedClickable(
-                        onLongClick = { onReplyClick(message) },
-                        onClick = { onRowClick(message) }
-                    )
-                    .background(color = bubbleColor)
-                    .padding(horizontal = 12.dp, vertical = 8.dp)
-            ) {
-                Column {
-                    // 💡 【核心：渲染被回覆的訊息內容】
-                    message.repliedMessage?.let { replied ->
-                        val repliedSenderName = if (replied.senderId == currentUserId) "你" else partnerDisplayName
-
-                        // 被回覆的小氣泡外框
-                        Row(
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .padding(bottom = 6.dp)
-                                .clip(RoundedCornerShape(4.dp))
-                                // 💡 修正這裡：直接根據 isMe 決定傳入哪一個 Color 物件即可
-                                .background(if (isMe) Color(0xFFC7EBB2) else Color(0xFFE0E0E0))
-                                .drawBehind {
-                                    // 在左側畫一條精緻的提示線 (類似 LINE / Telegram)
-                                    drawLine(
-                                        color = Color.Gray,
-                                        start = Offset(0f, 0f),
-                                        end = Offset(0f, size.height),
-                                        strokeWidth = 6f
-                                    )
-                                }
-                                .padding(start = 8.dp, top = 4.dp, bottom = 4.dp, end = 4.dp),
-                            verticalAlignment = Alignment.CenterVertically
-                        ) {
-                            Column {
-                                Text(
-                                    text = repliedSenderName,
-                                    style = MaterialTheme.typography.bodySmall.copy(fontWeight = FontWeight.Bold),
-                                    color = Color(0xFF1E88E5),
-                                    maxLines = 1
-                                )
-                                Text(
-                                    // 如果被回覆的是圖片，顯示 [圖片]，否則顯示文字內容
-                                    text = if (replied.attachment?.mimeType?.startsWith("image/") == true) "[圖片]" else replied.content,
-                                    style = MaterialTheme.typography.bodySmall,
-                                    color = Color.DarkGray,
-                                    maxLines = 1, // 最多一行，避免太長
-                                    overflow = TextOverflow.Ellipsis
-                                )
-                            }
-                        }
-                    }
-
-                    // 2. 原本的訊息主體內容（文字或圖片）
-                    if (isImage) {
-                        Box(
-                            modifier = Modifier
-                                .padding(top = 4.dp)
-                                .widthIn(max = 240.dp)
-                                .clip(RoundedCornerShape(8.dp))
-                                .background(Color.LightGray)
-                        ) {
-                            AsyncImage(
-                                model = finalImageModel,
-                                contentDescription = "聊天圖片",
-                                contentScale = ContentScale.Fit,
-                                modifier = Modifier
-                                    .fillMaxWidth()
-                                    .heightIn(max = 300.dp),
-                                // 🛠️ 移除了 unresolved 的 debugPlaceholder
-                                onError = { errorState ->
-                                    // 這樣就能在 Logcat 裡過濾 "ChatImageError" 關鍵字，看看到底是哪個網址拼錯了！
-                                    android.util.Log.e(
-                                        "ChatImageError",
-                                        "圖片載入失敗, 網址為: $finalImageModel, 原因: ${errorState.result.throwable}"
-                                    )
-                                }
-                            )
-                        }
-                    } else {
-                        Text(
-                            text = rawContent,
-                            style = MaterialTheme.typography.bodyMedium
-                        )
-                    }
-                }
+            if (!isMe) {
+                UserAvatar(
+                    avatarUrl = partnerAvatarUrl,
+                    modifier = Modifier.padding(end = 8.dp).size(32.dp)
+                )
             }
 
-            // 💡 ✨ 新增：如果這條訊息有 Reaction，就顯示在氣泡的正下方
-            if (!message.reactions.isNullOrEmpty()) {
-                ReactionRow(
-                    reactions = message.reactions,
-                    onReactionClick = { emoji -> onReactionClick(message, emoji) }
-                )
+            Column(
+                horizontalAlignment = if (isMe) Alignment.End else Alignment.Start
+            ) {
+                Box(
+                    modifier = Modifier
+                        .widthIn(max = 280.dp)
+                        // 💡 重點修正：將點擊/長按事件移到這裡，範圍只侷限在氣泡內
+                        // 注意：剪裁形狀（clip）建議放在點擊事件前或與形狀同步，確保點擊時的水波紋（Indication）不會超出圓角
+                        .clip(
+                            RoundedCornerShape(
+                                topStart = 12.dp, topEnd = 12.dp,
+                                bottomStart = if (isMe) 12.dp else 0.dp,
+                                bottomEnd = if (isMe) 0.dp else 12.dp
+                            )
+                        )
+                        //long press action short press react
+                        .combinedClickable(
+                            onLongClick = { onReplyClick(message) },
+                            onClick = { onRowClick(message) }
+                        )
+                        .background(color = bubbleColor)
+                        .padding(horizontal = 12.dp, vertical = 8.dp)
+                ) {
+                    Column {
+                        // 💡 【核心：渲染被回覆的訊息內容】
+                        message.repliedMessage?.let { replied ->
+                            val repliedSenderName = if (replied.senderId == currentUserId) "你" else partnerDisplayName
+
+                            // 被回覆的小氣泡外框
+                            Row(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .padding(bottom = 6.dp)
+                                    .clip(RoundedCornerShape(4.dp))
+                                    // 💡 修正這裡：直接根據 isMe 決定傳入哪一個 Color 物件即可
+                                    .background(if (isMe) Color(0xFFC7EBB2) else Color(0xFFE0E0E0))
+                                    .drawBehind {
+                                        // 在左側畫一條精緻的提示線 (類似 LINE / Telegram)
+                                        drawLine(
+                                            color = Color.Gray,
+                                            start = Offset(0f, 0f),
+                                            end = Offset(0f, size.height),
+                                            strokeWidth = 6f
+                                        )
+                                    }
+                                    .padding(start = 8.dp, top = 4.dp, bottom = 4.dp, end = 4.dp),
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
+                                Column {
+                                    Text(
+                                        text = repliedSenderName,
+                                        style = MaterialTheme.typography.bodySmall.copy(fontWeight = FontWeight.Bold),
+                                        color = Color(0xFF1E88E5),
+                                        maxLines = 1
+                                    )
+                                    Text(
+                                        // 如果被回覆的是圖片，顯示 [圖片]，否則顯示文字內容
+                                        text = if (replied.attachment?.mimeType?.startsWith("image/") == true) "[圖片]" else replied.content,
+                                        style = MaterialTheme.typography.bodySmall,
+                                        color = Color.DarkGray,
+                                        maxLines = 1, // 最多一行，避免太長
+                                        overflow = TextOverflow.Ellipsis
+                                    )
+                                }
+                            }
+                        }
+
+                        // 2. 原本的訊息主體內容（文字或圖片）
+                        if (isImage) {
+                            Box(
+                                modifier = Modifier
+                                    .padding(top = 4.dp)
+                                    .widthIn(max = 240.dp)
+                                    .clip(RoundedCornerShape(8.dp))
+                                    .background(Color.LightGray)
+                            ) {
+                                AsyncImage(
+                                    model = finalImageModel,
+                                    contentDescription = "聊天圖片",
+                                    contentScale = ContentScale.Fit,
+                                    modifier = Modifier
+                                        .fillMaxWidth()
+                                        .heightIn(max = 300.dp),
+                                    // 🛠️ 移除了 unresolved 的 debugPlaceholder
+                                    onError = { errorState ->
+                                        // 這樣就能在 Logcat 裡過濾 "ChatImageError" 關鍵字，看看到底是哪個網址拼錯了！
+                                        android.util.Log.e(
+                                            "ChatImageError",
+                                            "圖片載入失敗, 網址為: $finalImageModel, 原因: ${errorState.result.throwable}"
+                                        )
+                                    }
+                                )
+                            }
+                        } else {
+                            Text(
+                                text = rawContent,
+                                style = MaterialTheme.typography.bodyMedium
+                            )
+                        }
+                    }
+                }
+
+                // 💡 ✨ 新增：如果這條訊息有 Reaction，就顯示在氣泡的正下方
+                if (!message.reactions.isNullOrEmpty()) {
+                    ReactionRow(
+                        reactions = message.reactions,
+                        onReactionClick = { emoji -> onReactionClick(message, emoji) }
+                    )
+                }
             }
         }
     }
