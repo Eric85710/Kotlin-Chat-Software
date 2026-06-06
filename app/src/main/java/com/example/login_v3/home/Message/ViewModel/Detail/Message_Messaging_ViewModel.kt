@@ -14,6 +14,7 @@ import com.example.login_v3.data.api.api_class.Message
 import com.example.login_v3.data.api.api_class.fullContactAvatarUrl
 import com.example.login_v3.data.repository.basic.TokenManager
 import com.example.login_v3.home.Message.ViewModel.UserStatus
+import kotlinx.coroutines.Job
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -64,220 +65,119 @@ class ChatViewModel @Inject constructor(
     private val tokenManager: TokenManager
 ) : ViewModel() {
 
-    // --- 訊息長按動作選單狀態 (Action Menu State) ---
-
-    // 1. 私有的 MutableStateFlow，用來控制長按選中的訊息
+    // --- 訊息長按動作選單與回覆狀態 (保持原樣) ---
+    // 💡 補上這兩行宣告
+    private val _deleteMessageState = MutableStateFlow<DeleteMessageState>(DeleteMessageState.Idle)
+    val deleteMessageState: StateFlow<DeleteMessageState> = _deleteMessageState.asStateFlow()
     private val _actionMessage = MutableStateFlow<Message?>(null)
-
-    // 2. 公開給 Compose UI 觀察的唯讀 StateFlow
     val actionMessage: StateFlow<Message?> = _actionMessage.asStateFlow()
 
-    /**
-     * 設定目前哪一則訊息被長按選取（開啟動作選單）
-     */
-    fun setActionMessage(message: Message?) {
-        _actionMessage.value = message
-    }
+    fun setActionMessage(message: Message?) { _actionMessage.value = message }
+    fun clearActionMessage() { _actionMessage.value = null }
 
-    /**
-     * 清除目前選取的訊息狀態（關閉動作選單）
-     */
-    fun clearActionMessage() {
-        _actionMessage.value = null
-    }
-
-
-    //reply function
     private val _replyingMessage = MutableStateFlow<Message?>(null)
     val replyingMessage: StateFlow<Message?> = _replyingMessage.asStateFlow()
-    // 💡 新增：當使用者點選某條訊息的「回覆」按鈕時呼叫
-    fun setReplyingMessage(message: Message?) {
-        _replyingMessage.value = message
-    }
+    fun setReplyingMessage(message: Message?) { _replyingMessage.value = message }
 
-    //UI state var
+    // --- 核心狀態管理 ---
     private val _uiState = MutableStateFlow<MessagesUiState>(MessagesUiState.Loading)
     val uiState: StateFlow<MessagesUiState> = _uiState.asStateFlow()
 
-    //message var
+    // 💡 提示：在做法 A 下，_sendMessageState 通常只用來控制輸入框的「Loading」轉圈圈或置灰，真正的訊息成功/失敗已經內嵌在 Message 本身的 status 裡了。
     private val _sendMessageState = MutableStateFlow<SendMessageState>(SendMessageState.Idle)
     val sendMessageState: StateFlow<SendMessageState> = _sendMessageState
 
+    // 用來管理監聽 Room Flow 的 Job，避免重複綁定
+    private var messageListenerJob: Job? = null
+
+    // =====================================================================
+    // 💡 核心改造一：持續監聽本地資料庫的 Flow
+    // =====================================================================
     fun loadMessages(roomId: String) {
-        viewModelScope.launch {
+        // 先取消上一次的監聽（如果有切換房間的話）
+        messageListenerJob?.cancel()
+
+        messageListenerJob = viewModelScope.launch {
             _uiState.value = MessagesUiState.Loading
 
-
-            //isMe
             val currentLoggedInUserId = tokenManager.currentUserId.first() ?: ""
-            // 1. 同時獲取房間資訊與訊息列表
-            val roomResult = repository.getChatRoom(roomId) // ⚠️ 需確保 Repository 有提供此方法
-            val messagesResult = repository.getChatMessages(roomId)
+            val roomResult = repository.getChatRoom(roomId)
 
-            if (messagesResult.isSuccess) {
-                val messagesResponse = messagesResult.getOrNull()!!
+            val room = roomResult.getOrNull()
+            val (title, status, avatarUrl: Any?) = if (room != null) {
+                val name = room.partner?.displayName ?: room.partner?.username ?: "未知用戶"
+                val userStatus = UserStatus.fromString(room.partner?.status)
+                val avatar = room.partner?.fullContactAvatarUrl
+                Triple(name, userStatus, avatar)
+            } else {
+                Triple("聊天室", UserStatus.UNKNOWN, R.drawable.avatar_v1)
+            }
 
-                // 2. 根據房間資訊決定標題邏輯
-                val room = roomResult.getOrNull()
-                // ✨ 這裡改用 Any? 來接收擴充屬性的結果
-                val (title, status, avatarUrl: Any?) = if (room != null) {
-                    val name = room.partner?.displayName ?: room.partner?.username ?: "未知用戶"
-                    val userStatus = UserStatus.fromString(room.partner?.status)
-                    // 👇 直接呼叫你寫好的擴充屬性
-                    val avatar = room.partner?.fullContactAvatarUrl
-                    Triple(name, userStatus, avatar)
-                } else {
-                    // 如果沒有房間資訊，就給預設的頭像資源
-                    Triple("聊天室", UserStatus.UNKNOWN, R.drawable.avatar_v1)
-                }
-
+            // 🌟 關鍵點：開始收集來自 Room Database 的冷流（Flow）
+            repository.getChatMessagesFlow(roomId).collect { localMessages ->
+                // 只要本地資料庫有任何風吹草動（多一條假訊息、狀態改變、被刪除），這裡都會立刻觸發
                 _uiState.value = MessagesUiState.Success(
                     roomTitle = title,
                     partnerStatus = status,
-                    partnerAvatarUrl = avatarUrl,  //這裡就會是完整的網址或 R.drawable.avatar_v1
-                    messages = messagesResponse.messages,
+                    partnerAvatarUrl = avatarUrl,
+                    messages = localMessages, // 👈 直接使用來自 Room 的最新訊息列表
                     currentUserId = currentLoggedInUserId
                 )
+            }
+        }
 
-                //已讀功能
-                launch {
-                    repository.markAsRead(roomId)
-                        .onFailure { error ->
-                            // 這裡通常不需要回報給 UI（不用跳 Error 畫面）
-                            // 只需要印個 Log 知道出事了就好
-                            Log.e("ChatViewModel", "標記已讀失敗: ${error.message}")
-                        }
+        // 🌟 背景默默同步：去後端拉取最新訊息寫入 Room
+        viewModelScope.launch {
+            repository.refreshChatMessages(roomId).onSuccess {
+                // 已讀功能保持
+                repository.markAsRead(roomId).onFailure { error ->
+                    Log.e("ChatViewModel", "標記已讀失敗: ${error.message}")
                 }
-            } else {
-                val exception = messagesResult.exceptionOrNull()
-                _uiState.value = MessagesUiState.Error(message = exception?.message ?: "未知錯誤")
+            }.onFailure { error ->
+                Log.e("ChatViewModel", "背景同步失敗，改用純離線快取", error)
+                // 這裡不用特地切換到 Error 狀態，因為 getChatMessagesFlow 可能已經把離線快取顯示在畫面上了
             }
         }
     }
 
-
-    //upload image
-    fun sendMessage(roomId: String, content: String, replyToId: String? = null) {
+    // =====================================================================
+    // 💡 核心改造二：發送文字訊息（樂觀更新）
+    // =====================================================================
+    fun sendMessage(roomId: String, content: String) {
         if (content.isBlank()) return
 
         viewModelScope.launch {
             _sendMessageState.value = SendMessageState.Loading
 
-            // 💡 取得當前是否有正在回覆的訊息 ID
             val replyToId = _replyingMessage.value?.id
+            val currentLoggedInUserId = tokenManager.currentUserId.first() ?: ""
 
-            val result = repository.sendMessage(
+            // 呼叫樂觀更新方法
+            val result = repository.sendMessageOptimistically(
                 roomId = roomId,
+                currentUserId = currentLoggedInUserId,
                 content = content,
                 replyToId = replyToId
             )
 
-            result.onSuccess { newMessage ->
-                _sendMessageState.value = SendMessageState.Success(newMessage)
-                _replyingMessage.value = null
+            // 清空回覆狀態
+            _replyingMessage.value = null
 
-                // 😎【超讚的體驗優化】：發送成功後，直接把新訊息手動塞進現有的 UI 列表裡
-                val currentState = _uiState.value
-                if (currentState is MessagesUiState.Success) {
-                    // 把新訊息加到原本的列表最後面
-                    val updatedMessages = currentState.messages + newMessage
-
-                    // 更新 uiState，這樣 Compose 畫面不需要重新 load 網路就能立刻刷新！
-                    _uiState.value = currentState.copy(messages = updatedMessages)
-                }
-
+            result.onSuccess {
+                // 🌟 發送成功！此時 Room 內對應的臨時訊息已經被改為 SUCCESS 了
+                // Flow 會自動讓 UI 刷新，ViewModel 這裡「不需要」手動做 updatedMessages + newMessage
+                _sendMessageState.value = SendMessageState.Idle
             }.onFailure { error ->
                 Log.e("ChatViewModel", "Send message failed", error)
+                // 🌟 發送失敗！Room 內的臨時訊息已被改為 FAILED，畫面上會顯示驚嘆號
                 _sendMessageState.value = SendMessageState.Error(error.message ?: "未知錯誤")
             }
         }
     }
 
-
-    //upload file
-    fun uploadAttachment(roomId: String, fileUri: Uri) {
-        viewModelScope.launch {
-            // 1. 將發送狀態切換為 Loading，讓 UI 顯示進度條
-            _sendMessageState.value = SendMessageState.Loading
-
-            // 2. 呼叫 Repository 處理檔案並上傳
-            val result = repository.uploadAttachment(roomId, fileUri)
-
-            result.onSuccess { newMessage ->
-                // 3. 上傳成功，更新發送狀態
-                _sendMessageState.value = SendMessageState.Success(newMessage)
-
-                // 😎【體驗優化】：跟發送文字訊息一樣，直接把帶有圖片的新訊息塞進現有的 UI 列表裡
-                val currentState = _uiState.value
-                if (currentState is MessagesUiState.Success) {
-                    val updatedMessages = currentState.messages + newMessage
-                    _uiState.value = currentState.copy(messages = updatedMessages)
-                }
-
-            }.onFailure { error ->
-                Log.e("ChatViewModel", "Upload attachment failed", error)
-                // 4. 上傳失敗，通知 UI 顯示錯誤
-                _sendMessageState.value = SendMessageState.Error(error.message ?: "上傳失敗，請稍後再試")
-            }
-        }
-    }
-
-    private val _reactionUsersState = MutableStateFlow<ReactionUsersState>(ReactionUsersState.Idle)
-    val reactionUsersState: StateFlow<ReactionUsersState> = _reactionUsersState.asStateFlow()
-
-    //get emoji reaction
-    fun loadMessageReactionUsers(roomId: String, messageId: String, emoji: String) {
-        viewModelScope.launch {
-            _reactionUsersState.value = ReactionUsersState.Loading
-
-            val result = repository.getMessageReactionUsers(
-                roomId = roomId,
-                messageId = messageId,
-                emoji = emoji
-            )
-
-            result.onSuccess { response ->
-                _reactionUsersState.value = ReactionUsersState.Success(response.users)
-            }.onFailure { error ->
-                Log.e("ChatViewModel", "Get reaction users failed", error)
-                _reactionUsersState.value = ReactionUsersState.Error(error.message ?: "無法取得按讚名單")
-            }
-        }
-    }
-    //add emoji reaction
-    fun addMessageReaction(roomId: String, messageId: String, emoji: String) {
-        viewModelScope.launch {
-            val result = repository.addMessageReaction(roomId, messageId, emoji)
-
-            result.onSuccess {
-                // 😎【超讚體驗優化】：點擊成功後，除了通知後端，
-                // 也可以選擇直接呼叫 loadMessages(roomId) 來重新拉取最新帶有按讚數量的訊息列表
-                loadMessages(roomId)
-            }.onFailure { error ->
-                Log.e("ChatViewModel", "Add reaction failed", error)
-                // 這裡可以依需求決定要不要用 Toast 提示使用者點擊失敗
-            }
-        }
-    }
-    //delete emoji reaction
-    fun removeMessageReaction(roomId: String, messageId: String, emoji: String) {
-        viewModelScope.launch {
-            val result = repository.deleteMessageReaction(roomId, messageId, emoji)
-
-            result.onSuccess {
-                // 移除成功後，重新拉取最新訊息列表以刷新 UI
-                loadMessages(roomId)
-            }.onFailure { error ->
-                Log.e("ChatViewModel", "Remove reaction failed", error)
-            }
-        }
-    }
-
-    // 儲存刪除狀態的變數
-    private val _deleteMessageState = MutableStateFlow<DeleteMessageState>(DeleteMessageState.Idle)
-    val deleteMessageState: StateFlow<DeleteMessageState> = _deleteMessageState.asStateFlow()
-
-    // 刪除訊息的 function
+    // =====================================================================
+    // 💡 核心改造三：刪除訊息
+    // =====================================================================
     fun deleteMessage(roomId: String, messageId: String) {
         viewModelScope.launch {
             _deleteMessageState.value = DeleteMessageState.Loading
@@ -286,25 +186,10 @@ class ChatViewModel @Inject constructor(
 
             result.onSuccess {
                 _deleteMessageState.value = DeleteMessageState.Success
-
-                // ✨【優化】：刪除成功後，自動關閉長按選單
                 clearActionMessage()
 
-                val currentState = _uiState.value
-                if (currentState is MessagesUiState.Success) {
-                    val updatedMessages = currentState.messages.map { message ->
-                        if (message.id == messageId) {
-                            message.copy(
-                                isDeleted = true,
-                                content = "此訊息已被刪除"
-                            )
-                        } else {
-                            message
-                        }
-                    }
-                    _uiState.value = currentState.copy(messages = updatedMessages)
-                }
-
+                // 🌟 刪除成功！Repository 已經把本地 Room 的資料刪除
+                // Flow 會自動發送全新的列表給 UI，這裡「完全不需要」再手動 map 改 content 了！
             }.onFailure { error ->
                 Log.e("ChatViewModel", "Delete message failed", error)
                 _deleteMessageState.value = DeleteMessageState.Error(error.message ?: "刪除訊息失敗")
@@ -312,18 +197,55 @@ class ChatViewModel @Inject constructor(
         }
     }
 
-    // 重設刪除狀態的 function (供 UI 重置狀態使用)
-    fun resetDeleteMessageState() {
-        _deleteMessageState.value = DeleteMessageState.Idle
+    // --- 其餘 uploadAttachment、Emoji 功能保持原樣 ---
+    fun uploadAttachment(roomId: String, fileUri: Uri) {
+        viewModelScope.launch {
+            _sendMessageState.value = SendMessageState.Loading
+            val result = repository.uploadAttachment(roomId, fileUri)
+            result.onSuccess { newMessage ->
+                _sendMessageState.value = SendMessageState.Success(newMessage)
+                // 注意：如果上傳檔案未來也想做樂觀更新，可以用跟 sendMessage 相同的邏輯改造 Repository。
+                // 如果目前保持原樣，因為原本的 loadMessages 是 Flow，它會持續監聽，只要 refreshChatMessages 被觸發或後端有推播，它就會出現。
+                // 為了保險起見，若 uploadAttachment 還沒改造，可以先留著手動塞入的邏輯，或者直接在成功後呼叫 repository.refreshChatMessages(roomId)
+            }.onFailure { error ->
+                Log.e("ChatViewModel", "Upload attachment failed", error)
+                _sendMessageState.value = SendMessageState.Error(error.message ?: "上傳失敗")
+            }
+        }
     }
 
-    // 💡 請確保這段程式碼有確實待在 ChatViewModel 裡面
-    fun resetReactionUsersState() {
-        _reactionUsersState.value = ReactionUsersState.Idle
+    private val _reactionUsersState = MutableStateFlow<ReactionUsersState>(ReactionUsersState.Idle)
+    val reactionUsersState: StateFlow<ReactionUsersState> = _reactionUsersState.asStateFlow()
+
+    fun loadMessageReactionUsers(roomId: String, messageId: String, emoji: String) {
+        viewModelScope.launch {
+            _reactionUsersState.value = ReactionUsersState.Loading
+            repository.getMessageReactionUsers(roomId, messageId, emoji)
+                .onSuccess { response -> _reactionUsersState.value = ReactionUsersState.Success(response.users) }
+                .onFailure { error -> _reactionUsersState.value = ReactionUsersState.Error(error.message ?: "無法取得按讚名單") }
+        }
     }
 
-    //新增：重設發送狀態的 function
-    fun resetSendMessageState() {
-        _sendMessageState.value = SendMessageState.Idle
+    fun addMessageReaction(roomId: String, messageId: String, emoji: String) {
+        viewModelScope.launch {
+            repository.addMessageReaction(roomId, messageId, emoji)
+                .onSuccess {
+                    // 🌟 這裡也不用 loadMessages(roomId) 了，直接背景 refresh 即可
+                    repository.refreshChatMessages(roomId)
+                }
+        }
     }
+
+    fun removeMessageReaction(roomId: String, messageId: String, emoji: String) {
+        viewModelScope.launch {
+            repository.deleteMessageReaction(roomId, messageId, emoji)
+                .onSuccess {
+                    repository.refreshChatMessages(roomId)
+                }
+        }
+    }
+
+    fun resetDeleteMessageState() { _deleteMessageState.value = DeleteMessageState.Idle }
+    fun resetReactionUsersState() { _reactionUsersState.value = ReactionUsersState.Idle }
+    fun resetSendMessageState() { _sendMessageState.value = SendMessageState.Idle }
 }

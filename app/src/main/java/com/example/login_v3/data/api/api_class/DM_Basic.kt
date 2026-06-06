@@ -1,6 +1,7 @@
 package com.example.login_v3.data.api.api_class
 
 import com.example.login_v3.R
+import com.example.login_v3.home.Message.ViewModel.Detail.MessageStatus
 import com.squareup.moshi.Json
 import com.squareup.moshi.JsonClass
 
@@ -103,11 +104,14 @@ data class Message(
     @Json(name = "reply_to_id") val replyToId: String? = null,
     @kotlin.jvm.Transient
     var repliedMessage: Message? = null,
-
     @Json(name = "forwarded_from_id") val forwardedFromId: String? = null,
     @Json(name = "forwarded_from_room_id") val forwardedFromRoomId: String? = null,
-    @Json(name = "attachment") val attachment: Attachment? = null, // 直接使用外層的 Attachment
-    @Json(name = "reactions") val reactions: List<Reaction>? = emptyList() // 直接使用外層的 Reaction
+    @Json(name = "attachment") val attachment: Attachment? = null,
+    @Json(name = "reactions") val reactions: List<Reaction>? = emptyList(),
+
+    // 🌟 核心新增：讓 UI 可以辨識訊息發送狀態！
+    @kotlin.jvm.Transient // 👈 告訴 Moshi 這個欄位不需要解析 JSON，這是我們本地維護的
+    val status: MessageStatus = MessageStatus.SUCCESS
 )
 
 //send message

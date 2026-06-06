@@ -12,18 +12,22 @@ enum class MessageStatus { SENDING, SUCCESS, FAILED }
 
 @Entity(tableName = "messages")
 data class MessageEntity(
-    @PrimaryKey val id: String, // 臨時訊息可以用 UUID.randomUUID().toString()
-    val roomId: String,
-    val content: String,
+    @PrimaryKey val id: String,
+    val chatRoomId: String,  // 👈 對齊你的 @Json(name = "chat_room_id")
     val senderId: String,
-    val timestamp: Long,
-    val status: MessageStatus // 👈 核心：用來控制 UI 顯示樣式
+    val content: String,
+    val type: String,        // 👈 新增：文字、圖片等類型
+    val createdAt: String,   // 👈 核心修正：改成與 API 一致的 String 格式
+    val isEdited: Boolean,   // 👈 新增
+    val isDeleted: Boolean,  // 👈 新增
+    val replyToId: String?,  // 👈 新增
+    val status: MessageStatus // 👈 樂觀更新狀態控制 (SENDING, SUCCESS, FAILED)
 )
 
 @Dao
 interface MessageDao {
-    // 💡 監聽特定聊天室的訊息流
-    @Query("SELECT * FROM messages WHERE roomId = :roomId ORDER BY timestamp ASC")
+    // 💡 修正這裡：WHERE 條件欄位改為 chatRoomId
+    @Query("SELECT * FROM messages WHERE chatRoomId = :roomId ORDER BY createdAt ASC")
     fun getMessagesFlow(roomId: String): Flow<List<MessageEntity>>
 
     @Insert(onConflict = OnConflictStrategy.REPLACE)

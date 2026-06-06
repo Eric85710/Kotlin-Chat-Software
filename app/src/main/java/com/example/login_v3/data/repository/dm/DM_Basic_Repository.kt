@@ -13,11 +13,16 @@ import com.example.login_v3.data.api.api_class.MessageResponse
 import com.example.login_v3.data.api.api_class.RoomListResponse
 import com.example.login_v3.data.api.api_class.SendMessageRequest
 import com.example.login_v3.home.Message.ViewModel.Detail.MessageDao
+import com.example.login_v3.home.Message.ViewModel.Detail.MessageEntity
+import com.example.login_v3.home.Message.ViewModel.Detail.MessageStatus
 import dagger.hilt.android.qualifiers.ApplicationContext
+import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.map
 import okhttp3.MediaType.Companion.toMediaTypeOrNull
 import okhttp3.MultipartBody
 import okhttp3.RequestBody.Companion.toRequestBody
 import java.io.ByteArrayOutputStream
+import java.util.UUID
 import javax.inject.Inject
 import javax.inject.Singleton
 
@@ -43,33 +48,122 @@ class ChatRoomsRepository @Inject constructor(
         }
     }
 
-    suspend fun getChatMessages(roomId: String): Result<MessageResponse> {
+    fun getChatMessagesFlow(roomId: String): Flow<List<Message>> {
+        return messageDao.getMessagesFlow(roomId).map { entities ->
+            val domainMessages = entities.map { entity ->
+                Message(
+                    id = entity.id,
+                    chatRoomId = entity.chatRoomId, // 👈 完美對齊
+                    senderId = entity.senderId,
+                    content = entity.content,
+                    type = entity.type,
+                    createdAt = entity.createdAt,   // 👈 String 對 String
+                    isEdited = entity.isEdited,
+                    isDeleted = entity.isDeleted,
+                    replyToId = entity.replyToId,
+                    status = entity.status          // 👈 把 Room 儲存的狀態倒出來給 UI
+                )
+            }
+
+            // 你原本的處理回覆邏輯
+            val messageMap = domainMessages.associateBy { it.id }
+            domainMessages.forEach { message ->
+                if (!message.replyToId.isNullOrBlank()) {
+                    message.repliedMessage = messageMap[message.replyToId]
+                }
+            }
+            domainMessages
+        }
+    }
+
+    // api get data and put to local
+    suspend fun refreshChatMessages(roomId: String): Result<Unit> {
         return try {
             val response = api.getChatMessages(roomId)
+            if (response.isSuccessful) {
+                val body = response.body()
+                if (body != null) {
+                    body.messages.forEach { networkMessage ->
+                        val entity = MessageEntity(
+                            id = networkMessage.id,
+                            chatRoomId = roomId,
+                            senderId = networkMessage.senderId,
+                            content = networkMessage.content,
+                            type = networkMessage.type,
+                            createdAt = networkMessage.createdAt,
+                            isEdited = networkMessage.isEdited,
+                            isDeleted = networkMessage.isDeleted,
+                            replyToId = networkMessage.replyToId,
+                            status = MessageStatus.SUCCESS // 後端來的都是真的發送成功的
+                        )
+                        messageDao.insertOrUpdate(entity)
+                    }
+                    Result.success(Unit)
+                } else { Result.failure(Exception("Empty body")) }
+            } else { Result.failure(Exception("Error code: ${response.code()}")) }
+        } catch (e: Exception) { Result.failure(e) }
+    }
+
+    //fake sending
+    suspend fun sendMessageOptimistically(
+        roomId: String,
+        currentUserId: String,
+        content: String,
+        replyToId: String? = null
+    ): Result<Unit> {
+        val tempId = UUID.randomUUID().toString()
+        // 💡 配合你的 String 格式，產生 ISO 時間字串或乾淨的目前時間字串，例如 2026-06-07T05:26:48Z
+        val currentIsoTime = java.time.Instant.now().toString()
+
+        val tempMessageEntity = MessageEntity(
+            id = tempId,
+            chatRoomId = roomId,
+            senderId = currentUserId,
+            content = content,
+            type = "text", // 預設普通文字
+            createdAt = currentIsoTime,
+            isEdited = false,
+            isDeleted = false,
+            replyToId = replyToId,
+            status = MessageStatus.SENDING // 👈 畫面馬上呈現半透明淡灰色！
+        )
+
+        messageDao.insertOrUpdate(tempMessageEntity)
+
+        return try {
+            val requestBody = SendMessageRequest(content = content, replyToId = replyToId)
+            val response = api.sendMessage(roomId, requestBody)
 
             if (response.isSuccessful) {
                 val body = response.body()
                 if (body != null) {
+                    // 成功：刪除假的，插入真的
+                    messageDao.deleteById(tempId)
 
-                    // 💡 核心邏輯：將訊息列表轉成 Map，方便用 ID 快速查找
-                    val messageMap = body.messages.associateBy { it.id }
-
-                    // 走訪每一條訊息，如果它有 replyToId，就去 Map 裡面找出那一條訊息塞給它
-                    body.messages.forEach { message ->
-                        if (!message.replyToId.isNullOrBlank()) {
-                            message.repliedMessage = messageMap[message.replyToId]
-                        }
-                    }
-
-                    Result.success(body)
+                    val successEntity = MessageEntity(
+                        id = body.id,
+                        chatRoomId = roomId,
+                        senderId = body.senderId,
+                        content = body.content,
+                        type = body.type,
+                        createdAt = body.createdAt, // 後端確認的正式時間
+                        isEdited = body.isEdited,
+                        isDeleted = body.isDeleted,
+                        replyToId = body.replyToId,
+                        status = MessageStatus.SUCCESS
+                    )
+                    messageDao.insertOrUpdate(successEntity)
+                    Result.success(Unit)
                 } else {
-                    Result.failure(Exception("回應身體為空 (Empty response body)"))
+                    messageDao.insertOrUpdate(tempMessageEntity.copy(status = MessageStatus.FAILED))
+                    Result.failure(Exception("Body null"))
                 }
             } else {
-                val errorMsg = response.errorBody()?.string() ?: "未知錯誤"
-                Result.failure(Exception("網路請求失敗，錯誤碼: ${response.code()}, 訊息: $errorMsg"))
+                messageDao.insertOrUpdate(tempMessageEntity.copy(status = MessageStatus.FAILED))
+                Result.failure(Exception("API Error"))
             }
         } catch (e: Exception) {
+            messageDao.insertOrUpdate(tempMessageEntity.copy(status = MessageStatus.FAILED))
             Result.failure(e)
         }
     }
@@ -296,16 +390,14 @@ class ChatRoomsRepository @Inject constructor(
     suspend fun deleteMessage(roomId: String, messageId: String): Result<Unit> {
         return try {
             val response = api.deleteMessage(roomId, messageId)
-
             if (response.isSuccessful) {
-                // 後端回傳 204 No Content 成功時沒有 body，直接回傳 Unit 即可
+                // 💡 既然刪除了，本地也一併砍掉，UI 就會立刻同步消失
+                messageDao.deleteById(messageId)
                 Result.success(Unit)
             } else {
-                val errorMsg = response.errorBody()?.string() ?: "未知錯誤"
-                Result.failure(Exception("刪除訊息失敗，錯誤碼: ${response.code()}, 訊息: $errorMsg"))
+                Result.failure(Exception("Delete failed"))
             }
         } catch (e: Exception) {
-            // 捕捉網路斷線等異常狀況
             Result.failure(e)
         }
     }
