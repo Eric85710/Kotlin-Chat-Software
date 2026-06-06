@@ -132,6 +132,7 @@ fun MessageMessaging(
         viewModel.loadMessages(roomId)
     }
 
+    //bottom bar on and off
     DisposableEffect(Unit) {
         bottomBarViewModel.setVisible(false)
         onDispose { bottomBarViewModel.setVisible(true) }
