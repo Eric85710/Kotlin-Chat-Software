@@ -141,17 +141,14 @@ fun MessageMessaging(
         onDispose { bottomBarViewModel.setVisible(true) }
     }
 
-    // 🎯 修正後的發送狀態監聽：只管提示與重置，絕不插手列表刷新！
     LaunchedEffect(sendStatus) {
         when (sendStatus) {
             is SendMessageState.Error -> {
-                val errorMsg = (sendStatus as SendMessageState.Error).message
-                Toast.makeText(context, "發送失敗: $errorMsg", Toast.LENGTH_SHORT).show()
+                Toast.makeText(context, "發送失敗: ...", Toast.LENGTH_SHORT).show()
                 viewModel.resetSendMessageState()
             }
             is SendMessageState.Success -> {
-                // ✅ 樂觀更新成功時，Room 內部已經自己把狀態改成 SUCCESS 並藉由 Flow 推送了
-                // 這裡「完全不需要」再呼叫 viewModel.loadMessages(roomId)！
+                // 收到 Success() 訊號，輸入框清空文字，回歸正常可用狀態
                 viewModel.resetSendMessageState()
             }
             else -> {}
@@ -426,8 +423,24 @@ fun MessageRow(
 
     // 💡 核心優化：根據樂觀更新狀態決定氣泡透明度
     val bubbleAlpha = when (message.status) {
-        MessageStatus.SENDING -> 0.6f  // ⏳ 發送中：氣泡變半透明（類似 LINE/Telegram 的未送出狀態）
+        MessageStatus.SENDING -> 0.9f  // ⏳ 發送中：氣泡變半透明（類似 LINE/Telegram 的未送出狀態）
         else -> 1.0f                   // ✅ 成功或失敗：正常亮度
+    }
+
+    val finalBubbleColor = remember(message.status, isHighlight) {
+        val baseColor = when {
+            isMe && isHighlight -> Color(0xFFB4E197)
+            isMe -> Color(0xFFDCF8C6)
+            !isMe && isHighlight -> Color(0xFFCFD8DC)
+            else -> Color(0xFFECEFF1)
+        }
+
+        // ⏳ 如果是發送中，直接讓顏色本身帶 alpha（例如 0.75f，防止被背景吃掉）
+        if (message.status == MessageStatus.SENDING) {
+            baseColor.copy(alpha = 0.75f)
+        } else {
+            baseColor // 成功或失敗時維持實色
+        }
     }
 
     Row(
@@ -487,8 +500,7 @@ fun MessageRow(
                                 onLongClick = { onReplyClick(message) },
                                 onClick = { onRowClick(message) }
                             )
-                            .background(color = bubbleColor)
-                            .alpha(bubbleAlpha) // 👈 🌟 這裡套用透明度控制！
+                            .background(color = finalBubbleColor)
                             .padding(horizontal = 12.dp, vertical = 8.dp)
                     ) {
                         Column {

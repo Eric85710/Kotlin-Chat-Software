@@ -28,12 +28,12 @@ sealed class ReactionUsersState {
     data class Error(val message: String) : ReactionUsersState()                // 取得失敗
 }
 
-//message sending state
-sealed class SendMessageState {
-    object Idle : SendMessageState()      // 閒置狀態（預設）
-    object Loading : SendMessageState()   // 發送中
-    data class Success(val message: Message) : SendMessageState() // 發送成功
-    data class Error(val message: String) : SendMessageState()    // 發送失敗
+// 🎯 修正後的發送狀態管理
+sealed interface SendMessageState {
+    object Idle : SendMessageState
+    object Loading : SendMessageState
+    object Success : SendMessageState // 👈 🌟 這裡改成 object
+    data class Error(val message: String) : SendMessageState
 }
 
 
@@ -94,11 +94,13 @@ class ChatViewModel @Inject constructor(
     // 💡 核心改造一：持續監聽本地資料庫的 Flow
     // =====================================================================
     fun loadMessages(roomId: String) {
-        // 先取消上一次的監聽（如果有切換房間的話）
         messageListenerJob?.cancel()
 
         messageListenerJob = viewModelScope.launch {
-            _uiState.value = MessagesUiState.Loading
+            // 🌟 優化防閃爍：只有在原本不是 Success 的情況下，才去 show 轉圈圈
+            if (_uiState.value !is MessagesUiState.Success) {
+                _uiState.value = MessagesUiState.Loading
+            }
 
             val currentLoggedInUserId = tokenManager.currentUserId.first() ?: ""
             val roomResult = repository.getChatRoom(roomId)
@@ -113,29 +115,24 @@ class ChatViewModel @Inject constructor(
                 Triple("聊天室", UserStatus.UNKNOWN, R.drawable.avatar_v1)
             }
 
-            // 🌟 關鍵點：開始收集來自 Room Database 的冷流（Flow）
+            // 持續監聽本地資料庫
             repository.getChatMessagesFlow(roomId).collect { localMessages ->
-                // 只要本地資料庫有任何風吹草動（多一條假訊息、狀態改變、被刪除），這裡都會立刻觸發
                 _uiState.value = MessagesUiState.Success(
                     roomTitle = title,
                     partnerStatus = status,
                     partnerAvatarUrl = avatarUrl,
-                    messages = localMessages, // 👈 直接使用來自 Room 的最新訊息列表
+                    messages = localMessages,
                     currentUserId = currentLoggedInUserId
                 )
             }
         }
 
-        // 🌟 背景默默同步：去後端拉取最新訊息寫入 Room
+        // 背景默默跟遠端伺服器同步
         viewModelScope.launch {
             repository.refreshChatMessages(roomId).onSuccess {
-                // 已讀功能保持
                 repository.markAsRead(roomId).onFailure { error ->
                     Log.e("ChatViewModel", "標記已讀失敗: ${error.message}")
                 }
-            }.onFailure { error ->
-                Log.e("ChatViewModel", "背景同步失敗，改用純離線快取", error)
-                // 這裡不用特地切換到 Error 狀態，因為 getChatMessagesFlow 可能已經把離線快取顯示在畫面上了
             }
         }
     }
@@ -144,15 +141,23 @@ class ChatViewModel @Inject constructor(
     // 💡 核心改造二：發送文字訊息（樂觀更新）
     // =====================================================================
     fun sendMessage(roomId: String, content: String) {
-        if (content.isBlank()) return
+        // 1. 安全防護：空白直接攔截
+        if (content.trim().isBlank()) return
 
         viewModelScope.launch {
+            // 2. 進入 Loading，讓輸入框知道目前在打 API
             _sendMessageState.value = SendMessageState.Loading
 
+            // 3. 保持你原本非常棒的 token 讀取機制
             val replyToId = _replyingMessage.value?.id
             val currentLoggedInUserId = tokenManager.currentUserId.first() ?: ""
 
-            // 呼叫樂觀更新方法
+            if (currentLoggedInUserId.isBlank()) {
+                _sendMessageState.value = SendMessageState.Error("找不到使用者資訊，請重新登入")
+                return@launch
+            }
+
+            // 4. 呼叫樂觀更新方法（此時 SENDING 狀態訊息已秒入 Room，畫面同步劃出半透明氣泡）
             val result = repository.sendMessageOptimistically(
                 roomId = roomId,
                 currentUserId = currentLoggedInUserId,
@@ -160,16 +165,15 @@ class ChatViewModel @Inject constructor(
                 replyToId = replyToId
             )
 
-            // 清空回覆狀態
+            // 5. 順手清空回覆狀態
             _replyingMessage.value = null
 
             result.onSuccess {
-                // 🌟 發送成功！此時 Room 內對應的臨時訊息已經被改為 SUCCESS 了
-                // Flow 會自動讓 UI 刷新，ViewModel 這裡「不需要」手動做 updatedMessages + newMessage
-                _sendMessageState.value = SendMessageState.Idle
+                // 🌟 完美：因為變成了 object，直接指派名字即可，絕不會再噴 Too many arguments！
+                _sendMessageState.value = SendMessageState.Success
+
             }.onFailure { error ->
                 Log.e("ChatViewModel", "Send message failed", error)
-                // 🌟 發送失敗！Room 內的臨時訊息已被改為 FAILED，畫面上會顯示驚嘆號
                 _sendMessageState.value = SendMessageState.Error(error.message ?: "未知錯誤")
             }
         }
@@ -202,11 +206,16 @@ class ChatViewModel @Inject constructor(
         viewModelScope.launch {
             _sendMessageState.value = SendMessageState.Loading
             val result = repository.uploadAttachment(roomId, fileUri)
-            result.onSuccess { newMessage ->
-                _sendMessageState.value = SendMessageState.Success(newMessage)
-                // 注意：如果上傳檔案未來也想做樂觀更新，可以用跟 sendMessage 相同的邏輯改造 Repository。
-                // 如果目前保持原樣，因為原本的 loadMessages 是 Flow，它會持續監聽，只要 refreshChatMessages 被觸發或後端有推播，它就會出現。
-                // 為了保險起見，若 uploadAttachment 還沒改造，可以先留著手動塞入的邏輯，或者直接在成功後呼叫 repository.refreshChatMessages(roomId)
+
+            result.onSuccess {
+                // 💡 ✅ 修正點：移除參數括號，直接指派 object 狀態
+                _sendMessageState.value = SendMessageState.Success
+
+                // 🌟 核心同步：因為上傳檔案成功後，後端可能已經將新訊息寫入。
+                // 我們在背景主動觸發一次 refresh 默默拉回最新訊息寫入 Room，
+                // 這樣你的 MessageList 就能透過 Flow 秒速自動跳出剛剛上傳的圖片氣泡！
+                repository.refreshChatMessages(roomId)
+
             }.onFailure { error ->
                 Log.e("ChatViewModel", "Upload attachment failed", error)
                 _sendMessageState.value = SendMessageState.Error(error.message ?: "上傳失敗")
