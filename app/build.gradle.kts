@@ -95,4 +95,8 @@ dependencies {
     implementation("androidx.emoji2:emoji2:$emoji2Version")
     implementation("androidx.emoji2:emoji2-bundled:$emoji2Version") // 自帶字型包
 
+    val roomVersion = "2.6.1" // 可以使用目前穩定的 2.6.1 或最新版本
+    implementation("androidx.room:room-runtime:$roomVersion")
+    implementation("androidx.room:room-ktx:$roomVersion") // 支援 Flow 必須要加這行
+    ksp("androidx.room:room-compiler:$roomVersion")       // 使用 KSP 來編譯 Room 註解
 }
