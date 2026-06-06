@@ -12,6 +12,7 @@ import com.example.login_v3.data.api.api_class.MessageReactionUsersResponse
 import com.example.login_v3.data.api.api_class.MessageResponse
 import com.example.login_v3.data.api.api_class.RoomListResponse
 import com.example.login_v3.data.api.api_class.SendMessageRequest
+import com.example.login_v3.home.Message.ViewModel.Detail.MessageDao
 import dagger.hilt.android.qualifiers.ApplicationContext
 import okhttp3.MediaType.Companion.toMediaTypeOrNull
 import okhttp3.MultipartBody
@@ -23,6 +24,7 @@ import javax.inject.Singleton
 @Singleton
 class ChatRoomsRepository @Inject constructor(
     private val api: TecnologiaApi,
+    private val messageDao: MessageDao,
     @ApplicationContext private val context: Context // 注入 ApplicationContext 用於處理 Uri 檔案
 ) {
 
