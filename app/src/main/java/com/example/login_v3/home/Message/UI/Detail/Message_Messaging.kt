@@ -422,6 +422,7 @@ fun MessageRow(
     }
 
 
+    //message container
     Row(
         modifier = Modifier
             .fillMaxWidth()
@@ -451,6 +452,7 @@ fun MessageRow(
                             bottomEnd = if (isMe) 0.dp else 12.dp
                         )
                     )
+                    //long press action short press react
                     .combinedClickable(
                         onLongClick = { onReplyClick(message) },
                         onClick = { onRowClick(message) }
