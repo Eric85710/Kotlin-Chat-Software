@@ -422,12 +422,16 @@ fun MessageRow(
     }
 
 
-    Row() {
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .then(if (isHighlight) Modifier.background(Color(0x33FF9800), RoundedCornerShape(12.dp)) else Modifier)
+    ) {
         //message container
         Row(
             modifier = Modifier
                 .fillMaxWidth()
-                .then(if (isHighlight) Modifier.background(Color(0x33FF9800), RoundedCornerShape(12.dp)) else Modifier)
+                .padding(4.dp)
             ,
             horizontalArrangement = if (isMe) Arrangement.End else Arrangement.Start
         ) {
