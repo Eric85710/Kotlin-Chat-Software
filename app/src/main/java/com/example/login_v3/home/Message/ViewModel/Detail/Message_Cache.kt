@@ -27,7 +27,7 @@ data class MessageEntity(
 @Dao
 interface MessageDao {
     // 💡 修正這裡：WHERE 條件欄位改為 chatRoomId
-    @Query("SELECT * FROM messages WHERE chatRoomId = :roomId ORDER BY createdAt ASC")
+    @Query("SELECT * FROM messages WHERE chatRoomId = :roomId ORDER BY createdAt DESC") // 👈 確保是 DESC（降序）
     fun getMessagesFlow(roomId: String): Flow<List<MessageEntity>>
 
     @Insert(onConflict = OnConflictStrategy.REPLACE)

@@ -141,19 +141,20 @@ fun MessageMessaging(
         onDispose { bottomBarViewModel.setVisible(true) }
     }
 
-    // ✨ 監聽發送狀態，如果失敗了就彈出提示並重置狀態
+    // 🎯 修正後的發送狀態監聽：只管提示與重置，絕不插手列表刷新！
     LaunchedEffect(sendStatus) {
-        if (sendStatus is SendMessageState.Error) {
-            val errorMsg = (sendStatus as SendMessageState.Error).message
-            Toast.makeText(context, "發送失敗: $errorMsg", Toast.LENGTH_SHORT).show()
-            viewModel.resetSendMessageState()
-        } else if (sendStatus is SendMessageState.Success) {
-            // 發送成功後，重置狀態以便下一次發送
-            viewModel.resetSendMessageState()
-
-            // 【優化體驗】：你可以在這裡重新呼叫 viewModel.loadMessages(roomId) 刷新列表
-            // 或者如果你的 ViewModel 已經會自動把新訊息塞進 uiState，這裡就什麼都不用做。
-            viewModel.loadMessages(roomId)
+        when (sendStatus) {
+            is SendMessageState.Error -> {
+                val errorMsg = (sendStatus as SendMessageState.Error).message
+                Toast.makeText(context, "發送失敗: $errorMsg", Toast.LENGTH_SHORT).show()
+                viewModel.resetSendMessageState()
+            }
+            is SendMessageState.Success -> {
+                // ✅ 樂觀更新成功時，Room 內部已經自己把狀態改成 SUCCESS 並藉由 Flow 推送了
+                // 這裡「完全不需要」再呼叫 viewModel.loadMessages(roomId)！
+                viewModel.resetSendMessageState()
+            }
+            else -> {}
         }
     }
 
@@ -183,21 +184,19 @@ fun MessageMessaging(
                         verticalAlignment = Alignment.CenterVertically,
                         horizontalArrangement = Arrangement.spacedBy(8.dp)
                     ) {
-                        //avatar
-                        if (uiState is MessagesUiState.Success) {
-                            val successState = uiState as MessagesUiState.Success
+                        // 💡 安全優化：用 smart cast 代替強轉
+                        val currentState = uiState
+                        if (currentState is MessagesUiState.Success) {
                             UserAvatar(
-                                avatarUrl = successState.partnerAvatarUrl,
-                                modifier = Modifier.size(36.dp) // 適中的 TopBar 頭像大小
+                                avatarUrl = currentState.partnerAvatarUrl,
+                                modifier = Modifier.size(36.dp)
                             )
                         }
 
                         Text(text = topBarTitle)
 
-                        // ✨ 如果是 Success 狀態，且對方是在線狀態（ONLINE），就顯示綠色小圓點
-                        if (uiState is MessagesUiState.Success) {
-                            val successState = uiState as MessagesUiState.Success
-                            if (successState.partnerStatus == UserStatus.ONLINE) {
+                        if (currentState is MessagesUiState.Success) {
+                            if (currentState.partnerStatus == UserStatus.ONLINE) {
                                 Box(
                                     modifier = Modifier
                                         .size(10.dp)
