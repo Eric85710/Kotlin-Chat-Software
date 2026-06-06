@@ -426,11 +426,7 @@ fun MessageRow(
         modifier = Modifier
             .fillMaxWidth()
             .then(if (isHighlight) Modifier.background(Color(0x33FF9800), RoundedCornerShape(12.dp)) else Modifier)
-            // 💡 讓使用者長按整條訊息就能觸發回覆
-            .combinedClickable(
-                onLongClick = { onReplyClick(message) }, // 長按 -> 喚起 ActionMenu
-                onClick = { onRowClick(message) }       // 單擊 -> 喚起 EmojiMenu
-            ),
+        ,
         horizontalArrangement = if (isMe) Arrangement.End else Arrangement.Start
     ) {
         if (!isMe) {
@@ -446,14 +442,20 @@ fun MessageRow(
             Box(
                 modifier = Modifier
                     .widthIn(max = 280.dp)
-                    .background(
-                        color = bubbleColor, // 💡 使用動態計算的背景色
-                        shape = RoundedCornerShape(
+                    // 💡 重點修正：將點擊/長按事件移到這裡，範圍只侷限在氣泡內
+                    // 注意：剪裁形狀（clip）建議放在點擊事件前或與形狀同步，確保點擊時的水波紋（Indication）不會超出圓角
+                    .clip(
+                        RoundedCornerShape(
                             topStart = 12.dp, topEnd = 12.dp,
                             bottomStart = if (isMe) 12.dp else 0.dp,
                             bottomEnd = if (isMe) 0.dp else 12.dp
                         )
                     )
+                    .combinedClickable(
+                        onLongClick = { onReplyClick(message) },
+                        onClick = { onRowClick(message) }
+                    )
+                    .background(color = bubbleColor)
                     .padding(horizontal = 12.dp, vertical = 8.dp)
             ) {
                 Column {
