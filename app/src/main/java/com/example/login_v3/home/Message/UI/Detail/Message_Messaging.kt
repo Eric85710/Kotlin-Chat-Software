@@ -18,10 +18,12 @@ import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
@@ -504,7 +506,43 @@ fun MessageRow(
                             .padding(horizontal = 12.dp, vertical = 8.dp)
                     ) {
                         Column {
-                            // ... 保持你原本的「被回覆訊息內容渲染（message.repliedMessage）」邏輯 ...
+
+                            // 🌟 核心修復：如果存在被回覆的訊息，在這裡將它渲染出來！
+                            message.repliedMessage?.let { replied ->
+                                Row(
+                                    modifier = Modifier
+                                        .padding(bottom = 6.dp)
+                                        .fillMaxWidth()
+                                        .clip(RoundedCornerShape(4.dp))
+                                        .background(Color(0x1A000000)) // 給予一層淡淡的黑色半透明背景做為區隔
+                                        .padding(start = 6.dp) // 留空間給左側邊條
+                                ) {
+                                    // 左側的垂直裝飾邊條
+                                    Box(
+                                        modifier = Modifier
+                                            .width(3.dp)
+                                            .height(32.dp)
+                                            .background(if (isMe) Color(0xFF4CAF50) else Color(0xFF78909C)) // 根據是誰發的決定邊條顏色
+                                    )
+
+                                    // 被回覆訊息的內容預覽
+                                    Column(
+                                        modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp)
+                                    ) {
+                                        Text(
+                                            text = if (replied.senderId == currentUserId) "你" else partnerDisplayName,
+                                            style = MaterialTheme.typography.bodySmall.copy(fontWeight = FontWeight.Bold),
+                                            color = MaterialTheme.colorScheme.primary
+                                        )
+                                        Text(
+                                            text = if (replied.attachment?.mimeType?.startsWith("image/") == true) "[圖片]" else replied.content,
+                                            style = MaterialTheme.typography.bodySmall,
+                                            maxLines = 1, // 限制一行，避免回覆訊息太長塞爆畫面
+                                            overflow = TextOverflow.Ellipsis
+                                        )
+                                    }
+                                }
+                            }
 
                             // 訊息主體內容（文字或圖片）
                             if (isImage) {
@@ -533,7 +571,6 @@ fun MessageRow(
                             }
                         }
                     }
-
                     if (!message.reactions.isNullOrEmpty()) {
                         ReactionRow(
                             reactions = message.reactions,
