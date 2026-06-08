@@ -223,17 +223,6 @@ class ChatViewModel @Inject constructor(
         }
     }
 
-    private val _reactionUsersState = MutableStateFlow<ReactionUsersState>(ReactionUsersState.Idle)
-    val reactionUsersState: StateFlow<ReactionUsersState> = _reactionUsersState.asStateFlow()
-
-    fun loadMessageReactionUsers(roomId: String, messageId: String, emoji: String) {
-        viewModelScope.launch {
-            _reactionUsersState.value = ReactionUsersState.Loading
-            repository.getMessageReactionUsers(roomId, messageId, emoji)
-                .onSuccess { response -> _reactionUsersState.value = ReactionUsersState.Success(response.users) }
-                .onFailure { error -> _reactionUsersState.value = ReactionUsersState.Error(error.message ?: "無法取得按讚名單") }
-        }
-    }
 
     fun addMessageReaction(roomId: String, messageId: String, emoji: String) {
         viewModelScope.launch {
@@ -255,6 +244,5 @@ class ChatViewModel @Inject constructor(
     }
 
     fun resetDeleteMessageState() { _deleteMessageState.value = DeleteMessageState.Idle }
-    fun resetReactionUsersState() { _reactionUsersState.value = ReactionUsersState.Idle }
     fun resetSendMessageState() { _sendMessageState.value = SendMessageState.Idle }
 }

@@ -61,7 +61,8 @@ class ChatRoomsRepository @Inject constructor(
                     isEdited = entity.isEdited,
                     isDeleted = entity.isDeleted,
                     replyToId = entity.replyToId,
-                    status = entity.status          // 👈 把 Room 儲存的狀態倒出來給 UI
+                    status = entity.status,          // 👈 把 Room 儲存的狀態倒出來給 UI
+                    reactions = entity.reactions
                 )
             }
 
@@ -94,7 +95,8 @@ class ChatRoomsRepository @Inject constructor(
                             isEdited = networkMessage.isEdited,
                             isDeleted = networkMessage.isDeleted,
                             replyToId = networkMessage.replyToId,
-                            status = MessageStatus.SUCCESS // 後端來的都是真的發送成功的
+                            status = MessageStatus.SUCCESS,
+                            reactions = networkMessage.reactions
                         )
                         messageDao.insertOrUpdate(entity)
                     }
@@ -125,7 +127,8 @@ class ChatRoomsRepository @Inject constructor(
             isEdited = false,
             isDeleted = false,
             replyToId = replyToId,
-            status = MessageStatus.SENDING // 👈 畫面馬上呈現半透明淡灰色！
+            status = MessageStatus.SENDING,
+            reactions = emptyList()
         )
 
         messageDao.insertOrUpdate(tempMessageEntity)
@@ -150,7 +153,8 @@ class ChatRoomsRepository @Inject constructor(
                         isEdited = body.isEdited,
                         isDeleted = body.isDeleted,
                         replyToId = body.replyToId,
-                        status = MessageStatus.SUCCESS
+                        status = MessageStatus.SUCCESS,
+                        reactions = body.reactions
                     )
                     messageDao.insertOrUpdate(successEntity)
                     Result.success(Unit)
@@ -313,33 +317,6 @@ class ChatRoomsRepository @Inject constructor(
                 Result.failure(Exception("上傳檔案失敗，錯誤碼: ${response.code()}, 訊息: $errorMsg"))
             }
         } catch (e: Exception) {
-            Result.failure(e)
-        }
-    }
-
-    // 取得點擊特定訊息中某個 Emoji 的使用者清單
-    suspend fun getMessageReactionUsers(
-        roomId: String,
-        messageId: String,
-        emoji: String
-    ): Result<MessageReactionUsersResponse> {
-        return try {
-            // 呼叫 API
-            val response = api.getMessageReactionUsers(roomId, messageId, emoji)
-
-            if (response.isSuccessful) {
-                val body = response.body()
-                if (body != null) {
-                    Result.success(body)
-                } else {
-                    Result.failure(Exception("回應成功但回應身體為空 (Empty response body)"))
-                }
-            } else {
-                val errorMsg = response.errorBody()?.string() ?: "未知錯誤"
-                Result.failure(Exception("取得反應使用者失敗，錯誤碼: ${response.code()}, 訊息: $errorMsg"))
-            }
-        } catch (e: Exception) {
-            // 捕捉網路斷線等異常狀況
             Result.failure(e)
         }
     }

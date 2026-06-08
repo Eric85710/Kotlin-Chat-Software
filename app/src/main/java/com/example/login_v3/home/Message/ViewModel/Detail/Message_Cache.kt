@@ -7,6 +7,7 @@ import androidx.room.OnConflictStrategy
 import androidx.room.PrimaryKey
 import kotlinx.coroutines.flow.Flow
 import androidx.room.Query
+import com.example.login_v3.data.api.api_class.Reaction
 
 enum class MessageStatus { SENDING, SUCCESS, FAILED }
 
@@ -21,7 +22,8 @@ data class MessageEntity(
     val isEdited: Boolean,   // 👈 新增
     val isDeleted: Boolean,  // 👈 新增
     val replyToId: String?,  // 👈 新增
-    val status: MessageStatus // 👈 樂觀更新狀態控制 (SENDING, SUCCESS, FAILED)
+    val status: MessageStatus, // 👈 樂觀更新狀態控制 (SENDING, SUCCESS, FAILED)
+    val reactions: List<Reaction>?
 )
 
 @Dao

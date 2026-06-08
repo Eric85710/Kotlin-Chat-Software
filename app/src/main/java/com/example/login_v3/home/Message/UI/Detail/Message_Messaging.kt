@@ -113,9 +113,6 @@ fun MessageMessaging(
     //reply function
     val replyingMessage by viewModel.replyingMessage.collectAsStateWithLifecycle()
 
-    // 💡 1. 取得 ViewModel 裡的 Reaction 狀態
-    val reactionState by viewModel.reactionUsersState.collectAsStateWithLifecycle()
-
     //message that selected
     val actionMessage by viewModel.actionMessage.collectAsStateWithLifecycle()
 
