@@ -187,7 +187,7 @@ class ChatRoomsRepository @Inject constructor(
         }
     }
 
-    //read ed message
+    //mark read message
     suspend fun markAsRead(roomId: String): Result<Unit> {
         return try {
             val response = api.markAsRead(roomId)
