@@ -360,8 +360,8 @@ fun MessageList(
 
     LazyColumn(
         modifier = modifier.fillMaxSize(),
-        contentPadding = PaddingValues(16.dp),
-        verticalArrangement = Arrangement.spacedBy(8.dp),
+        contentPadding = PaddingValues(6.dp),
+        verticalArrangement = Arrangement.spacedBy(4.dp),
         reverseLayout = true // ✨ 保持 true，讓畫面底部作為起點，並預設滾動到最下方
     ) {
         // 💡 改用過濾後的全新列表 visibleMessages
@@ -436,19 +436,6 @@ fun MessageRow(
 
 
 
-    // 💡 根據是否高亮，動態決定氣泡背景色（或是你想要的邊框效果）
-    val bubbleColor = when {
-        isMe && isHighlight -> Color(0xFFB4E197)   // 我發的：高亮時變成較深的草綠色
-        isMe -> Color(0xFFDCF8C6)                  // 我發的：平常的淺綠色
-        !isMe && isHighlight -> Color(0xFFCFD8DC)  // 對方發的：高亮時變成較深的灰色
-        else -> Color(0xFFECEFF1)                  // 對方發的：平常的淺灰色
-    }
-
-    // 💡 核心優化：根據樂觀更新狀態決定氣泡透明度
-    val bubbleAlpha = when (message.status) {
-        MessageStatus.SENDING -> 0.9f  // ⏳ 發送中：氣泡變半透明（類似 LINE/Telegram 的未送出狀態）
-        else -> 1.0f                   // ✅ 成功或失敗：正常亮度
-    }
 
     val finalBubbleColor = remember(message.status, isHighlight) {
         val baseColor = when {
@@ -475,7 +462,7 @@ fun MessageRow(
         Row(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(4.dp)
+                .padding(horizontal = 4.dp, vertical = 2.dp)
             ,
             horizontalArrangement = if (isMe) Arrangement.End else Arrangement.Start
         ) {
@@ -587,7 +574,9 @@ fun MessageRow(
                             } else {
                                 Text(
                                     text = rawContent,
-                                    style = MaterialTheme.typography.bodyMedium
+                                    style = MaterialTheme.typography.bodyMedium.copy(
+                                        fontSize = 16.sp
+                                    )
                                 )
                             }
                         }
