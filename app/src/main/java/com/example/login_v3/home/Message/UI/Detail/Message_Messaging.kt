@@ -48,6 +48,7 @@ import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -79,6 +80,7 @@ import com.example.login_v3.home.Message.UI.Detail.Message_Messaging_detail.Mess
 import com.example.login_v3.home.Message.UI.Detail.Message_Messaging_detail.ReactionRow
 import com.example.login_v3.home.Message.UI.Detail.Message_Messaging_detail.UserAvatar
 import com.example.login_v3.home.Message.ViewModel.Detail.ChatViewModel
+import com.example.login_v3.home.Message.ViewModel.Detail.DeleteMessageState
 import com.example.login_v3.home.Message.ViewModel.Detail.MessageStatus
 import com.example.login_v3.home.Message.ViewModel.Detail.MessagesUiState
 import com.example.login_v3.home.Message.ViewModel.Detail.SendMessageState
@@ -154,6 +156,16 @@ fun MessageMessaging(
         }
     }
 
+    val deleteState by viewModel.deleteMessageState.collectAsState()
+
+    LaunchedEffect(deleteState) {
+        if (deleteState is DeleteMessageState.Error) {
+            // 當背景 API 刪除失敗、訊息彈回來時，給使用者一個提示
+            val errorMsg = (deleteState as DeleteMessageState.Error).message
+            Toast.makeText(context, errorMsg, Toast.LENGTH_SHORT).show()
+        }
+    }
+
     // 根據目前的 uiState 來動態決定 TopBar 要顯示什麼文字
     val topBarTitle = when (val state = uiState) {
         is MessagesUiState.Success -> state.roomTitle
@@ -220,7 +232,7 @@ fun MessageMessaging(
                             replyingMessage = replyingMessage,
                             onCancelReply = { viewModel.setReplyingMessage(null) },
                             onSendClick = { content -> viewModel.sendMessage(roomId, content) },
-                            onImageSelected = { uri -> viewModel.uploadAttachment(roomId, uri) }
+                            onImageSelected = { uri -> viewModel.uploadAttachment(roomId, uri) },
                         )
                     }
 
@@ -238,7 +250,14 @@ fun MessageMessaging(
                                 viewModel.clearActionMessage()
                             },
                             onDeleteClick = { msg ->
-                                viewModel.deleteMessage(roomId, msg.id)
+                                // 🌟 核心防呆：如果訊息還在發送中(SENDING)，禁止點擊刪除，避免 tempId 送給後端造成 404
+                                if (msg.status == MessageStatus.SENDING) {
+                                    // 可以選擇在這裡彈出一個短暫的 Toast 提示使用者
+                                    Toast.makeText(context, "訊息發送中，請稍後再操作", Toast.LENGTH_SHORT).show()
+                                } else {
+                                    // 正常訊息，呼叫樂觀更新刪除
+                                    viewModel.deleteMessage(roomId, msg.id)
+                                }
                             }
                         )
                     }
@@ -334,20 +353,25 @@ fun MessageList(
     onRowClick: (Message) -> Unit,
     modifier: Modifier = Modifier
 ) {
+    // 🌟 核心修正：過濾掉所有已被刪除的訊息，讓它們直接不參與渲染
+    val visibleMessages = remember(messages) {
+        messages.filter { !it.isDeleted }
+    }
+
     LazyColumn(
         modifier = modifier.fillMaxSize(),
         contentPadding = PaddingValues(16.dp),
         verticalArrangement = Arrangement.spacedBy(8.dp),
         reverseLayout = true // ✨ 保持 true，讓畫面底部作為起點，並預設滾動到最下方
     ) {
-        items(messages) { message -> // ✨ 直接帶入原始的 messages
+        // 💡 改用過濾後的全新列表 visibleMessages
+        items(visibleMessages) { message ->
             val isMe = message.senderId == currentUserId
             MessageRow(
                 message = message,
                 partnerAvatarUrl = partnerAvatarUrl,
                 partnerDisplayName = partnerDisplayName,
                 isMe = isMe,
-                // 💡 判斷：不論是正在選 Emoji 還是正在開啟動作選單，只要命中就判定為高亮
                 isHighlight = message.id == activeEmojiMessageId || message.id == activeActionMessageId,
                 currentUserId = currentUserId,
                 onReplyClick = onReplyClick,
