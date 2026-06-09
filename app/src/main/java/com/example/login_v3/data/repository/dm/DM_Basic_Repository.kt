@@ -84,8 +84,10 @@ class ChatRoomsRepository @Inject constructor(
             if (response.isSuccessful) {
                 val body = response.body()
                 if (body != null) {
-                    body.messages.forEach { networkMessage ->
-                        val entity = MessageEntity(
+
+                    // 1. 使用 map 把網路資料轉換成 Entity 列表
+                    val entities = body.messages.map { networkMessage ->
+                        MessageEntity(
                             id = networkMessage.id,
                             chatRoomId = roomId,
                             senderId = networkMessage.senderId,
@@ -98,12 +100,21 @@ class ChatRoomsRepository @Inject constructor(
                             status = MessageStatus.SUCCESS,
                             reactions = networkMessage.reactions
                         )
-                        messageDao.insertOrUpdate(entity)
                     }
+
+                    // 2. 一口氣整批塞進資料庫，Room 只會開啟一次資料庫事務 (Transaction)
+                    messageDao.insertOrUpdateList(entities)
+
                     Result.success(Unit)
-                } else { Result.failure(Exception("Empty body")) }
-            } else { Result.failure(Exception("Error code: ${response.code()}")) }
-        } catch (e: Exception) { Result.failure(e) }
+                } else {
+                    Result.failure(Exception("Empty body"))
+                }
+            } else {
+                Result.failure(Exception("Error code: ${response.code()}"))
+            }
+        } catch (e: Exception) {
+            Result.failure(e)
+        }
     }
 
     //fake sending
