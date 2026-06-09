@@ -374,18 +374,41 @@ class ChatRoomsRepository @Inject constructor(
         }
     }
 
-    // 刪除訊息
+
+    // 刪除訊息（樂觀更新版本）
     suspend fun deleteMessage(roomId: String, messageId: String): Result<Unit> {
+        // 1. 先從本地資料庫撈出原本的訊息作為備份
+        val backupEntity = try {
+            messageDao.getMessageById(messageId)
+        } catch (e: Exception) {
+            null // 如果本地查詢就失敗，雖然機率極低，但我們還是設為 null 防呆
+        }
+
+        // 2. 樂觀更新：立刻從本地砍掉，UI 的 Flow 會在「一瞬間」同步消失，體驗極佳
+        try {
+            messageDao.deleteById(messageId)
+        } catch (e: Exception) {
+            // 如果本地 Room 刪除指令本身就失敗，直接回傳錯誤，不繼續往下戳 API
+            return Result.failure(e)
+        }
+
+        // 3. 呼叫後端 API 進行實際刪除
         return try {
             val response = api.deleteMessage(roomId, messageId)
+
             if (response.isSuccessful) {
-                // 💡 既然刪除了，本地也一併砍掉，UI 就會立刻同步消失
-                messageDao.deleteById(messageId)
+                // 真正成功了！因為本地已經提早刪除了，所以什麼都不用做，直接回傳 Unit
                 Result.success(Unit)
             } else {
-                Result.failure(Exception("Delete failed"))
+                // 後端回報失敗（例如：沒權限、訊息已被他人刪除）：把剛才備份的資料塞回去
+                backupEntity?.let { messageDao.insertOrUpdate(it) }
+
+                val errorMsg = response.errorBody()?.string() ?: "未知錯誤"
+                Result.failure(Exception("刪除失敗，錯誤碼: ${response.code()}, 訊息: $errorMsg"))
             }
         } catch (e: Exception) {
+            // 網路斷線、Timeout 或伺服器崩潰：一樣把備份資料塞回去，讓 UI 訊息彈回來
+            backupEntity?.let { messageDao.insertOrUpdate(it) }
             Result.failure(e)
         }
     }

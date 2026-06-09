@@ -182,21 +182,30 @@ class ChatViewModel @Inject constructor(
     // =====================================================================
     // 💡 核心改造三：刪除訊息
     // =====================================================================
+    // =====================================================================
+    // 💡 核心改造三：刪除訊息（配合樂觀更新優化）
+    // =====================================================================
     fun deleteMessage(roomId: String, messageId: String) {
+        // 1. 🌟 樂觀更新的核心精神：立刻關閉長按選單（Action Menu）
+        // 因為訊息在下一行就會從資料庫消失，選單如果還開著會點不到東西或出錯
+        clearActionMessage()
+
         viewModelScope.launch {
+            // 2. 💡 注意：這裡「不要」在 UI 顯示阻擋式的 Loading 轉圈圈。
+            // 這裡的 Loading 狀態只留在背景，或者用於特定的微小 UI 提示（例如標題列小藍點）。
             _deleteMessageState.value = DeleteMessageState.Loading
 
             val result = repository.deleteMessage(roomId, messageId)
 
             result.onSuccess {
                 _deleteMessageState.value = DeleteMessageState.Success
-                clearActionMessage()
-
-                // 🌟 刪除成功！Repository 已經把本地 Room 的資料刪除
-                // Flow 會自動發送全新的列表給 UI，這裡「完全不需要」再手動 map 改 content 了！
+                // 🌟 刪除成功！本地早就不見了，Flow 也早已更新，這裡乾淨俐落。
             }.onFailure { error ->
                 Log.e("ChatViewModel", "Delete message failed", error)
                 _deleteMessageState.value = DeleteMessageState.Error(error.message ?: "刪除訊息失敗")
+
+                // 3. 🌟 失敗處理：因為 Repository 把訊息彈回來了，我們可以讓 UI 知道
+                // 這裡可以透過監聽 deleteMessageState 的 Error，在 Activity/Fragment/Compose 彈出 Toast 提示：「刪除失敗，請檢查網路」
             }
         }
     }
