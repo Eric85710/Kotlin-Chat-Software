@@ -36,7 +36,7 @@ object NetworkModule {
     @Singleton
     fun provideRetrofit(moshi: Moshi, okHttpClient: OkHttpClient): Retrofit {
         return Retrofit.Builder()
-            .baseUrl("http://192.168.0.217/")
+            .baseUrl("http://192.168.0.189/")
             .client(okHttpClient)   // 關鍵：將攔截器綁定到 Retrofit
             .addConverterFactory(MoshiConverterFactory.create(moshi))
             .build()

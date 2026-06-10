@@ -141,11 +141,12 @@ fun ChatMenuButton(
     imageVector: ImageVector,
     label: String,
     enabled: Boolean = true,
-    tint: Color = Color(0xFFDA7029),
+    tint: Color = Color.White, // 💡 將這裡的 Color(0xFFDA7029) 改成 Color.White
     onClick: () -> Unit
 ) {
-    val contentColor = if (enabled) tint else Color.LightGray
-    val textColor = if (enabled) Color.DarkGray else Color.LightGray
+    val contentColor = if (enabled) tint else Color.LightGray.copy(alpha = 0.5f)
+    // 💡 既然圖標變白了，文字建議也同步改成白色（或帶點透明度的白），在深色背景上才看得清楚
+    val textColor = if (enabled) Color.White else Color.LightGray.copy(alpha = 0.5f)
 
     Column(
         horizontalAlignment = Alignment.CenterHorizontally,
