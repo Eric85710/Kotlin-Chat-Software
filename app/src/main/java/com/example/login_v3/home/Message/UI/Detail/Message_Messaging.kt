@@ -45,6 +45,7 @@ import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
+import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
@@ -57,6 +58,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.alpha
+import androidx.compose.ui.draw.blur
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.drawBehind
 import androidx.compose.ui.geometry.Offset
@@ -192,7 +194,6 @@ fun MessageMessaging(
                         verticalAlignment = Alignment.CenterVertically,
                         horizontalArrangement = Arrangement.spacedBy(8.dp)
                     ) {
-                        // 💡 安全優化：用 smart cast 代替強轉
                         val currentState = uiState
                         if (currentState is MessagesUiState.Success) {
                             UserAvatar(
@@ -216,7 +217,12 @@ fun MessageMessaging(
                             }
                         }
                     }
-                }
+                },
+                // 🌟 關鍵修改 1：設定半透明背景色
+                colors = TopAppBarDefaults.topAppBarColors(
+                    // 這裡可以用 Surface 色加上 0.6 的透明度，或者直接用自訂顏色如 Color.White.copy(0.5f)
+                    containerColor = MaterialTheme.colorScheme.surface.copy(alpha = 0.6f)
+                )
             )
         },
         bottomBar = {

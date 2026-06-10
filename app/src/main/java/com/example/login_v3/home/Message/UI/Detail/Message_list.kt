@@ -106,7 +106,7 @@ fun Loaded_Tg_Message(
             TopAppBar(
                 title = { Text("Messages") },
                 colors = TopAppBarDefaults.topAppBarColors(
-                    containerColor = Color.Transparent,   // ⭐ 改這裡
+                    containerColor = Color.Transparent,
                     titleContentColor = Color.Black
                 ),
                 actions = {
