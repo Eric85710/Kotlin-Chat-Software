@@ -97,6 +97,7 @@ import androidx.compose.foundation.layout.windowInsetsTopHeight
 import androidx.compose.foundation.layout.statusBars // 如果要使用 statusBars 也需要這個
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.ArrowBack
+import androidx.compose.material.icons.filled.Call
 
 
 //bottom bar state
@@ -200,73 +201,111 @@ fun MessageMessaging(
             containerColor = Color.Transparent,
             topBar = {
                 Column() {
-                    // 🌟 調整這裡：直接用這個外層 Spacer 來隔開手機最頂部的狀態欄
-                    // 如果 20.dp 不夠，可以改用 WindowInsets.statusBars
                     Spacer(modifier = Modifier.windowInsetsTopHeight(WindowInsets.statusBars))
-                    // 如果想在狀態欄下方再多空一點點，可以再加一點點高度，例如：
-                    // Spacer(modifier = Modifier.height(8.dp))
 
                     val topBarShape = RoundedCornerShape(16.dp)
 
-                    Box(
+                    Row(
                         modifier = Modifier
                             .fillMaxWidth()
-                            .sharedElement(
-                                rememberSharedContentState(key = "container_$roomId"),
-                                animatedVisibilityScope = animatedVisibilityScope
-                            )
-                            .padding(6.dp)
-                            .clip(topBarShape)
-                            .background(
-                                color = MaterialTheme.colorScheme.primary,
-                                shape = topBarShape
-                            )
-                            .border(
-                                width = 0.5.dp,
-                                color = Color.White.copy(alpha = 0.4f),
-                                shape = topBarShape
-                            )
+                            .padding(horizontal = 6.dp), // 配合左邊 Box 的 padding，讓整體邊距平衡
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.SpaceBetween
                     ) {
-                        Row(
-                            verticalAlignment = Alignment.CenterVertically,
+                        //name and avatar
+                        Box(
                             modifier = Modifier
-                                .fillMaxWidth()
-                                .height(58.dp) // 58dp 就會是純內容的高度，內容就會完美垂直置中了！
-                                .padding(horizontal = 12.dp)
-                        ) {
-                            val currentState = uiState
-                            if (currentState is MessagesUiState.Success) {
-                                UserAvatar(
-                                    avatarUrl = currentState.partnerAvatarUrl,
-                                    modifier = Modifier.size(42.dp)
+                                .width(260.dp)
+                                .sharedElement(
+                                    rememberSharedContentState(key = "container_$roomId"),
+                                    animatedVisibilityScope = animatedVisibilityScope
                                 )
-                            }
-
-                            Spacer(modifier = Modifier.width(12.dp))
-
-                            Text(
-                                text = topBarTitle,
-                                style = MaterialTheme.typography.titleMedium,
-                                fontSize = 24.sp,
-                                fontWeight = FontWeight.Bold,
-                                color = Color(0xFF333333),
-                                maxLines = 1,
-                                overflow = TextOverflow.Ellipsis
-                            )
-
-                            Spacer(modifier = Modifier.width(12.dp))
-
-                            if (currentState is MessagesUiState.Success) {
-                                if (currentState.partnerStatus == UserStatus.ONLINE) {
-                                    Box(
-                                        modifier = Modifier
-                                            .size(10.dp)
-                                            .background(
-                                                color = UserStatus.ONLINE.color,
-                                                shape = CircleShape
-                                            )
+                                .padding(6.dp)
+                                .clip(topBarShape)
+                                .background(
+                                    color = MaterialTheme.colorScheme.primary,
+                                    shape = topBarShape
+                                )
+                                .border(
+                                    width = 0.5.dp,
+                                    color = Color.White.copy(alpha = 0.4f),
+                                    shape = topBarShape
+                                )
+                        ) {
+                            Row(
+                                verticalAlignment = Alignment.CenterVertically,
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .height(58.dp) // 58dp 就會是純內容的高度，內容就會完美垂直置中了！
+                                    .padding(horizontal = 12.dp)
+                            ) {
+                                val currentState = uiState
+                                if (currentState is MessagesUiState.Success) {
+                                    UserAvatar(
+                                        avatarUrl = currentState.partnerAvatarUrl,
+                                        modifier = Modifier.size(42.dp)
                                     )
                                 }
+
+                                Spacer(modifier = Modifier.width(12.dp))
+
+                                Text(
+                                    text = topBarTitle,
+                                    style = MaterialTheme.typography.titleMedium,
+                                    fontSize = 24.sp,
+                                    fontWeight = FontWeight.Bold,
+                                    color = Color(0xFF333333),
+                                    maxLines = 1,
+                                    overflow = TextOverflow.Ellipsis
+                                )
+
+                                Spacer(modifier = Modifier.width(12.dp))
+
+                                if (currentState is MessagesUiState.Success) {
+                                    if (currentState.partnerStatus == UserStatus.ONLINE) {
+                                        Box(
+                                            modifier = Modifier
+                                                .size(10.dp)
+                                                .background(
+                                                    color = UserStatus.ONLINE.color,
+                                                    shape = CircleShape
+                                                )
+                                        )
+                                    }
+                                }
+                            }
+                        }
+
+                        //voice call button
+                        Box(
+                            contentAlignment = Alignment.Center,
+                            modifier = Modifier
+                                .width(58.dp)
+                                .height(58.dp)
+                                .background(
+                                    color = MaterialTheme.colorScheme.primary,
+                                    shape = topBarShape
+                                )
+                                .border(
+                                    width = 0.5.dp,
+                                    color = Color.White.copy(alpha = 0.4f),
+                                    shape = topBarShape
+                                )
+                        ) {
+                            IconButton(
+                                onClick = {
+                                    // 這裡觸發語音通話的邏輯，例如：viewModel.startVoiceCall(roomId)
+                                },
+                                modifier = Modifier
+                                    .padding(end = 6.dp) // 讓按鈕離螢幕右邊邊緣有一點呼吸空間
+                                    .size(48.dp) // 給予標準的點擊區域大小
+                            ) {
+                                Icon(
+                                    imageVector = Icons.Default.Call, // 👈 這裡使用 Material Design 的預設電話圖標，也可以換成 Icons.Rounded.Phone
+                                    contentDescription = "語音通話",
+                                    tint = Color.White, // 👈 顏色可以根據你的漸層背景調整，如果是亮色背景可改用 MaterialTheme.colorScheme.onBackground
+                                    modifier = Modifier.size(28.dp) // Icon 實際的大小
+                                )
                             }
                         }
                     }
