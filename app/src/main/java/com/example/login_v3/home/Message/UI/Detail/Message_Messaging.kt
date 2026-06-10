@@ -7,6 +7,8 @@ import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.animation.AnimatedContent
 import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.AnimatedVisibilityScope
+import androidx.compose.animation.SharedTransitionScope
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
@@ -105,6 +107,8 @@ fun MessageMessaging(
     roomId: String,
     navController: NavController,
     onBackClick: () -> Unit,
+    sharedTransitionScope: SharedTransitionScope,
+    animatedVisibilityScope: AnimatedVisibilityScope,
     viewModel: ChatViewModel = hiltViewModel(),
     bottomBarViewModel: BottomBarViewModel
 ) {
@@ -175,171 +179,176 @@ fun MessageMessaging(
         is MessagesUiState.Loading -> "載入中..."
     }
 
-    Scaffold(
-        modifier = Modifier
-            .fillMaxSize()
-            .background(
-                brush = Brush.verticalGradient(
-                    colors = listOf
-                        (Color(0xFFDA7029),
-                        Color(0xFF777777),
-                        Color(0xFFB34800))
+
+    with(sharedTransitionScope){
+        Scaffold(
+            modifier = Modifier
+                .fillMaxSize()
+                .background(
+                    brush = Brush.verticalGradient(
+                        colors = listOf
+                            (Color(0xFFDA7029),
+                            Color(0xFF777777),
+                            Color(0xFFB34800))
+                    )
+                ),
+            containerColor = Color.Transparent,
+            topBar = {
+                TopAppBar(
+                    title = {
+                        Row(
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.spacedBy(8.dp)
+                        ) {
+                            val currentState = uiState
+                            if (currentState is MessagesUiState.Success) {
+                                UserAvatar(
+                                    avatarUrl = currentState.partnerAvatarUrl,
+                                    modifier = Modifier.size(36.dp)
+                                )
+                            }
+
+                            Text(text = topBarTitle)
+
+                            if (currentState is MessagesUiState.Success) {
+                                if (currentState.partnerStatus == UserStatus.ONLINE) {
+                                    Box(
+                                        modifier = Modifier
+                                            .size(10.dp)
+                                            .background(
+                                                color = UserStatus.ONLINE.color,
+                                                shape = CircleShape
+                                            )
+                                    )
+                                }
+                            }
+                        }
+                    },
+                    // 🌟 關鍵修改 1：設定半透明背景色
+                    colors = TopAppBarDefaults.topAppBarColors(
+                        // 這裡可以用 Surface 色加上 0.6 的透明度，或者直接用自訂顏色如 Color.White.copy(0.5f)
+                        containerColor = MaterialTheme.colorScheme.surface.copy(alpha = 0.4f)
+                    )
                 )
-            ),
-        containerColor = Color.Transparent,
-        topBar = {
-            TopAppBar(
-                title = {
-                    Row(
-                        verticalAlignment = Alignment.CenterVertically,
-                        horizontalArrangement = Arrangement.spacedBy(8.dp)
-                    ) {
-                        val currentState = uiState
-                        if (currentState is MessagesUiState.Success) {
-                            UserAvatar(
-                                avatarUrl = currentState.partnerAvatarUrl,
-                                modifier = Modifier.size(36.dp)
+            },
+            bottomBar = {
+                // 👈 使用我們定義的 sealed interface 狀態機
+                AnimatedContent(
+                    targetState = bottomBarState,
+                    label = "BottomBarSwitchAnimation"
+                ) { currentState ->
+                    when (currentState) {
+                        is BottomBarState.Input -> {
+                            MessageInputBar(
+                                isLoading = sendStatus is SendMessageState.Loading,
+                                replyingMessage = replyingMessage,
+                                onCancelReply = { viewModel.setReplyingMessage(null) },
+                                onSendClick = { content -> viewModel.sendMessage(roomId, content) },
+                                onImageSelected = { uri -> viewModel.uploadAttachment(roomId, uri) },
                             )
                         }
 
-                        Text(text = topBarTitle)
+                        is BottomBarState.ActionMenu -> {
+                            val currentActionMessage = currentState.message
+                            val currentUserId = (uiState as? MessagesUiState.Success)?.currentUserId
+                            val isOwnMessage = currentActionMessage.senderId == currentUserId
 
-                        if (currentState is MessagesUiState.Success) {
-                            if (currentState.partnerStatus == UserStatus.ONLINE) {
-                                Box(
-                                    modifier = Modifier
-                                        .size(10.dp)
-                                        .background(
-                                            color = UserStatus.ONLINE.color,
-                                            shape = CircleShape
-                                        )
-                                )
-                            }
+                            MessageActionMenuRow(
+                                message = currentActionMessage,
+                                isOwnMessage = isOwnMessage,
+                                onCancel = { viewModel.clearActionMessage() },
+                                onReplyClick = { msg ->
+                                    viewModel.setReplyingMessage(msg)
+                                    viewModel.clearActionMessage()
+                                },
+                                onDeleteClick = { msg ->
+                                    // 🌟 核心防呆：如果訊息還在發送中(SENDING)，禁止點擊刪除，避免 tempId 送給後端造成 404
+                                    if (msg.status == MessageStatus.SENDING) {
+                                        // 可以選擇在這裡彈出一個短暫的 Toast 提示使用者
+                                        Toast.makeText(context, "訊息發送中，請稍後再操作", Toast.LENGTH_SHORT).show()
+                                    } else {
+                                        // 正常訊息，呼叫樂觀更新刪除
+                                        viewModel.deleteMessage(roomId, msg.id)
+                                    }
+                                }
+                            )
                         }
-                    }
-                },
-                // 🌟 關鍵修改 1：設定半透明背景色
-                colors = TopAppBarDefaults.topAppBarColors(
-                    // 這裡可以用 Surface 色加上 0.6 的透明度，或者直接用自訂顏色如 Color.White.copy(0.5f)
-                    containerColor = MaterialTheme.colorScheme.surface.copy(alpha = 0.6f)
-                )
-            )
-        },
-        bottomBar = {
-            // 👈 使用我們定義的 sealed interface 狀態機
-            AnimatedContent(
-                targetState = bottomBarState,
-                label = "BottomBarSwitchAnimation"
-            ) { currentState ->
-                when (currentState) {
-                    is BottomBarState.Input -> {
-                        MessageInputBar(
-                            isLoading = sendStatus is SendMessageState.Loading,
-                            replyingMessage = replyingMessage,
-                            onCancelReply = { viewModel.setReplyingMessage(null) },
-                            onSendClick = { content -> viewModel.sendMessage(roomId, content) },
-                            onImageSelected = { uri -> viewModel.uploadAttachment(roomId, uri) },
-                        )
-                    }
 
-                    is BottomBarState.ActionMenu -> {
-                        val currentActionMessage = currentState.message
-                        val currentUserId = (uiState as? MessagesUiState.Success)?.currentUserId
-                        val isOwnMessage = currentActionMessage.senderId == currentUserId
-
-                        MessageActionMenuRow(
-                            message = currentActionMessage,
-                            isOwnMessage = isOwnMessage,
-                            onCancel = { viewModel.clearActionMessage() },
-                            onReplyClick = { msg ->
-                                viewModel.setReplyingMessage(msg)
-                                viewModel.clearActionMessage()
-                            },
-                            onDeleteClick = { msg ->
-                                // 🌟 核心防呆：如果訊息還在發送中(SENDING)，禁止點擊刪除，避免 tempId 送給後端造成 404
-                                if (msg.status == MessageStatus.SENDING) {
-                                    // 可以選擇在這裡彈出一個短暫的 Toast 提示使用者
-                                    Toast.makeText(context, "訊息發送中，請稍後再操作", Toast.LENGTH_SHORT).show()
-                                } else {
-                                    // 正常訊息，呼叫樂觀更新刪除
-                                    viewModel.deleteMessage(roomId, msg.id)
+                        is BottomBarState.EmojiMenu -> {
+                            // 👈 渲染全新設計的獨立 Emoji Bar
+                            val currentEmojiMessage = currentState.message
+                            MessageEmojiBar(
+                                // 🌟 移除了 commonEmojis 參數，變得非常清爽！
+                                onEmojiClick = { emoji ->
+                                    val targetReaction = currentEmojiMessage.reactions?.find { it.emoji == emoji }
+                                    if (targetReaction?.meReacted == true) {
+                                        viewModel.removeMessageReaction(roomId, currentEmojiMessage.id, emoji)
+                                    } else {
+                                        viewModel.addMessageReaction(roomId, currentEmojiMessage.id, emoji)
+                                    }
+                                    emojiTargetMessage = null // 點完後自動關閉
+                                },
+                                onCancel = {
+                                    emojiTargetMessage = null // 點擊關閉
                                 }
-                            }
-                        )
-                    }
-
-                    is BottomBarState.EmojiMenu -> {
-                        // 👈 渲染全新設計的獨立 Emoji Bar
-                        val currentEmojiMessage = currentState.message
-                        MessageEmojiBar(
-                            // 🌟 移除了 commonEmojis 參數，變得非常清爽！
-                            onEmojiClick = { emoji ->
-                                val targetReaction = currentEmojiMessage.reactions?.find { it.emoji == emoji }
-                                if (targetReaction?.meReacted == true) {
-                                    viewModel.removeMessageReaction(roomId, currentEmojiMessage.id, emoji)
-                                } else {
-                                    viewModel.addMessageReaction(roomId, currentEmojiMessage.id, emoji)
-                                }
-                                emojiTargetMessage = null // 點完後自動關閉
-                            },
-                            onCancel = {
-                                emojiTargetMessage = null // 點擊關閉
-                            }
-                        )
+                            )
+                        }
                     }
                 }
             }
-        }
-    ) { innerPadding ->
-        Box(
-            modifier = Modifier
-                .fillMaxSize()
-                .padding(innerPadding)
-            ,
-            contentAlignment = Alignment.Center
-        ) {
-            // 根據不同的狀態渲染主畫面內容
-            when (val state = uiState) {
-                is MessagesUiState.Loading -> {
-                    CircularProgressIndicator()
-                }
-                is MessagesUiState.Success -> {
-                    if (state.messages.isEmpty()) {
-                        Text("目前沒有新訊息")
-                    } else {
-                        MessageList(
-                            currentUserId = state.currentUserId,
-                            messages = state.messages,
-                            partnerAvatarUrl = state.partnerAvatarUrl,
-                            partnerDisplayName = state.roomTitle,
-                            activeEmojiMessageId = emojiTargetMessage?.id,   // ✨ 新增短按目標 ID
-                            activeActionMessageId = actionMessage?.id,
-                            onReplyClick = { message ->
-                                emojiTargetMessage = null
-                                viewModel.setActionMessage(message)
-                            },
-                            // 💡 單擊事件：開啟 Emoji 選單，同時清空長按選單
-                            onRowClick = { message ->
-                                viewModel.clearActionMessage()
-                                emojiTargetMessage = message
-                            },
-                            onReactionClick = { message, emoji ->
-                                // 這是訊息氣泡下方既有 Reaction 小標籤的點擊事件，保持原樣即可
-                                val targetReaction = message.reactions?.find { it.emoji == emoji }
-                                if (targetReaction?.meReacted == true) {
-                                    viewModel.removeMessageReaction(roomId, message.id, emoji)
-                                } else {
-                                    viewModel.addMessageReaction(roomId, message.id, emoji)
+        ) { innerPadding ->
+            Box(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .padding(innerPadding),
+                contentAlignment = Alignment.Center
+            ) {
+                // 根據不同的狀態渲染主畫面內容
+                when (val state = uiState) {
+                    is MessagesUiState.Loading -> {
+                        CircularProgressIndicator()
+                    }
+
+                    is MessagesUiState.Success -> {
+                        if (state.messages.isEmpty()) {
+                            Text("目前沒有新訊息")
+                        } else {
+                            MessageList(
+                                currentUserId = state.currentUserId,
+                                messages = state.messages,
+                                partnerAvatarUrl = state.partnerAvatarUrl,
+                                partnerDisplayName = state.roomTitle,
+                                activeEmojiMessageId = emojiTargetMessage?.id,   // ✨ 新增短按目標 ID
+                                activeActionMessageId = actionMessage?.id,
+                                onReplyClick = { message ->
+                                    emojiTargetMessage = null
+                                    viewModel.setActionMessage(message)
+                                },
+                                // 💡 單擊事件：開啟 Emoji 選單，同時清空長按選單
+                                onRowClick = { message ->
+                                    viewModel.clearActionMessage()
+                                    emojiTargetMessage = message
+                                },
+                                onReactionClick = { message, emoji ->
+                                    // 這是訊息氣泡下方既有 Reaction 小標籤的點擊事件，保持原樣即可
+                                    val targetReaction =
+                                        message.reactions?.find { it.emoji == emoji }
+                                    if (targetReaction?.meReacted == true) {
+                                        viewModel.removeMessageReaction(roomId, message.id, emoji)
+                                    } else {
+                                        viewModel.addMessageReaction(roomId, message.id, emoji)
+                                    }
                                 }
-                            }
+                            )
+                        }
+                    }
+
+                    is MessagesUiState.Error -> {
+                        Text(
+                            text = "載入失敗：${state.message}",
+                            color = MaterialTheme.colorScheme.error
                         )
                     }
-                }
-                is MessagesUiState.Error -> {
-                    Text(
-                        text = "載入失敗：${state.message}",
-                        color = MaterialTheme.colorScheme.error
-                    )
                 }
             }
         }
