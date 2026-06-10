@@ -200,11 +200,14 @@ fun MessageMessaging(
             containerColor = Color.Transparent,
             topBar = {
                 Column() {
-
-                    Spacer(modifier = Modifier.height(20.dp))
+                    // 🌟 調整這裡：直接用這個外層 Spacer 來隔開手機最頂部的狀態欄
+                    // 如果 20.dp 不夠，可以改用 WindowInsets.statusBars
+                    Spacer(modifier = Modifier.windowInsetsTopHeight(WindowInsets.statusBars))
+                    // 如果想在狀態欄下方再多空一點點，可以再加一點點高度，例如：
+                    // Spacer(modifier = Modifier.height(8.dp))
 
                     val topBarShape = RoundedCornerShape(16.dp)
-                    //topbar content
+
                     Box(
                         modifier = Modifier
                             .fillMaxWidth()
@@ -216,69 +219,58 @@ fun MessageMessaging(
                             .clip(topBarShape)
                             .background(
                                 color = MaterialTheme.colorScheme.primary,
-                                shape = topBarShape // 👈 1. 背景改用圓角
+                                shape = topBarShape
                             )
                             .border(
                                 width = 0.5.dp,
                                 color = Color.White.copy(alpha = 0.4f),
-                                shape = topBarShape // 👈 2. 邊框也要用同一個圓角，才不會穿幫！
+                                shape = topBarShape
                             )
                     ) {
-                        // 2. 改用 Column 將「狀態欄空間」與「實際內容」垂直排列
-                        Column(modifier = Modifier.fillMaxWidth()) {
-
-                            // 🌟 這一行負責把手機最上方的狀態欄（Status Bar）高度撐開
-                            Spacer(modifier = Modifier.windowInsetsTopHeight(WindowInsets.statusBars))
-
-                            // 3. 真正的頂部導覽列內容
-                            Row(
-                                verticalAlignment = Alignment.CenterVertically,
-                                modifier = Modifier
-                                    .fillMaxWidth()
-                                    .height(58.dp) // 👈 固定標準的 TopAppBar 高度，不會再扁扁一條了！
-                                    .padding(horizontal = 12.dp) // 側邊留點呼吸空間
-                            ) {
-                                // 如果你想加返回按鈕，可以加在這裡
-
-                                val currentState = uiState
-                                if (currentState is MessagesUiState.Success) {
-                                    UserAvatar(
-                                        avatarUrl = currentState.partnerAvatarUrl,
-                                        modifier = Modifier.size(42.dp)
-                                    )
-                                }
-
-                                Spacer(modifier = Modifier.width(12.dp))
-
-                                Text(
-                                    text = topBarTitle,
-                                    style = MaterialTheme.typography.titleMedium,
-                                    fontSize = 24.sp, // 👈 直接在這裡設定你想要的 sp 大小
-                                    fontWeight = FontWeight.Bold,
-                                    color = Color(0xFF333333),
-                                    maxLines = 1,
-                                    overflow = TextOverflow.Ellipsis
+                        Row(
+                            verticalAlignment = Alignment.CenterVertically,
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .height(58.dp) // 58dp 就會是純內容的高度，內容就會完美垂直置中了！
+                                .padding(horizontal = 12.dp)
+                        ) {
+                            val currentState = uiState
+                            if (currentState is MessagesUiState.Success) {
+                                UserAvatar(
+                                    avatarUrl = currentState.partnerAvatarUrl,
+                                    modifier = Modifier.size(42.dp)
                                 )
+                            }
 
-                                Spacer(modifier = Modifier.width(12.dp))
+                            Spacer(modifier = Modifier.width(12.dp))
 
-                                if (currentState is MessagesUiState.Success) {
-                                    if (currentState.partnerStatus == UserStatus.ONLINE) {
-                                        Box(
-                                            modifier = Modifier
-                                                .size(10.dp)
-                                                .background(
-                                                    color = UserStatus.ONLINE.color,
-                                                    shape = CircleShape
-                                                )
-                                        )
-                                    }
+                            Text(
+                                text = topBarTitle,
+                                style = MaterialTheme.typography.titleMedium,
+                                fontSize = 24.sp,
+                                fontWeight = FontWeight.Bold,
+                                color = Color(0xFF333333),
+                                maxLines = 1,
+                                overflow = TextOverflow.Ellipsis
+                            )
+
+                            Spacer(modifier = Modifier.width(12.dp))
+
+                            if (currentState is MessagesUiState.Success) {
+                                if (currentState.partnerStatus == UserStatus.ONLINE) {
+                                    Box(
+                                        modifier = Modifier
+                                            .size(10.dp)
+                                            .background(
+                                                color = UserStatus.ONLINE.color,
+                                                shape = CircleShape
+                                            )
+                                    )
                                 }
                             }
                         }
                     }
                 }
-
             }
             ,
             bottomBar = {
