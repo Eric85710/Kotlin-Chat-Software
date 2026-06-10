@@ -209,9 +209,10 @@ fun MessageMessaging(
                     Row(
                         modifier = Modifier
                             .fillMaxWidth()
-                            .padding(horizontal = 6.dp), // 配合左邊 Box 的 padding，讓整體邊距平衡
+                            .padding(horizontal = 6.dp)
+                        ,
                         verticalAlignment = Alignment.CenterVertically,
-                        horizontalArrangement = Arrangement.SpaceBetween
+                        horizontalArrangement = Arrangement.Start
                     ) {
                         //name and avatar
                         Box(
