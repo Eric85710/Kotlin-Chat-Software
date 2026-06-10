@@ -217,12 +217,11 @@ fun MessageMessaging(
                         //name and avatar
                         Box(
                             modifier = Modifier
-                                .width(260.dp)
+                                .weight(0.72f)
                                 .sharedElement(
                                     rememberSharedContentState(key = "container_$roomId"),
                                     animatedVisibilityScope = animatedVisibilityScope
                                 )
-                                .padding(6.dp)
                                 .clip(topBarShape)
                                 .background(
                                     color = MaterialTheme.colorScheme.primary,
@@ -278,11 +277,13 @@ fun MessageMessaging(
                             }
                         }
 
+                        Spacer(modifier = Modifier.width(6.dp))
+
                         //voice call button
                         Box(
                             contentAlignment = Alignment.Center,
                             modifier = Modifier
-                                .width(58.dp)
+                                .weight(0.14f)
                                 .height(58.dp)
                                 .background(
                                     color = MaterialTheme.colorScheme.primary,
@@ -310,11 +311,13 @@ fun MessageMessaging(
                             }
                         }
 
-                        //voice call button
+                        Spacer(modifier = Modifier.width(6.dp))
+
+                        //more option button
                         Box(
                             contentAlignment = Alignment.Center,
                             modifier = Modifier
-                                .width(58.dp)
+                                .weight(0.14f)
                                 .height(58.dp)
                                 .background(
                                     color = MaterialTheme.colorScheme.primary,
@@ -342,6 +345,8 @@ fun MessageMessaging(
                             }
                         }
                     }
+
+                    Spacer(modifier = Modifier.height(6.dp))
                 }
             }
             ,
