@@ -203,6 +203,7 @@ fun MessageMessaging(
 
                     Spacer(modifier = Modifier.height(20.dp))
 
+                    val topBarShape = RoundedCornerShape(16.dp)
                     //topbar content
                     Box(
                         modifier = Modifier
@@ -211,14 +212,16 @@ fun MessageMessaging(
                                 rememberSharedContentState(key = "container_$roomId"),
                                 animatedVisibilityScope = animatedVisibilityScope
                             )
+                            .padding(6.dp)
+                            .clip(topBarShape)
                             .background(
                                 color = MaterialTheme.colorScheme.primary,
-                                shape = RoundedCornerShape(0.dp)
+                                shape = topBarShape // 👈 1. 背景改用圓角
                             )
                             .border(
                                 width = 0.5.dp,
                                 color = Color.White.copy(alpha = 0.4f),
-                                shape = RoundedCornerShape(0.dp)
+                                shape = topBarShape // 👈 2. 邊框也要用同一個圓角，才不會穿幫！
                             )
                     ) {
                         // 2. 改用 Column 將「狀態欄空間」與「實際內容」垂直排列
