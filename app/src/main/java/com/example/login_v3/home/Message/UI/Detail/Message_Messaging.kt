@@ -98,6 +98,7 @@ import androidx.compose.foundation.layout.statusBars // 如果要使用 statusBa
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.ArrowBack
 import androidx.compose.material.icons.filled.Call
+import androidx.compose.material.icons.filled.MoreVert
 
 
 //bottom bar state
@@ -297,11 +298,42 @@ fun MessageMessaging(
                                     // 這裡觸發語音通話的邏輯，例如：viewModel.startVoiceCall(roomId)
                                 },
                                 modifier = Modifier
-                                    .padding(end = 6.dp) // 讓按鈕離螢幕右邊邊緣有一點呼吸空間
                                     .size(48.dp) // 給予標準的點擊區域大小
                             ) {
                                 Icon(
                                     imageVector = Icons.Default.Call, // 👈 這裡使用 Material Design 的預設電話圖標，也可以換成 Icons.Rounded.Phone
+                                    contentDescription = "語音通話",
+                                    tint = Color.White, // 👈 顏色可以根據你的漸層背景調整，如果是亮色背景可改用 MaterialTheme.colorScheme.onBackground
+                                    modifier = Modifier.size(28.dp) // Icon 實際的大小
+                                )
+                            }
+                        }
+
+                        //voice call button
+                        Box(
+                            contentAlignment = Alignment.Center,
+                            modifier = Modifier
+                                .width(58.dp)
+                                .height(58.dp)
+                                .background(
+                                    color = MaterialTheme.colorScheme.primary,
+                                    shape = topBarShape
+                                )
+                                .border(
+                                    width = 0.5.dp,
+                                    color = Color.White.copy(alpha = 0.4f),
+                                    shape = topBarShape
+                                )
+                        ) {
+                            IconButton(
+                                onClick = {
+                                    // 這裡觸發語音通話的邏輯，例如：viewModel.startVoiceCall(roomId)
+                                },
+                                modifier = Modifier
+                                    .size(48.dp) // 給予標準的點擊區域大小
+                            ) {
+                                Icon(
+                                    imageVector = Icons.Default.MoreVert, // 👈 這裡使用 Material Design 的預設電話圖標，也可以換成 Icons.Rounded.Phone
                                     contentDescription = "語音通話",
                                     tint = Color.White, // 👈 顏色可以根據你的漸層背景調整，如果是亮色背景可改用 MaterialTheme.colorScheme.onBackground
                                     modifier = Modifier.size(28.dp) // Icon 實際的大小
