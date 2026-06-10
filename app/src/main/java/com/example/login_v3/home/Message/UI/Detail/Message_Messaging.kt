@@ -181,7 +181,7 @@ fun MessageMessaging(
     val topBarTitle = when (val state = uiState) {
         is MessagesUiState.Success -> state.roomTitle
         is MessagesUiState.Error -> "載入失敗"
-        is MessagesUiState.Loading -> "載入中..."
+        is MessagesUiState.Loading -> ""
     }
 
 
@@ -199,77 +199,83 @@ fun MessageMessaging(
                 ),
             containerColor = Color.Transparent,
             topBar = {
-                // 1. 最外層保持用來做 Shared Element 容器轉場的 Box
-                Box(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .sharedElement(
-                            rememberSharedContentState(key = "container_$roomId"),
-                            animatedVisibilityScope = animatedVisibilityScope
-                        )
-                        .background(
-                            color = MaterialTheme.colorScheme.primary,
-                            shape = RoundedCornerShape(0.dp)
-                        )
-                        .border(
-                            width = 0.5.dp,
-                            color = Color.White.copy(alpha = 0.4f),
-                            shape = RoundedCornerShape(0.dp)
-                        )
-                ) {
-                    // 2. 改用 Column 將「狀態欄空間」與「實際內容」垂直排列
-                    Column(modifier = Modifier.fillMaxWidth()) {
+                Column() {
 
-                        // 🌟 這一行負責把手機最上方的狀態欄（Status Bar）高度撐開
-                        Spacer(modifier = Modifier.windowInsetsTopHeight(WindowInsets.statusBars))
+                    Spacer(modifier = Modifier.height(20.dp))
 
-                        // 3. 真正的頂部導覽列內容
-                        Row(
-                            verticalAlignment = Alignment.CenterVertically,
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .height(58.dp) // 👈 固定標準的 TopAppBar 高度，不會再扁扁一條了！
-                                .padding(horizontal = 12.dp) // 側邊留點呼吸空間
-                        ) {
-                            // 如果你想加返回按鈕，可以加在這裡
-
-                            val currentState = uiState
-                            if (currentState is MessagesUiState.Success) {
-                                UserAvatar(
-                                    avatarUrl = currentState.partnerAvatarUrl,
-                                    modifier = Modifier.size(42.dp)
-                                )
-                            }
-
-                            Spacer(modifier = Modifier.width(12.dp))
-
-                            Text(
-                                text = topBarTitle,
-                                style = MaterialTheme.typography.titleMedium,
-                                fontSize = 24.sp, // 👈 直接在這裡設定你想要的 sp 大小
-                                fontWeight = FontWeight.Bold,
-                                color = Color(0xFF333333),
-                                maxLines = 1,
-                                overflow = TextOverflow.Ellipsis
+                    //topbar content
+                    Box(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .sharedElement(
+                                rememberSharedContentState(key = "container_$roomId"),
+                                animatedVisibilityScope = animatedVisibilityScope
                             )
+                            .background(
+                                color = MaterialTheme.colorScheme.primary,
+                                shape = RoundedCornerShape(0.dp)
+                            )
+                            .border(
+                                width = 0.5.dp,
+                                color = Color.White.copy(alpha = 0.4f),
+                                shape = RoundedCornerShape(0.dp)
+                            )
+                    ) {
+                        // 2. 改用 Column 將「狀態欄空間」與「實際內容」垂直排列
+                        Column(modifier = Modifier.fillMaxWidth()) {
 
-                            Spacer(modifier = Modifier.width(12.dp))
+                            // 🌟 這一行負責把手機最上方的狀態欄（Status Bar）高度撐開
+                            Spacer(modifier = Modifier.windowInsetsTopHeight(WindowInsets.statusBars))
 
-                            if (currentState is MessagesUiState.Success) {
-                                if (currentState.partnerStatus == UserStatus.ONLINE) {
-                                    Box(
-                                        modifier = Modifier
-                                            .size(10.dp)
-                                            .background(
-                                                color = UserStatus.ONLINE.color,
-                                                shape = CircleShape
-                                            )
+                            // 3. 真正的頂部導覽列內容
+                            Row(
+                                verticalAlignment = Alignment.CenterVertically,
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .height(58.dp) // 👈 固定標準的 TopAppBar 高度，不會再扁扁一條了！
+                                    .padding(horizontal = 12.dp) // 側邊留點呼吸空間
+                            ) {
+                                // 如果你想加返回按鈕，可以加在這裡
+
+                                val currentState = uiState
+                                if (currentState is MessagesUiState.Success) {
+                                    UserAvatar(
+                                        avatarUrl = currentState.partnerAvatarUrl,
+                                        modifier = Modifier.size(42.dp)
                                     )
+                                }
+
+                                Spacer(modifier = Modifier.width(12.dp))
+
+                                Text(
+                                    text = topBarTitle,
+                                    style = MaterialTheme.typography.titleMedium,
+                                    fontSize = 24.sp, // 👈 直接在這裡設定你想要的 sp 大小
+                                    fontWeight = FontWeight.Bold,
+                                    color = Color(0xFF333333),
+                                    maxLines = 1,
+                                    overflow = TextOverflow.Ellipsis
+                                )
+
+                                Spacer(modifier = Modifier.width(12.dp))
+
+                                if (currentState is MessagesUiState.Success) {
+                                    if (currentState.partnerStatus == UserStatus.ONLINE) {
+                                        Box(
+                                            modifier = Modifier
+                                                .size(10.dp)
+                                                .background(
+                                                    color = UserStatus.ONLINE.color,
+                                                    shape = CircleShape
+                                                )
+                                        )
+                                    }
                                 }
                             }
                         }
                     }
                 }
+
             }
             ,
             bottomBar = {
