@@ -359,17 +359,57 @@ class ChatRoomsRepository @Inject constructor(
         messageId: String,
         emoji: String
     ): Result<Unit> {
+
+        // 1. 先從本地撈出原本的訊息作為備份
+        val backupEntity = try {
+            messageDao.getMessageById(messageId)
+        } catch (e: Exception) {
+            null
+        }
+
+        // 2. 樂觀更新：立刻在本地修改 Reaction 狀態
+        if (backupEntity != null) {
+            try {
+                val currentReactions = backupEntity.reactions ?: emptyList()
+
+                // 運算修改後的 Reactions 列表
+                val updatedReactions = currentReactions.map { reaction ->
+                    if (reaction.emoji == emoji) {
+                        // 將數量減 1，並把自己點擊的狀態設為 false
+                        reaction.copy(
+                            count = (reaction.count - 1).coerceAtLeast(0),
+                            meReacted = false
+                        )
+                    } else {
+                        reaction
+                    }
+                }.filter { it.count > 0 } // 如果數量歸零，就直接從畫面上移除該 Emoji
+
+                // 將更新後的反應放回 Entity，並寫入資料庫觸發 UI 更新
+                val updatedEntity = backupEntity.copy(reactions = updatedReactions)
+                messageDao.insertOrUpdate(updatedEntity)
+            } catch (e: Exception) {
+                // 如果本地資料庫寫入失敗，直接回傳錯誤，不戳 API
+                return Result.failure(e)
+            }
+        }
+
+        // 3. 呼叫後端 API
         return try {
             val response = api.deleteMessageReaction(roomId, messageId, emoji)
 
             if (response.isSuccessful) {
-                // 204 成功時沒有 body，直接回傳 Unit
+                // 真正成功！因為本地已經提早改好了，什麼都不用做
                 Result.success(Unit)
             } else {
+                // 後端回報失敗（例如：網路突然斷開、伺服器錯誤）：把剛才備份的原始資料塞回去，讓 UI 彈回原本的數字
+                backupEntity?.let { messageDao.insertOrUpdate(it) }
                 val errorMsg = response.errorBody()?.string() ?: "未知錯誤"
                 Result.failure(Exception("移除反應失敗，錯誤碼: ${response.code()}, 訊息: $errorMsg"))
             }
         } catch (e: Exception) {
+            // 網路斷線或 Timeout：回滾資料庫，讓 UI 彈回來
+            backupEntity?.let { messageDao.insertOrUpdate(it) }
             Result.failure(e)
         }
     }
