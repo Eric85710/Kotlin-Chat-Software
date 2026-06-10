@@ -228,7 +228,7 @@ fun MessageMessaging(
                             verticalAlignment = Alignment.CenterVertically,
                             modifier = Modifier
                                 .fillMaxWidth()
-                                .height(56.dp) // 👈 固定標準的 TopAppBar 高度，不會再扁扁一條了！
+                                .height(58.dp) // 👈 固定標準的 TopAppBar 高度，不會再扁扁一條了！
                                 .padding(horizontal = 12.dp) // 側邊留點呼吸空間
                         ) {
                             // 如果你想加返回按鈕，可以加在這裡
@@ -237,7 +237,7 @@ fun MessageMessaging(
                             if (currentState is MessagesUiState.Success) {
                                 UserAvatar(
                                     avatarUrl = currentState.partnerAvatarUrl,
-                                    modifier = Modifier.size(36.dp)
+                                    modifier = Modifier.size(42.dp)
                                 )
                             }
 
@@ -246,10 +246,14 @@ fun MessageMessaging(
                             Text(
                                 text = topBarTitle,
                                 style = MaterialTheme.typography.titleMedium,
-                                color = Color.Black
+                                fontSize = 24.sp, // 👈 直接在這裡設定你想要的 sp 大小
+                                fontWeight = FontWeight.Bold,
+                                color = Color(0xFF333333),
+                                maxLines = 1,
+                                overflow = TextOverflow.Ellipsis
                             )
 
-                            Spacer(modifier = Modifier.width(8.dp))
+                            Spacer(modifier = Modifier.width(12.dp))
 
                             if (currentState is MessagesUiState.Success) {
                                 if (currentState.partnerStatus == UserStatus.ONLINE) {

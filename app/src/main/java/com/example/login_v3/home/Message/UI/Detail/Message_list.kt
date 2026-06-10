@@ -229,140 +229,128 @@ fun RoomItem(
     val title = room.displayTitle
 
     with(sharedTransitionScope){
-        Card(
+        Box(
             modifier = Modifier
                 .fillMaxWidth()
                 .padding(horizontal = 12.dp, vertical = 6.dp)
-                .clickable { onClick(room.roomId, room.displayTitle) }
-                // 🌟 關鍵：把共享元素鎖定在整個外層 Container 上！
+                // 1. 先處理轉場動畫（確保容器變形基底乾淨）
                 .sharedElement(
                     rememberSharedContentState(key = "container_${room.roomId}"),
                     animatedVisibilityScope = animatedVisibilityScope
                 )
-            ,
-            shape = RoundedCornerShape(16.dp), // 較大的圓角看起來更現代
-            colors = CardDefaults.cardColors(
-                containerColor = Color.Transparent // ✅ 透明背景
-            ),
-            elevation = CardDefaults.cardElevation(
-                defaultElevation = 0.dp // 增加輕微陰影
-            )
-        ) {
+                // 2. 再綁定點擊事件
+                .clickable { onClick(room.roomId, room.displayTitle) }
+        ){
+            //glass effect
             Box(
                 modifier = Modifier
-                    .fillMaxSize()
-            ){
-                //glass effect
-                Box(
-                    modifier = Modifier
-                        .matchParentSize()
-                        .blur(10.dp)
-                )
-                Box(
-                    modifier = Modifier
-                        .matchParentSize()
-                        .background(
-                            color = MaterialTheme.colorScheme.primary,
-                            RoundedCornerShape(16.dp)
-                        )
-                        .border(
-                            1.dp,
-                            Color.White.copy(alpha = 0.3f),
-                            RoundedCornerShape(16.dp)
-                        )
-                )
+                    .matchParentSize()
+                    .blur(10.dp)
+            )
+            Box(
+                modifier = Modifier
+                    .matchParentSize()
+                    .background(
+                        color = MaterialTheme.colorScheme.primary,
+                        RoundedCornerShape(16.dp)
+                    )
+                    .border(
+                        1.dp,
+                        Color.White.copy(alpha = 0.3f),
+                        RoundedCornerShape(16.dp)
+                    )
+            )
 
 
-                Row(
-                    verticalAlignment = Alignment.CenterVertically,
-                    modifier = Modifier.padding(12.dp),
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                modifier = Modifier.padding(12.dp),
+            ) {
+                // 1. 頭像
+                val imageUrl = room.roomIconUrl ?: room.partner?.fullContactAvatarUrl
+                AsyncImage(
+                    model = imageUrl,
+                    contentDescription = "Avatar",
+                    contentScale = ContentScale.Crop,
+                    modifier = Modifier
+                        .size(56.dp) // 稍微加大一點
+                        .clip(CircleShape)
+                        .border(1.dp, Color.White, CircleShape) // 頭像加個細白邊
+                        .background(Color.LightGray)
+                )
+
+                Spacer(modifier = Modifier.width(16.dp))
+
+                // 2. 中間內容
+                Column(
+                    modifier = Modifier.weight(1f)
                 ) {
-                    // 1. 頭像
-                    val imageUrl = room.roomIconUrl ?: room.partner?.fullContactAvatarUrl
-                    AsyncImage(
-                        model = imageUrl,
-                        contentDescription = "Avatar",
-                        contentScale = ContentScale.Crop,
-                        modifier = Modifier
-                            .size(56.dp) // 稍微加大一點
-                            .clip(CircleShape)
-                            .border(1.dp, Color.White, CircleShape) // 頭像加個細白邊
-                            .background(Color.LightGray)
+                    Text(
+                        text = room.roomName.orEmpty().ifEmpty {
+                            room.partner?.displayName ?: "Unknown"
+                        },
+                        style = MaterialTheme.typography.titleMedium,
+                        fontWeight = FontWeight.Bold,
+                        color = Color(0xFF333333),
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis
                     )
 
-                    Spacer(modifier = Modifier.width(16.dp))
+                    Spacer(modifier = Modifier.height(4.dp))
 
-                    // 2. 中間內容
-                    Column(
-                        modifier = Modifier.weight(1f)
-                    ) {
+                    val lastMsgText = when {
+                        room.lastMessage?.isDeleted == true -> "訊息已刪除"
+                        room.lastMessage?.content != null -> room.lastMessage.content
+                        room.lastMessage?.attachment != null -> "[檔案] ${room.lastMessage.attachment.filename}"
+                        else -> "尚未有訊息"
+                    }
+
+                    Row() {
                         Text(
-                            text = room.roomName.orEmpty().ifEmpty {
-                                room.partner?.displayName ?: "Unknown"
-                            },
-                            style = MaterialTheme.typography.titleMedium,
-                            fontWeight = FontWeight.Bold,
-                            color = Color(0xFF333333),
+                            text = lastMsgText,
+                            style = MaterialTheme.typography.bodyMedium,
+                            color = Color.Gray,
                             maxLines = 1,
                             overflow = TextOverflow.Ellipsis
                         )
 
-                        Spacer(modifier = Modifier.height(4.dp))
+                        Spacer(modifier = Modifier.width(6.dp))
 
-                        val lastMsgText = when {
-                            room.lastMessage?.isDeleted == true -> "訊息已刪除"
-                            room.lastMessage?.content != null -> room.lastMessage.content
-                            room.lastMessage?.attachment != null -> "[檔案] ${room.lastMessage.attachment.filename}"
-                            else -> "尚未有訊息"
-                        }
-
-                        Row() {
-                            Text(
-                                text = lastMsgText,
-                                style = MaterialTheme.typography.bodyMedium,
-                                color = Color.Gray,
-                                maxLines = 1,
-                                overflow = TextOverflow.Ellipsis
-                            )
-
-                            Spacer(modifier = Modifier.width(6.dp))
-
-                            if (room.unreadCount > 0) {
-                                Badge(
-                                    containerColor = Color(0xFFDA7029), // 使用你的主橘色
-                                    contentColor = Color.White
-                                ) {
-                                    Text(
-                                        text = if (room.unreadCount > 99) "99+" else room.unreadCount.toString(),
-                                        modifier = Modifier.padding(horizontal = 4.dp)
-                                    )
-                                }
+                        if (room.unreadCount > 0) {
+                            Badge(
+                                containerColor = Color(0xFFDA7029), // 使用你的主橘色
+                                contentColor = Color.White
+                            ) {
+                                Text(
+                                    text = if (room.unreadCount > 99) "99+" else room.unreadCount.toString(),
+                                    modifier = Modifier.padding(horizontal = 4.dp)
+                                )
                             }
                         }
-
-                        Spacer(modifier = Modifier.width(2.dp))
                     }
 
-
-                    //online status
-                    val partner = room.partner // 先從 room 取得 partner
-                    if (partner != null) {
-                        val status = UserStatus.fromString(partner.status)
-                        if (status != UserStatus.UNKNOWN) {
-                            Box(
-                                modifier = Modifier
-                                    .size(14.dp)
-                                    .background(status.color, CircleShape) // 直接設定圓形背景
-                                    .border(2.dp, Color.White, CircleShape) // 白色外圈邊線
-                            )
-                        }
-                    }
-
-                    Spacer(modifier = Modifier.width(10.dp))
+                    Spacer(modifier = Modifier.width(2.dp))
                 }
 
 
+                //online status
+                val partner = room.partner // 先從 room 取得 partner
+                if (partner != null) {
+                    val status = UserStatus.fromString(partner.status)
+                    if (status != UserStatus.UNKNOWN) {
+                        Box(
+                            modifier = Modifier
+                                .size(14.dp)
+                                .background(status.color, CircleShape) // 直接設定圓形背景
+                                .border(2.dp, Color.White, CircleShape) // 白色外圈邊線
+                        )
+                    }
+                }
+
+                Spacer(modifier = Modifier.width(10.dp))
             }
+
+
         }
 
     }
