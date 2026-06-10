@@ -18,6 +18,7 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
@@ -90,8 +91,12 @@ import com.example.login_v3.home.Message.ViewModel.Detail.MessagesUiState
 import com.example.login_v3.home.Message.ViewModel.Detail.SendMessageState
 import com.example.login_v3.home.Message.ViewModel.UserStatus
 import com.example.login_v3.navigation.BottomBarViewModel
-
-
+import androidx.compose.foundation.layout.WindowInsets
+import androidx.compose.foundation.layout.fillMaxHeight
+import androidx.compose.foundation.layout.windowInsetsTopHeight
+import androidx.compose.foundation.layout.statusBars // 如果要使用 statusBars 也需要這個
+import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material.icons.filled.ArrowBack
 
 
 //bottom bar state
@@ -194,12 +199,40 @@ fun MessageMessaging(
                 ),
             containerColor = Color.Transparent,
             topBar = {
-                TopAppBar(
-                    title = {
+                // 1. 最外層保持用來做 Shared Element 容器轉場的 Box
+                Box(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .sharedElement(
+                            rememberSharedContentState(key = "container_$roomId"),
+                            animatedVisibilityScope = animatedVisibilityScope
+                        )
+                        .background(
+                            color = MaterialTheme.colorScheme.primary,
+                            shape = RoundedCornerShape(0.dp)
+                        )
+                        .border(
+                            width = 0.5.dp,
+                            color = Color.White.copy(alpha = 0.4f),
+                            shape = RoundedCornerShape(0.dp)
+                        )
+                ) {
+                    // 2. 改用 Column 將「狀態欄空間」與「實際內容」垂直排列
+                    Column(modifier = Modifier.fillMaxWidth()) {
+
+                        // 🌟 這一行負責把手機最上方的狀態欄（Status Bar）高度撐開
+                        Spacer(modifier = Modifier.windowInsetsTopHeight(WindowInsets.statusBars))
+
+                        // 3. 真正的頂部導覽列內容
                         Row(
                             verticalAlignment = Alignment.CenterVertically,
-                            horizontalArrangement = Arrangement.spacedBy(8.dp)
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .height(56.dp) // 👈 固定標準的 TopAppBar 高度，不會再扁扁一條了！
+                                .padding(horizontal = 12.dp) // 側邊留點呼吸空間
                         ) {
+                            // 如果你想加返回按鈕，可以加在這裡
+
                             val currentState = uiState
                             if (currentState is MessagesUiState.Success) {
                                 UserAvatar(
@@ -208,7 +241,15 @@ fun MessageMessaging(
                                 )
                             }
 
-                            Text(text = topBarTitle)
+                            Spacer(modifier = Modifier.width(12.dp))
+
+                            Text(
+                                text = topBarTitle,
+                                style = MaterialTheme.typography.titleMedium,
+                                color = Color.Black
+                            )
+
+                            Spacer(modifier = Modifier.width(8.dp))
 
                             if (currentState is MessagesUiState.Success) {
                                 if (currentState.partnerStatus == UserStatus.ONLINE) {
@@ -223,14 +264,10 @@ fun MessageMessaging(
                                 }
                             }
                         }
-                    },
-                    // 🌟 關鍵修改 1：設定半透明背景色
-                    colors = TopAppBarDefaults.topAppBarColors(
-                        // 這裡可以用 Surface 色加上 0.6 的透明度，或者直接用自訂顏色如 Color.White.copy(0.5f)
-                        containerColor = MaterialTheme.colorScheme.surface.copy(alpha = 0.4f)
-                    )
-                )
-            },
+                    }
+                }
+            }
+            ,
             bottomBar = {
                 // 👈 使用我們定義的 sealed interface 狀態機
                 AnimatedContent(
