@@ -188,15 +188,17 @@ fun MessageMessaging(
                     Row(
                         modifier = Modifier
                             .fillMaxWidth()
-                            .padding(horizontal = 6.dp)
+                            .padding(horizontal = 4.dp)
                         ,
                         verticalAlignment = Alignment.CenterVertically,
                         horizontalArrangement = Arrangement.Start
                     ) {
+                        Spacer(modifier = Modifier.width(6.dp))
+
                         //name and avatar
                         Box(
                             modifier = Modifier
-                                .weight(0.72f)
+                                .weight(0.68f)
                                 .sharedElement(
                                     rememberSharedContentState(key = "container_$roomId"),
                                     animatedVisibilityScope = animatedVisibilityScope
@@ -253,13 +255,13 @@ fun MessageMessaging(
                             }
                         }
 
-                        Spacer(modifier = Modifier.width(6.dp))
+                        Spacer(modifier = Modifier.width(8.dp))
 
                         //voice call button
                         Box(
                             contentAlignment = Alignment.Center,
                             modifier = Modifier
-                                .weight(0.14f)
+                                .weight(0.16f)
                                 .height(58.dp)
                                 .background(
                                     color = MaterialTheme.colorScheme.primary,
@@ -287,13 +289,13 @@ fun MessageMessaging(
                             }
                         }
 
-                        Spacer(modifier = Modifier.width(6.dp))
+                        Spacer(modifier = Modifier.width(8.dp))
 
                         //more option button
                         Box(
                             contentAlignment = Alignment.Center,
                             modifier = Modifier
-                                .weight(0.14f)
+                                .weight(0.16f)
                                 .height(58.dp)
                                 .background(
                                     color = MaterialTheme.colorScheme.primary,
@@ -320,6 +322,8 @@ fun MessageMessaging(
                                 )
                             }
                         }
+
+                        Spacer(modifier = Modifier.width(6.dp))
                     }
 
                     Spacer(modifier = Modifier.height(6.dp))
