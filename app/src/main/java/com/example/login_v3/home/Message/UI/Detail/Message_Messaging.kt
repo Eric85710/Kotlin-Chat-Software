@@ -257,10 +257,10 @@ fun MessageMessaging(
                                     fontWeight = FontWeight.Bold,
                                     color = Color(0xFF333333),
                                     maxLines = 1,
-                                    overflow = TextOverflow.Ellipsis
+                                    overflow = TextOverflow.Ellipsis,
+                                    modifier = Modifier.weight(1f)
                                 )
 
-                                Spacer(modifier = Modifier.width(12.dp))
 
                                 if (currentState is MessagesUiState.Success) {
                                     if (currentState.partnerStatus == UserStatus.ONLINE) {
@@ -274,6 +274,8 @@ fun MessageMessaging(
                                         )
                                     }
                                 }
+
+                                Spacer(modifier = Modifier.width(12.dp))
                             }
                         }
 
