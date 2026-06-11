@@ -77,6 +77,7 @@ import androidx.compose.foundation.layout.windowInsetsTopHeight
 import androidx.compose.foundation.layout.statusBars // 如果要使用 statusBars 也需要這個
 import androidx.compose.material.icons.filled.Call
 import androidx.compose.material.icons.filled.MoreVert
+import com.example.login_v3.home.Message.UI.Detail.Message_Component.UserStatusDot
 
 
 //bottom bar state
@@ -241,16 +242,11 @@ fun MessageMessaging(
 
 
                                 if (currentState is MessagesUiState.Success) {
-                                    if (currentState.partnerStatus == UserStatus.ONLINE) {
-                                        Box(
-                                            modifier = Modifier
-                                                .size(10.dp)
-                                                .background(
-                                                    color = UserStatus.ONLINE.color,
-                                                    shape = CircleShape
-                                                )
-                                        )
-                                    }
+                                    // 拿掉原本只判斷 ONLINE 的 if，讓所有狀態（除了 UNKNOWN）都能顯示
+                                    UserStatusDot(
+                                        status = currentState.partnerStatus,
+                                        size = 14.dp // 建議統一成 14.dp，包含白色外圈的視覺效果最好
+                                    )
                                 }
 
                                 Spacer(modifier = Modifier.width(12.dp))
