@@ -1,4 +1,4 @@
-package com.example.login_v3.home.Message.UI.Detail.Message_Messaging_detail
+package com.example.login_v3.home.Message.UI.Detail.Message_Component
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.shape.CircleShape

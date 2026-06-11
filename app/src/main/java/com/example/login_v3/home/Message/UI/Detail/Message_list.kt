@@ -60,6 +60,7 @@ import androidx.navigation.NavController
 import coil.compose.AsyncImage
 import com.example.login_v3.data.api.api_class.ChatRoom
 import com.example.login_v3.data.api.api_class.fullContactAvatarUrl
+import com.example.login_v3.home.Message.UI.Detail.Message_Component.UserStatusDot
 import com.example.login_v3.home.Message.UI.Screen
 import com.example.login_v3.home.Message.ViewModel.ChatRoomsViewModel
 import com.example.login_v3.home.Message.ViewModel.UserStatus
@@ -333,18 +334,11 @@ fun RoomItem(
                 }
 
 
-                //online status
+                // online status
                 val partner = room.partner // 先從 room 取得 partner
                 if (partner != null) {
                     val status = UserStatus.fromString(partner.status)
-                    if (status != UserStatus.UNKNOWN) {
-                        Box(
-                            modifier = Modifier
-                                .size(14.dp)
-                                .background(status.color, CircleShape) // 直接設定圓形背景
-                                .border(2.dp, Color.White, CircleShape) // 白色外圈邊線
-                        )
-                    }
+                    UserStatusDot(status = status)
                 }
 
                 Spacer(modifier = Modifier.width(10.dp))
