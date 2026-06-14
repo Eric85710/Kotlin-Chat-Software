@@ -4,7 +4,8 @@ import com.example.login_v3.R
 import com.example.login_v3.home.Message.ViewModel.Detail.MessageStatus
 import com.squareup.moshi.Json
 import com.squareup.moshi.JsonClass
-
+import com.squareup.moshi.Moshi
+import com.squareup.moshi.kotlin.reflect.KotlinJsonAdapterFactory
 
 
 //Get DM list
@@ -126,3 +127,37 @@ data class SendMessageRequest(
 data class MessageReactionUsersResponse(
     @Json(name = "users") val users: List<String>
 )
+
+
+
+
+//voice call
+@JsonClass(generateAdapter = true)
+data class CallLogInfo(
+    @Json(name = "type") val type: String, // 例如: call, call_log, call_missed, call_rejected 等
+    @Json(name = "initiator_id") val initiator_id: String,
+    @Json(name = "has_video") val has_video: Boolean
+) {
+    companion object {
+        private val moshi = Moshi.Builder()
+            .addLast(KotlinJsonAdapterFactory())
+            .build()
+
+        private val adapter = moshi.adapter(CallLogInfo::class.java)
+
+        fun parse(message: Message): CallLogInfo? {
+            // 🌟 修正：只要是 call 開頭的 type 都允許解析，避免 call_missed 被擋掉
+            if (message.type == null || !message.type.startsWith("call")) return null
+
+            val content = message.content?.trim() ?: return null
+            if (!content.startsWith("{") || !content.endsWith("}")) return null
+
+            return try {
+                adapter.fromJson(content)
+            } catch (e: Exception) {
+                android.util.Log.e("CallLogInfo", "解析通話 JSON 失敗: ${e.message}")
+                null
+            }
+        }
+    }
+}

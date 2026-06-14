@@ -75,6 +75,8 @@ import androidx.compose.foundation.layout.windowInsetsTopHeight
 import androidx.compose.foundation.layout.statusBars // 如果要使用 statusBars 也需要這個
 import androidx.compose.material.icons.filled.Call
 import androidx.compose.material.icons.filled.MoreVert
+import com.example.login_v3.data.api.api_class.CallLogInfo
+import com.example.login_v3.home.Message.UI.Detail.Message_Component.CallLogBubble
 import com.example.login_v3.home.Message.UI.Detail.Message_Component.UserStatusDot
 
 
@@ -515,6 +517,8 @@ fun MessageRow(
     val isImage = isAttachmentImage || isLegacyImage
     val rawContent = message.content ?: ""
 
+    val callLog = remember(message.id, message.content) { CallLogInfo.parse(message) }
+
     val finalImageModel = remember(message) {
         val rawPath = if (isAttachmentImage && !message.attachment?.filename.isNullOrBlank()) {
             message.attachment!!.filename
@@ -536,8 +540,11 @@ fun MessageRow(
         }
     }
 
-    val finalBubbleColor = remember(message.status, isHighlight) {
+    val finalBubbleColor = remember(message.status, isHighlight, callLog) {
         val baseColor = when {
+            callLog != null -> {
+                if (callLog.type == "call_missed") Color(0xFFFCE8E6) else Color(0xFFF1F3F4)
+            }
             isMe && isHighlight -> Color(0xFFB4E197)
             isMe -> Color(0xFFDCF8C6)
             !isMe && isHighlight -> Color(0xFFCFD8DC)
@@ -615,6 +622,26 @@ fun MessageRow(
                                 onError = { errorState ->
                                     android.util.Log.e("ChatImageError", "原因: ${errorState.result.throwable}")
                                 }
+                            )
+                        }
+                    } else if (callLog != null) {
+                        // 🌟 通話紀錄渲染
+                        Box(
+                            modifier = Modifier
+                                .widthIn(max = 280.dp)
+                                .clip(RoundedCornerShape(12.dp))
+                                .combinedClickable(
+                                    onLongClick = { onReplyClick(message) },
+                                    onClick = { onRowClick(message) }
+                                )
+                                .background(color = finalBubbleColor)
+                                .padding(horizontal = 14.dp, vertical = 10.dp)
+                        ) {
+                            CallLogBubble(
+                                callLog = callLog,
+                                isMe = isMe,
+                                currentUserId = currentUserId,
+                                partnerDisplayName = partnerDisplayName
                             )
                         }
                     } else {
