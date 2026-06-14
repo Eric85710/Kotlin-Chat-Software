@@ -73,6 +73,7 @@ import com.example.login_v3.home.Message.ViewModel.Detail.SendMessageState
 import com.example.login_v3.home.Message.ViewModel.UserStatus
 import com.example.login_v3.navigation.BottomBarViewModel
 import androidx.compose.foundation.layout.WindowInsets
+import androidx.compose.foundation.layout.sizeIn
 import androidx.compose.foundation.layout.windowInsetsTopHeight
 import androidx.compose.foundation.layout.statusBars // 如果要使用 statusBars 也需要這個
 import androidx.compose.material.icons.filled.Call
@@ -667,23 +668,23 @@ fun MessageRow(
 
                             // 訊息主體內容（文字或圖片）
                             if (isImage) {
-                                Box(
+                                // 💡 移除外層固定限制，改由 AsyncImage 自己決定尺寸
+                                AsyncImage(
+                                    model = finalImageModel,
+                                    contentDescription = "聊天圖片",
+                                    // 🌟 關鍵 1：使用 ContentScale.Fit 或 Inside
+                                    contentScale = ContentScale.Fit,
                                     modifier = Modifier
                                         .padding(top = 4.dp)
-                                        .widthIn(max = 240.dp)
+                                        // 🌟 關鍵 2：限制最大寬高，避免超大圖塞滿螢幕
+                                        .sizeIn(maxWidth = 240.dp, maxHeight = 300.dp)
                                         .clip(RoundedCornerShape(8.dp))
-                                        .background(Color.LightGray)
-                                ) {
-                                    AsyncImage(
-                                        model = finalImageModel,
-                                        contentDescription = "聊天圖片",
-                                        contentScale = ContentScale.Fit,
-                                        modifier = Modifier.fillMaxWidth().heightIn(max = 300.dp),
-                                        onError = { errorState ->
-                                            android.util.Log.e("ChatImageError", "原因: ${errorState.result.throwable}")
-                                        }
-                                    )
-                                }
+                                        .background(Color.LightGray),
+                                    onError = { errorState ->
+                                        android.util.Log.e("ChatImageError", "原因: ${errorState.result.throwable}")
+                                    }
+                                )
+
                             } else {
                                 Text(
                                     text = rawContent,
