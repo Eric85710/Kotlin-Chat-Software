@@ -521,24 +521,28 @@ fun MessageRow(
     val rawContent = message.content ?: ""
 
     val finalImageModel = remember(message) {
+        // 1. 取得原始路徑（優先使用 attachment 的 filename，次之用 content）
         val rawPath = if (isAttachmentImage && !message.attachment?.filename.isNullOrBlank()) {
             message.attachment!!.filename
         } else {
             message.content ?: ""
         }
 
+        val baseUrl = "https://tg.technologia-tw.com"
+
         when {
             rawPath.isBlank() -> ""
+            // 如果後端已經給了完整網址（包含 http 或 https），就直接使用
             rawPath.startsWith("http") -> rawPath
 
             else -> {
-                // 統一先把開頭的 "/" 或 "uploads/" 乾淨地剝離，再統一重新組合
+                // 💡 關鍵安全處理：先把開頭可能重複的 "/" 或 "uploads/" 乾淨地剝離，避免網址重複拼接
                 val cleanPath = rawPath.removePrefix("/").removePrefix("uploads/")
 
                 if (cleanPath.startsWith("attachment/")) {
-                    "https://192.168.0.217/uploads/$cleanPath"
+                    "$baseUrl/uploads/$cleanPath"
                 } else {
-                    "https://192.168.0.217/uploads/attachment/$cleanPath"
+                    "$baseUrl/uploads/attachment/$cleanPath"
                 }
             }
         }
