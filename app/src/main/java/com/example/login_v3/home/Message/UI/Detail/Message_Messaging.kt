@@ -17,14 +17,12 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
-import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
-import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Warning
@@ -70,7 +68,6 @@ import com.example.login_v3.home.Message.ViewModel.Detail.DeleteMessageState
 import com.example.login_v3.home.Message.ViewModel.Detail.MessageStatus
 import com.example.login_v3.home.Message.ViewModel.Detail.MessagesUiState
 import com.example.login_v3.home.Message.ViewModel.Detail.SendMessageState
-import com.example.login_v3.home.Message.ViewModel.UserStatus
 import com.example.login_v3.navigation.BottomBarViewModel
 import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.sizeIn
@@ -514,32 +511,22 @@ fun MessageRow(
     val contentLowerCase = (message.content ?: "").lowercase()
     val imageExtensions = listOf(".jpg", ".jpeg", ".png", ".webp", ".heic", ".heif")
 
-    // 修正：只要字串包含圖片副檔名，就認定它是舊版圖片路徑（拿掉 startsWith("http") 的限制）
     val isLegacyImage = imageExtensions.any { contentLowerCase.contains(it) }
     val isImage = isAttachmentImage || isLegacyImage
-
-
     val rawContent = message.content ?: ""
 
     val finalImageModel = remember(message) {
-        // 1. 取得原始路徑（優先使用 attachment 的 filename，次之用 content）
         val rawPath = if (isAttachmentImage && !message.attachment?.filename.isNullOrBlank()) {
             message.attachment!!.filename
         } else {
             message.content ?: ""
         }
-
         val baseUrl = "https://tg.technologia-tw.com"
-
         when {
             rawPath.isBlank() -> ""
-            // 如果後端已經給了完整網址（包含 http 或 https），就直接使用
             rawPath.startsWith("http") -> rawPath
-
             else -> {
-                // 💡 關鍵安全處理：先把開頭可能重複的 "/" 或 "uploads/" 乾淨地剝離，避免網址重複拼接
                 val cleanPath = rawPath.removePrefix("/").removePrefix("uploads/")
-
                 if (cleanPath.startsWith("attachment/")) {
                     "$baseUrl/uploads/$cleanPath"
                 } else {
@@ -549,8 +536,6 @@ fun MessageRow(
         }
     }
 
-
-
     val finalBubbleColor = remember(message.status, isHighlight) {
         val baseColor = when {
             isMe && isHighlight -> Color(0xFFB4E197)
@@ -558,13 +543,7 @@ fun MessageRow(
             !isMe && isHighlight -> Color(0xFFCFD8DC)
             else -> Color(0xFFECEFF1)
         }
-
-        // ⏳ 如果是發送中，直接讓顏色本身帶 alpha（例如 0.75f，防止被背景吃掉）
-        if (message.status == MessageStatus.SENDING) {
-            baseColor.copy(alpha = 0.75f)
-        } else {
-            baseColor // 成功或失敗時維持實色
-        }
+        if (message.status == MessageStatus.SENDING) baseColor.copy(alpha = 0.75f) else baseColor
     }
 
     Row(
@@ -572,12 +551,10 @@ fun MessageRow(
             .fillMaxWidth()
             .then(if (isHighlight) Modifier.background(Color(0x33FF9800), RoundedCornerShape(12.dp)) else Modifier)
     ) {
-        //message container
         Row(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(horizontal = 4.dp, vertical = 2.dp)
-            ,
+                .padding(horizontal = 4.dp, vertical = 2.dp),
             horizontalArrangement = if (isMe) Arrangement.End else Arrangement.Start
         ) {
             if (!isMe) {
@@ -587,114 +564,92 @@ fun MessageRow(
                 )
             }
 
-            // 💡 核心優化：如果是「我發的」且「發送失敗」，我們要把驚嘆號跟氣泡橫向並排
             Row(
                 verticalAlignment = Alignment.CenterVertically,
                 horizontalArrangement = Arrangement.spacedBy(4.dp)
             ) {
-
-                // 🛑 如果是我發的訊息，且發送失敗（FAILED），就把紅色驚嘆號顯示在氣泡「左邊」
                 if (isMe && message.status == MessageStatus.FAILED) {
                     Icon(
-                        imageVector = androidx.compose.material.icons.Icons.Default.Warning, // 需確保有 import
+                        imageVector = androidx.compose.material.icons.Icons.Default.Warning,
                         contentDescription = "發送失敗",
                         tint = Color.Red,
-                        modifier = Modifier
-                            .size(20.dp)
-                            .clickable {
-                                // 💡 加分功能：未來可以在這裡綁定「點擊重發」的 viewModel.sendMessage(...) 邏輯
-                            }
+                        modifier = Modifier.size(20.dp).clickable { /* 重發邏輯 */ }
                     )
                 }
 
                 Column(
                     horizontalAlignment = if (isMe) Alignment.End else Alignment.Start
                 ) {
-                    Box(
-                        modifier = Modifier
-                            .widthIn(max = 280.dp)
-                            .clip(
-                                RoundedCornerShape(
-                                    topStart = 12.dp, topEnd = 12.dp,
-                                    bottomStart = if (isMe) 12.dp else 0.dp,
-                                    bottomEnd = if (isMe) 0.dp else 12.dp
-                                )
-                            )
-                            .combinedClickable(
-                                onLongClick = { onReplyClick(message) },
-                                onClick = { onRowClick(message) }
-                            )
-                            .background(color = finalBubbleColor)
-                            .padding(horizontal = 12.dp, vertical = 8.dp)
-                    ) {
-                        Column {
 
-                            // 🌟 核心修復：如果存在被回覆的訊息，在這裡將它渲染出來！
+                    // 🌟 核心分流：如果是圖片，不穿氣泡外衣，直接渲染
+                    if (isImage) {
+                        Column(
+                            modifier = Modifier
+                                .widthIn(max = 240.dp) // 限制圖片最大寬度
+                                .combinedClickable(
+                                    onLongClick = { onReplyClick(message) },
+                                    onClick = { onRowClick(message) }
+                                ),
+                            horizontalAlignment = if (isMe) Alignment.End else Alignment.Start
+                        ) {
+                            // 1. 如果有被回覆的訊息，依然顯示在圖片上方（可選，如果不需要也可以移進去文字氣泡）
                             message.repliedMessage?.let { replied ->
-                                Row(
-                                    modifier = Modifier
-                                        .padding(bottom = 6.dp)
-                                        .fillMaxWidth()
-                                        .clip(RoundedCornerShape(4.dp))
-                                        .background(Color(0x1A000000)) // 給予一層淡淡的黑色半透明背景做為區隔
-                                        .padding(start = 6.dp) // 留空間給左側邊條
-                                ) {
-                                    // 左側的垂直裝飾邊條
-                                    Box(
-                                        modifier = Modifier
-                                            .width(3.dp)
-                                            .height(32.dp)
-                                            .background(if (isMe) Color(0xFF4CAF50) else Color(0xFF78909C)) // 根據是誰發的決定邊條顏色
-                                    )
-
-                                    // 被回覆訊息的內容預覽
-                                    Column(
-                                        modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp)
-                                    ) {
-                                        Text(
-                                            text = if (replied.senderId == currentUserId) "你" else partnerDisplayName,
-                                            style = MaterialTheme.typography.bodySmall.copy(fontWeight = FontWeight.Bold),
-                                            color = MaterialTheme.colorScheme.primary
-                                        )
-                                        Text(
-                                            text = if (replied.attachment?.mimeType?.startsWith("image/") == true) "[圖片]" else replied.content,
-                                            style = MaterialTheme.typography.bodySmall,
-                                            maxLines = 1, // 限制一行，避免回覆訊息太長塞爆畫面
-                                            overflow = TextOverflow.Ellipsis
-                                        )
-                                    }
-                                }
+                                RepliedMessagePreview(replied, isMe, partnerDisplayName, currentUserId)
                             }
 
-                            // 訊息主體內容（文字或圖片）
-                            if (isImage) {
-                                // 💡 移除外層固定限制，改由 AsyncImage 自己決定尺寸
-                                AsyncImage(
-                                    model = finalImageModel,
-                                    contentDescription = "聊天圖片",
-                                    // 🌟 關鍵 1：使用 ContentScale.Fit 或 Inside
-                                    contentScale = ContentScale.Fit,
-                                    modifier = Modifier
-                                        .padding(top = 4.dp)
-                                        // 🌟 關鍵 2：限制最大寬高，避免超大圖塞滿螢幕
-                                        .sizeIn(maxWidth = 240.dp, maxHeight = 300.dp)
-                                        .clip(RoundedCornerShape(8.dp))
-                                        .background(Color.LightGray),
-                                    onError = { errorState ->
-                                        android.util.Log.e("ChatImageError", "原因: ${errorState.result.throwable}")
-                                    }
+                            // 2. 獨立的圖片元件（完全沒有外層氣泡背景色與 Padding）
+                            AsyncImage(
+                                model = finalImageModel,
+                                contentDescription = "聊天圖片",
+                                contentScale = ContentScale.Fit,
+                                modifier = Modifier
+                                    .padding(top = 4.dp)
+                                    .sizeIn(maxWidth = 240.dp, maxHeight = 300.dp)
+                                    .clip(RoundedCornerShape(12.dp)) // 圖片自帶圓角，更美觀
+                                    .border(
+                                        width = 0.5.dp,
+                                        color = Color.LightGray.copy(alpha = 0.4f),
+                                        shape = RoundedCornerShape(12.dp)
+                                    )
+                                    .background(Color(0xFFF5F5F5)),
+                                onError = { errorState ->
+                                    android.util.Log.e("ChatImageError", "原因: ${errorState.result.throwable}")
+                                }
+                            )
+                        }
+                    } else {
+                        // 🌟 文字訊息：維持原本的 Box 氣泡樣式
+                        Box(
+                            modifier = Modifier
+                                .widthIn(max = 280.dp)
+                                .clip(
+                                    RoundedCornerShape(
+                                        topStart = 12.dp, topEnd = 12.dp,
+                                        bottomStart = if (isMe) 12.dp else 0.dp,
+                                        bottomEnd = if (isMe) 0.dp else 12.dp
+                                    )
                                 )
+                                .combinedClickable(
+                                    onLongClick = { onReplyClick(message) },
+                                    onClick = { onRowClick(message) }
+                                )
+                                .background(color = finalBubbleColor)
+                                .padding(horizontal = 12.dp, vertical = 8.dp)
+                        ) {
+                            Column {
+                                message.repliedMessage?.let { replied ->
+                                    RepliedMessagePreview(replied, isMe, partnerDisplayName, currentUserId)
+                                }
 
-                            } else {
                                 Text(
                                     text = rawContent,
-                                    style = MaterialTheme.typography.bodyMedium.copy(
-                                        fontSize = 16.sp
-                                    )
+                                    style = MaterialTheme.typography.bodyMedium.copy(fontSize = 16.sp)
                                 )
                             }
                         }
                     }
+
+                    // 3. 按讚/反應功能（無論文字或圖片都靠下對齊顯示）
                     if (!message.reactions.isNullOrEmpty()) {
                         ReactionRow(
                             reactions = message.reactions,
@@ -702,10 +657,40 @@ fun MessageRow(
                         )
                     }
                 }
-
-                // 🛑 如果是對方發的訊息（雖然對方理論上不會有 FAILED 狀態，安全起見做對稱），或是想放右邊的提示
-                // 可以依此類推。通常聊天軟體只會處理自己發送失敗的提示。
             }
+        }
+    }
+}
+
+// 💡 提取出的「被回覆訊息預覽」組件，避免重複代碼並維持排版乾淨
+@Composable
+private fun RepliedMessagePreview(
+    replied: Message,
+    isMe: Boolean,
+    partnerDisplayName: String,
+    currentUserId: String
+) {
+    Row(
+        modifier = Modifier
+            .padding(bottom = 6.dp)
+            .fillMaxWidth()
+            .clip(RoundedCornerShape(4.dp))
+            .background(Color(0x1A000000))
+            .padding(start = 6.dp)
+    ) {
+        Box(
+            modifier = Modifier
+                .width(3.dp)
+                .height(22.dp)
+                .background(if (isMe) Color(0xFF4CAF50) else Color(0xFF78909C))
+        )
+        Column(modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp)) {
+            Text(
+                text = if (replied.attachment?.mimeType?.startsWith("image/") == true) "[圖片]" else replied.content ?: "",
+                style = MaterialTheme.typography.bodySmall.copy(fontSize = 14.sp),
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis
+            )
         }
     }
 }
