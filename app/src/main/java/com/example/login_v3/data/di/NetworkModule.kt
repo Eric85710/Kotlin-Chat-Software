@@ -38,8 +38,6 @@ object NetworkModule {
         return OkHttpClient.Builder()
             .connectTimeout(15, TimeUnit.SECONDS)
             .readTimeout(15, TimeUnit.SECONDS)
-            // 🟢 如果未來改用 HTTPS 且 IP 是 192.168.0.189 遇到憑證問題再開啟
-            // .hostnameVerifier { hostname, _ -> hostname == "192.168.0.189" }
             .addInterceptor { chain ->
                 // 在 OkHttp 的背景執行緒中安全地進行同步等待
                 val (token, userId) = runBlocking(Dispatchers.IO) {
@@ -74,7 +72,8 @@ object NetworkModule {
     @Singleton
     fun provideRetrofit(moshi: Moshi, okHttpClient: OkHttpClient): Retrofit {
         return Retrofit.Builder()
-            .baseUrl("http://192.168.0.189/") // 確保與實際伺服器 IP 一致
+            // 修正：更換為新的 HTTPS 正式網域
+            .baseUrl("https://tg.technologia-tw.com/")
             .client(okHttpClient)
             .addConverterFactory(MoshiConverterFactory.create(moshi))
             .build()

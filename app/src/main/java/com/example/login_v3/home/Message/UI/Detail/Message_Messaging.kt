@@ -512,14 +512,15 @@ fun MessageRow(
     val isAttachmentImage = message.attachment?.mimeType?.startsWith("image/") == true
     val contentLowerCase = (message.content ?: "").lowercase()
     val imageExtensions = listOf(".jpg", ".jpeg", ".png", ".webp", ".heic", ".heif")
-    val isLegacyImage = contentLowerCase.startsWith("http") && imageExtensions.any { contentLowerCase.contains(it) }
+
+    // 修正：只要字串包含圖片副檔名，就認定它是舊版圖片路徑（拿掉 startsWith("http") 的限制）
+    val isLegacyImage = imageExtensions.any { contentLowerCase.contains(it) }
     val isImage = isAttachmentImage || isLegacyImage
 
 
     val rawContent = message.content ?: ""
-    // 💡 核心修正：利用 remember 根據 message 狀態動態計算正確的圖片 URL
+
     val finalImageModel = remember(message) {
-        // 1. 取得原始路徑（優先使用 attachment 的 filename，次之用 content）
         val rawPath = if (isAttachmentImage && !message.attachment?.filename.isNullOrBlank()) {
             message.attachment!!.filename
         } else {
@@ -528,17 +529,12 @@ fun MessageRow(
 
         when {
             rawPath.isBlank() -> ""
-            // 如果後端已經貼心地給了完整網址（包含 http 或 https），就直接使用
             rawPath.startsWith("http") -> rawPath
 
-            // 如果後端給的路徑已經包含 "/uploads/"（例如 "/uploads/attachment/dfec7f...jpg"）
-            rawPath.startsWith("/uploads/") -> "https://192.168.0.217$rawPath"
-            rawPath.contains("uploads/") -> "https://192.168.0.217/$rawPath"
-
-            // 💡 關鍵處理：如果後端只給了純檔名（例如 "dfec7f...jpg"）或是 "attachment/dfec7f...jpg"
-            // 我們要在前方幫它手動補上標準的存放路徑 "/uploads/"
             else -> {
-                val cleanPath = rawPath.removePrefix("/") // 移除可能重複的開頭斜線
+                // 統一先把開頭的 "/" 或 "uploads/" 乾淨地剝離，再統一重新組合
+                val cleanPath = rawPath.removePrefix("/").removePrefix("uploads/")
+
                 if (cleanPath.startsWith("attachment/")) {
                     "https://192.168.0.217/uploads/$cleanPath"
                 } else {
@@ -547,7 +543,6 @@ fun MessageRow(
             }
         }
     }
-
 
 
 
