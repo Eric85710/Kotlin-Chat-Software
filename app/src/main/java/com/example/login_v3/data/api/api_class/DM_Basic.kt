@@ -112,8 +112,18 @@ data class Message(
 
     // 🌟 核心新增：讓 UI 可以辨識訊息發送狀態！
     @kotlin.jvm.Transient // 👈 告訴 Moshi 這個欄位不需要解析 JSON，這是我們本地維護的
-    val status: MessageStatus = MessageStatus.SUCCESS
-)
+    val status: MessageStatus = MessageStatus.SUCCESS,
+
+    @kotlin.jvm.Transient
+    var callLogInfo: CallLogInfo? = null
+
+){
+    init {
+        if (type == "system" || type.startsWith("call")) {
+            callLogInfo = CallLogInfo.parseContent(content)
+        }
+    }
+}
 
 //send message
 @JsonClass(generateAdapter = true)
@@ -134,26 +144,24 @@ data class MessageReactionUsersResponse(
 //voice call
 @JsonClass(generateAdapter = true)
 data class CallLogInfo(
-    @Json(name = "type") val type: String, // 例如: call, call_log, call_missed, call_rejected 等
-    @Json(name = "initiator_id") val initiator_id: String,
-    @Json(name = "has_video") val has_video: Boolean
+    @Json(name = "type") val type: String, // 例如: call_missed, call_rejected
+    @Json(name = "initiator_id") val initiatorId: String, // 順便改成 Kotlin 的駝峰命名規範
+    @Json(name = "has_video") val hasVideo: Boolean
 ) {
     companion object {
         private val moshi = Moshi.Builder()
-            .addLast(KotlinJsonAdapterFactory())
+            .addLast(com.squareup.moshi.kotlin.reflect.KotlinJsonAdapterFactory())
             .build()
 
         private val adapter = moshi.adapter(CallLogInfo::class.java)
 
-        fun parse(message: Message): CallLogInfo? {
-            // 🌟 修正：只要是 call 開頭的 type 都允許解析，避免 call_missed 被擋掉
-            if (message.type == null || !message.type.startsWith("call")) return null
-
-            val content = message.content?.trim() ?: return null
-            if (!content.startsWith("{") || !content.endsWith("}")) return null
+        // 🌟 改成只單純解析 String
+        fun parseContent(content: String?): CallLogInfo? {
+            val json = content?.trim() ?: return null
+            if (!json.startsWith("{") || !json.endsWith("}")) return null
 
             return try {
-                adapter.fromJson(content)
+                adapter.fromJson(json)
             } catch (e: Exception) {
                 android.util.Log.e("CallLogInfo", "解析通話 JSON 失敗: ${e.message}")
                 null

@@ -517,7 +517,7 @@ fun MessageRow(
     val isImage = isAttachmentImage || isLegacyImage
     val rawContent = message.content ?: ""
 
-    val callLog = remember(message.id, message.content) { CallLogInfo.parse(message) }
+    val callLog = message.callLogInfo
 
     val finalImageModel = remember(message) {
         val rawPath = if (isAttachmentImage && !message.attachment?.filename.isNullOrBlank()) {
@@ -625,17 +625,16 @@ fun MessageRow(
                             )
                         }
                     } else if (callLog != null) {
-                        // 🌟 通話紀錄渲染
+                        // 🌟 🎯 改造 2：通話紀錄渲染優化
+                        // 移除原本包裹在外層、帶有背景與 Padding 的 Box，改由長按/點擊事件的容器包住 CallLogBubble
                         Box(
                             modifier = Modifier
                                 .widthIn(max = 280.dp)
-                                .clip(RoundedCornerShape(12.dp))
+                                // 讓通話紀錄一樣能響應點擊與長按（如刪除、回覆）
                                 .combinedClickable(
                                     onLongClick = { onReplyClick(message) },
                                     onClick = { onRowClick(message) }
                                 )
-                                .background(color = finalBubbleColor)
-                                .padding(horizontal = 14.dp, vertical = 10.dp)
                         ) {
                             CallLogBubble(
                                 callLog = callLog,
