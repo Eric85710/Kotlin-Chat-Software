@@ -584,6 +584,7 @@ fun MessageRow(
                     )
                 }
 
+                //three type of message
                 Column(
                     horizontalAlignment = if (isMe) Alignment.End else Alignment.Start
                 ) {
