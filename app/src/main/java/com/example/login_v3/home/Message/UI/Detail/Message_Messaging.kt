@@ -589,7 +589,7 @@ fun MessageRow(
                     horizontalAlignment = if (isMe) Alignment.End else Alignment.Start
                 ) {
 
-                    // 🌟 核心分流：如果是圖片，不穿氣泡外衣，直接渲染
+                    // 核心分流：如果是圖片，不穿氣泡外衣，直接渲染
                     if (isImage) {
                         Column(
                             modifier = Modifier
