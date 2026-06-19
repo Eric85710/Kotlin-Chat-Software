@@ -22,62 +22,62 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
+import androidx.hilt.navigation.compose.hiltViewModel
 import com.example.login_v3.home.Tg_MarketPlace
 import com.example.login_v3.home.Message.UI.Tg_Message
 import com.example.login_v3.home.Tg_Server
 import com.example.login_v3.home.setting.Tg_Setting
 import androidx.lifecycle.viewmodel.compose.viewModel
+import com.example.login_v3.home.setting.setting_detail_page.viewmodel.Theme_ViewModel
 
 
+import androidx.hilt.navigation.compose.hiltViewModel // 確保有引入 hiltViewModel
+import com.example.login_v3.navigation.components.AppWallpaperBackground
 
 @Composable
-fun MainScreen_tab() {
-
+fun MainScreen_tab(
+    // 注入 Theme_ViewModel 來讀取壁紙狀態
+    themeViewModel: Theme_ViewModel = hiltViewModel()
+) {
     val screensViewModel: ScreensViewModel = viewModel()
     val bottomBarViewModel: BottomBarViewModel = viewModel()
 
-    //show bottom bar or not
+    // show bottom bar or not
     val showBottomBar by bottomBarViewModel.showBottomBar.collectAsState()
     val navHeight = 64.dp
     val gap = 40.dp
     val bottomBarHeight = navHeight + gap
 
-    Scaffold(
-        containerColor = Color.Transparent,
-        modifier = Modifier
-            .fillMaxSize()
-            .background(brush = Brush.verticalGradient(
-                colors = listOf(
-                    Color(0xFFDA7029),
-                    Color(0xFF777777),
-                    Color(0xFFB34800)
-                )
-            )),
-
-        bottomBar = {
-            BottomBarAnimated(
-                visible = showBottomBar,
-                height = bottomBarHeight,
-                content = {
-                    Column(modifier = Modifier.fillMaxWidth()) {
-                        Box(
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .height(navHeight)
-                        ) {
-                            nav_Wheel_display_block(screensViewModel = screensViewModel)
+    // 使用剛剛做好的壁紙元件包在最外層
+    AppWallpaperBackground(viewModel = themeViewModel) {
+        Scaffold(
+            containerColor = Color.Transparent, // 必須保持透明，底層的壁紙才看得到
+            modifier = Modifier.fillMaxSize(),
+            bottomBar = {
+                BottomBarAnimated(
+                    visible = showBottomBar,
+                    height = bottomBarHeight,
+                    content = {
+                        Column(modifier = Modifier.fillMaxWidth()) {
+                            Box(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .height(navHeight)
+                            ) {
+                                nav_Wheel_display_block(screensViewModel = screensViewModel)
+                            }
+                            Spacer(modifier = Modifier.height(gap))
                         }
-                        Spacer(modifier = Modifier.height(gap)) // 真正的底下空白
                     }
-                }
+                )
+            }
+        ) { innerPadding ->
+            Screens_NavGraph(
+                paddingValues = innerPadding,
+                screensViewModel = screensViewModel,
+                bottomBarViewModel = bottomBarViewModel
             )
         }
-    ) { innerPadding ->
-        Screens_NavGraph(
-            paddingValues = innerPadding,
-            screensViewModel = screensViewModel,
-            bottomBarViewModel = bottomBarViewModel
-        )
     }
 }
 
