@@ -1,5 +1,7 @@
 package com.example.login_v3.home.setting.setting_detail_page.viewmodel
 
+import android.content.Context
+import android.net.Uri
 import android.util.Log
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
@@ -33,11 +35,44 @@ class Theme_ViewModel @Inject constructor(
             initialValue = AppTheme.DARK // 初始值
         )
 
+    // 新增 1：讀取自訂壁紙路徑的 StateFlow
+    val customWallpaperPath: StateFlow<String?> = repository.wallpaperPathFlow
+        .stateIn(
+            scope = viewModelScope,
+            started = SharingStarted.WhileSubscribed(5000),
+            initialValue = null // 初始值為 null，代表還沒有自訂壁紙
+        )
+
     // 4. 更新：除了更新狀態，還要存入 DataStore
     fun updateTheme(newTheme: AppTheme) {
         Log.d("ThemeDebug", "ViewModel 更新主題並儲存至 DataStore: $newTheme")
         viewModelScope.launch {
             repository.saveThemeMode(newTheme.name) // 儲存 Enum 的名稱 (例如 "DARK")
+        }
+    }
+
+    /**
+     * 新增 2：呼叫 Repository 儲存壁紙圖片
+     */
+    fun uploadWallpaper(context: Context, uri: Uri) {
+        Log.d("ThemeDebug", "ViewModel 開始上傳壁紙: $uri")
+        viewModelScope.launch {
+            val success = repository.saveWallpaper(context, uri)
+            if (success) {
+                Log.d("ThemeDebug", "壁紙儲存成功")
+            } else {
+                Log.e("ThemeDebug", "壁紙儲存失敗")
+            }
+        }
+    }
+
+    /**
+     * 新增 3：呼叫 Repository 刪除壁紙圖片並清理 DataStore
+     */
+    fun deleteWallpaper(context: Context) {
+        Log.d("ThemeDebug", "ViewModel 開始刪除壁紙")
+        viewModelScope.launch {
+            repository.clearWallpaper(context)
         }
     }
 }
