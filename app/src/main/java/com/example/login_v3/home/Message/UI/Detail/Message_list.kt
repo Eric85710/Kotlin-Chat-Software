@@ -98,15 +98,7 @@ fun Loaded_Tg_Message(
         containerColor = Color.Transparent,
         modifier = Modifier
             .fillMaxSize()
-            .background(
-                brush = Brush.verticalGradient(
-                    colors = listOf(
-                        Color(0xFFDA7029),
-                        Color(0xFF777777),
-                        Color(0xFFB34800)
-                    )
-                )
-            ),
+        ,
         topBar = {
             TopAppBar(
                 title = { Text("Messages") },
