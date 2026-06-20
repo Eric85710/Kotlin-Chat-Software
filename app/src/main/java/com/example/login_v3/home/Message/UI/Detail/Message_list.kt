@@ -104,7 +104,7 @@ fun Loaded_Tg_Message(
                 title = { Text("Messages") },
                 colors = TopAppBarDefaults.topAppBarColors(
                     containerColor = Color.Transparent,
-                    titleContentColor = Color.Black
+                    titleContentColor = MaterialTheme.colorScheme.onBackground
                 ),
                 actions = {
                     // 2. 使用 Box 包裹按鈕與選單，確保選單彈出位置正確
@@ -284,7 +284,7 @@ fun RoomItem(
                         },
                         style = MaterialTheme.typography.titleMedium,
                         fontWeight = FontWeight.Bold,
-                        color = Color(0xFF333333),
+                        color = MaterialTheme.colorScheme.onBackground,
                         maxLines = 1,
                         overflow = TextOverflow.Ellipsis
                     )
