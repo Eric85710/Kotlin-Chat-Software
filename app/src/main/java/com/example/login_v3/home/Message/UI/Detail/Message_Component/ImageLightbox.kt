@@ -4,9 +4,22 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.gestures.detectTransformGestures
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.statusBars
+import androidx.compose.foundation.layout.windowInsetsPadding
+import androidx.compose.foundation.layout.wrapContentSize
+import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.MoreVert
+import androidx.compose.material3.DropdownMenu
+import androidx.compose.material3.DropdownMenuItem
+import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
+import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -19,6 +32,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.unit.dp
 import androidx.compose.ui.window.Dialog
 import androidx.compose.ui.window.DialogProperties
 import coil.compose.AsyncImage
@@ -34,18 +48,20 @@ fun ImageLightbox(
             usePlatformDefaultWidth = false
         )
     ) {
-        // 1. 宣告手勢狀態
         var scale by remember { mutableStateOf(1f) }
         var offset by remember { mutableStateOf(Offset.Zero) }
+
+        // 💡 控制下拉選單顯示/隱藏的狀態
+        var menuExpanded by remember { mutableStateOf(false) }
 
         Box(
             modifier = Modifier
                 .fillMaxSize()
                 .background(Color.Black.copy(alpha = 0.9f))
-                // 💡 如果圖片處於放大狀態，點擊背景不觸發關閉，方便使用者操作；縮回原大小時點擊背景才關閉
                 .clickable(enabled = scale == 1f) { onDismiss() },
             contentAlignment = Alignment.Center
         ) {
+            // 1. 底層：大圖檢視元件（保持不變）
             AsyncImage(
                 model = imageUrl,
                 contentDescription = "放大檢視圖片",
@@ -53,33 +69,70 @@ fun ImageLightbox(
                 modifier = Modifier
                     .fillMaxWidth()
                     .fillMaxHeight(0.85f)
-                    // 2. 透過 graphicsLayer 將手勢狀態反映到畫面上
                     .graphicsLayer(
                         scaleX = scale,
                         scaleY = scale,
                         translationX = offset.x,
                         translationY = offset.y
                     )
-                    // 3. 監聽雙指與單指手勢
                     .pointerInput(Unit) {
                         detectTransformGestures { _, pan, zoom, _ ->
-                            // 計算新的縮放值，並限制在 1倍 到 4倍 之間
                             val newScale = (scale * zoom).coerceIn(1f, 4f)
-
-                            // 計算新的位移值（只有在放大狀態下才允許平移拖曳）
-                            val newOffset = if (newScale > 1f) {
-                                offset + pan
-                            } else {
-                                Offset.Zero // 縮回 1 倍時自動歸零
-                            }
-
+                            val newOffset = if (newScale > 1f) offset + pan else Offset.Zero
                             scale = newScale
                             offset = newOffset
                         }
                     }
-                    // 阻斷點擊圖片本身會關閉 Dialog 的行為
                     .clickable(enabled = false) { }
             )
+
+            // 2. 上層：右上角「更多」按鈕與下拉選單容器
+            // 透過 windowInsetsPadding 確保按鈕不會被手機的瀏海或狀態列擋住
+            Box(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .windowInsetsPadding(WindowInsets.statusBars)
+                    .padding(16.dp),
+                contentAlignment = Alignment.TopEnd
+            ) {
+                // 包裹 IconButton 與 DropdownMenu 的小容器
+                Box(modifier = Modifier.wrapContentSize()) {
+                    IconButton(
+                        onClick = { menuExpanded = true }, // 點擊開啟選單
+                        modifier = Modifier.background(
+                            color = Color.Black.copy(alpha = 0.4f), // 幫按鈕加個微黑底，避免遇到白圖時看不清
+                            shape = CircleShape
+                        )
+                    ) {
+                        Icon(
+                            imageVector = Icons.Default.MoreVert,
+                            contentDescription = "更多選項",
+                            tint = Color.White
+                        )
+                    }
+
+                    // Material 3 下拉選單
+                    DropdownMenu(
+                        expanded = menuExpanded,
+                        onDismissRequest = { menuExpanded = false } // 點擊選單外部關閉
+                    ) {
+                        DropdownMenuItem(
+                            text = { Text("儲存圖片") },
+                            onClick = {
+                                menuExpanded = false
+                                // TODO: 實作下載圖片到相簿的邏輯
+                            }
+                        )
+                        DropdownMenuItem(
+                            text = { Text("分享") },
+                            onClick = {
+                                menuExpanded = false
+                                // TODO: 實作系統分享 Intent 邏輯
+                            }
+                        )
+                    }
+                }
+            }
         }
     }
 }
