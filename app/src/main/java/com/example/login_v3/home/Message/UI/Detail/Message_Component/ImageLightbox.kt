@@ -1,6 +1,7 @@
 package com.example.login_v3.home.Message.UI.Detail.Message_Component
 
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.gestures.detectTransformGestures
 import androidx.compose.foundation.layout.Box
@@ -99,6 +100,8 @@ fun ImageLightbox(
             ) {
                 // 包裹 IconButton 與 DropdownMenu 的小容器
                 Box(modifier = Modifier.wrapContentSize()) {
+
+
                     IconButton(
                         onClick = { menuExpanded = true }, // 點擊開啟選單
                         modifier = Modifier.background(
@@ -116,7 +119,9 @@ fun ImageLightbox(
                     // Material 3 下拉選單
                     DropdownMenu(
                         expanded = menuExpanded,
-                        onDismissRequest = { menuExpanded = false }
+                        onDismissRequest = { menuExpanded = false },
+                        containerColor = MaterialTheme.colorScheme.primary,
+                        modifier = Modifier.border(0.5.dp, Color.White.copy(alpha = 0.3f))
                     ) {
                         DropdownMenuItem(
                             text = {
