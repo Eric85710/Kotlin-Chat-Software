@@ -120,8 +120,9 @@ fun ImageLightbox(
                     DropdownMenu(
                         expanded = menuExpanded,
                         onDismissRequest = { menuExpanded = false },
-                        containerColor = MaterialTheme.colorScheme.primary,
-                        modifier = Modifier.border(0.5.dp, Color.White.copy(alpha = 0.3f))
+                        shadowElevation = 0.dp,
+                        containerColor = Color.White.copy(alpha = 0.3f),
+                        modifier = Modifier.border(0.5.dp, Color.White.copy(alpha = 0.6f))
                     ) {
                         DropdownMenuItem(
                             text = {
@@ -130,7 +131,10 @@ fun ImageLightbox(
                                     modifier = Modifier.fillMaxWidth(),
                                     contentAlignment = Alignment.Center
                                 ) {
-                                    Text("儲存圖片")
+                                    Text(
+                                        text = ("Download"),
+                                        color = MaterialTheme.colorScheme.onBackground
+                                    )
                                 }
                             },
                             onClick = {
@@ -151,7 +155,10 @@ fun ImageLightbox(
                                     modifier = Modifier.fillMaxWidth(),
                                     contentAlignment = Alignment.Center
                                 ) {
-                                    Text("分享")
+                                    Text(
+                                        text = ("Share"),
+                                        color = MaterialTheme.colorScheme.onBackground
+                                    )
                                 }
                             },
                             onClick = {
