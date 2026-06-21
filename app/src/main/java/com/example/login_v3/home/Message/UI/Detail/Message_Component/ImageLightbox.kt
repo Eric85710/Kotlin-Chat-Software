@@ -17,8 +17,10 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.MoreVert
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
+import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
@@ -114,17 +116,39 @@ fun ImageLightbox(
                     // Material 3 下拉選單
                     DropdownMenu(
                         expanded = menuExpanded,
-                        onDismissRequest = { menuExpanded = false } // 點擊選單外部關閉
+                        onDismissRequest = { menuExpanded = false }
                     ) {
                         DropdownMenuItem(
-                            text = { Text("儲存圖片") },
+                            text = {
+                                // 💡 使用 Box 並填滿最大寬度，將文字完美置中
+                                Box(
+                                    modifier = Modifier.fillMaxWidth(),
+                                    contentAlignment = Alignment.Center
+                                ) {
+                                    Text("儲存圖片")
+                                }
+                            },
                             onClick = {
                                 menuExpanded = false
                                 // TODO: 實作下載圖片到相簿的邏輯
                             }
                         )
+
+                        HorizontalDivider(
+                            modifier = Modifier.padding(horizontal = 8.dp), // 左右留一點內縮，視覺上更精緻
+                            thickness = 0.5.dp, // 纖細的線條質感更好
+                            color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.12f) // 使用主題色加上低透明度
+                        )
+
                         DropdownMenuItem(
-                            text = { Text("分享") },
+                            text = {
+                                Box(
+                                    modifier = Modifier.fillMaxWidth(),
+                                    contentAlignment = Alignment.Center
+                                ) {
+                                    Text("分享")
+                                }
+                            },
                             onClick = {
                                 menuExpanded = false
                                 // TODO: 實作系統分享 Intent 邏輯
