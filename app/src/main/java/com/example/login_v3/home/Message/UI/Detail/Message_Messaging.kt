@@ -77,6 +77,7 @@ import androidx.compose.material.icons.filled.Call
 import androidx.compose.material.icons.filled.MoreVert
 import com.example.login_v3.data.api.api_class.CallLogInfo
 import com.example.login_v3.home.Message.UI.Detail.Message_Component.CallLogBubble
+import com.example.login_v3.home.Message.UI.Detail.Message_Component.ImageLightbox
 import com.example.login_v3.home.Message.UI.Detail.Message_Component.UserStatusDot
 
 
@@ -111,6 +112,9 @@ fun MessageMessaging(
     val actionMessage by viewModel.actionMessage.collectAsStateWithLifecycle()
 
     var emojiTargetMessage by remember { mutableStateOf<Message?>(null) }
+
+    //inspect image
+    var lightboxImageUrl by remember { mutableStateOf<String?>(null) }
 
     // 🌟 核心：使用 derivedStateOf 統一控管狀態權限（長按優先權通常大於單擊）
     val bottomBarState by remember {
@@ -236,7 +240,7 @@ fun MessageMessaging(
                                     style = MaterialTheme.typography.titleMedium,
                                     fontSize = 24.sp,
                                     fontWeight = FontWeight.Bold,
-                                    color = Color(0xFF333333),
+                                    color = MaterialTheme.colorScheme.onBackground,
                                     maxLines = 1,
                                     overflow = TextOverflow.Ellipsis,
                                     modifier = Modifier.weight(1f)
@@ -425,8 +429,41 @@ fun MessageMessaging(
                                 },
                                 // 💡 單擊事件：開啟 Emoji 選單，同時清空長按選單
                                 onRowClick = { message ->
-                                    viewModel.clearActionMessage()
-                                    emojiTargetMessage = message
+                                    val isAttachmentImage = message.attachment?.mimeType?.startsWith("image/") == true
+                                    val contentLowerCase = (message.content ?: "").lowercase()
+                                    val imageExtensions = listOf(".jpg", ".jpeg", ".png", ".webp", ".heic", ".heif")
+                                    val isLegacyImage = imageExtensions.any { contentLowerCase.contains(it) }
+
+                                    if (isAttachmentImage || isLegacyImage) {
+                                        // 🎯 A 狀態：這是圖片，計算圖片完整 URL 並塞入 lightbox 狀態觸發放大
+                                        val rawPath = if (isAttachmentImage && !message.attachment?.filename.isNullOrBlank()) {
+                                            message.attachment!!.filename
+                                        } else {
+                                            message.content ?: ""
+                                        }
+                                        val baseUrl = "https://tg.technologia-tw.com"
+                                        val finalUrl = when {
+                                            rawPath.isBlank() -> ""
+                                            rawPath.startsWith("http") -> rawPath
+                                            else -> {
+                                                val cleanPath = rawPath.removePrefix("/").removePrefix("uploads/")
+                                                if (cleanPath.startsWith("attachment/")) {
+                                                    "$baseUrl/uploads/$cleanPath"
+                                                } else {
+                                                    "$baseUrl/uploads/attachment/$cleanPath"
+                                                }
+                                            }
+                                        }
+
+                                        // 關閉可能開啟的選單，並打開大圖
+                                        viewModel.clearActionMessage()
+                                        emojiTargetMessage = null
+                                        lightboxImageUrl = finalUrl
+                                    } else {
+                                        // 🎯 B 狀態：一般文字或通話，維持原本點擊叫出 Emoji Bar 的邏輯
+                                        viewModel.clearActionMessage()
+                                        emojiTargetMessage = message
+                                    }
                                 },
                                 onReactionClick = { message, emoji ->
                                     // 這是訊息氣泡下方既有 Reaction 小標籤的點擊事件，保持原樣即可
@@ -451,6 +488,13 @@ fun MessageMessaging(
                 }
             }
         }
+    }
+
+    lightboxImageUrl?.let { url ->
+        ImageLightbox(
+            imageUrl = url,
+            onDismiss = { lightboxImageUrl = null }
+        )
     }
 }
 
