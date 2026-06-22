@@ -73,8 +73,10 @@ import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.sizeIn
 import androidx.compose.foundation.layout.windowInsetsTopHeight
 import androidx.compose.foundation.layout.statusBars // 如果要使用 statusBars 也需要這個
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material.icons.filled.Call
 import androidx.compose.material.icons.filled.MoreVert
+import androidx.compose.material.icons.filled.PlayArrow
 import com.example.login_v3.data.api.api_class.CallLogInfo
 import com.example.login_v3.home.Message.UI.Detail.Message_Component.CallLogBubble
 import com.example.login_v3.home.Message.UI.Detail.Message_Component.ImageLightbox
@@ -561,13 +563,20 @@ fun MessageRow(
     val isImage = isAttachmentImage || isLegacyImage
     val rawContent = message.content ?: ""
 
+    // 🌟 2. 影片判斷
+    val isAttachmentVideo = message.attachment?.mimeType?.startsWith("video/") == true
+    val videoExtensions = listOf(".mp4", ".mov", ".mkv", ".avi", ".3gp", ".webm")
+    val isLegacyVideo = videoExtensions.any { contentLowerCase.contains(it) }
+    val isVideo = isAttachmentVideo || isLegacyVideo
+
     val callLog = message.callLogInfo
 
-    val finalImageModel = remember(message) {
-        val rawPath = if (isAttachmentImage && !message.attachment?.filename.isNullOrBlank()) {
-            message.attachment!!.filename
-        } else {
-            message.content ?: ""
+    // 🌟 3. 計算媒體 URL (將原本的圖片 URL 邏輯通用化至媒體檔案)
+    val finalMediaUrl = remember(message, isImage, isVideo) {
+        val rawPath = when {
+            isAttachmentImage && !message.attachment?.filename.isNullOrBlank() -> message.attachment!!.filename
+            isAttachmentVideo && !message.attachment?.filename.isNullOrBlank() -> message.attachment!!.filename
+            else -> message.content ?: ""
         }
         val baseUrl = "https://tg.technologia-tw.com"
         when {
@@ -632,95 +641,154 @@ fun MessageRow(
                 Column(
                     horizontalAlignment = if (isMe) Alignment.End else Alignment.Start
                 ) {
-
-                    // 核心分流：如果是圖片，不穿氣泡外衣，直接渲染
-                    if (isImage) {
-                        Column(
-                            modifier = Modifier
-                                .widthIn(max = 240.dp) // 限制圖片最大寬度
-                                .combinedClickable(
-                                    onLongClick = { onReplyClick(message) },
-                                    onClick = { onRowClick(message) }
-                                ),
-                            horizontalAlignment = if (isMe) Alignment.End else Alignment.Start
-                        ) {
-                            // 1. 如果有被回覆的訊息，依然顯示在圖片上方（可選，如果不需要也可以移進去文字氣泡）
-                            message.repliedMessage?.let { replied ->
-                                RepliedMessagePreview(replied, isMe, partnerDisplayName, currentUserId)
-                            }
-
-                            // 2. 獨立的圖片元件（完全沒有外層氣泡背景色與 Padding）
-                            AsyncImage(
-                                model = finalImageModel,
-                                contentDescription = "聊天圖片",
-                                contentScale = ContentScale.Fit,
+                    when {
+                        // 核心分流 1：圖片處理
+                        isImage -> {
+                            Column(
                                 modifier = Modifier
-                                    .padding(top = 4.dp)
-                                    .sizeIn(maxWidth = 240.dp, maxHeight = 300.dp)
-                                    .clip(RoundedCornerShape(12.dp)) // 圖片自帶圓角，更美觀
-                                    .border(
-                                        width = 0.5.dp,
-                                        color = Color.LightGray.copy(alpha = 0.4f),
-                                        shape = RoundedCornerShape(12.dp)
-                                    )
-                                    .background(Color(0xFFF5F5F5)),
-                                onError = { errorState ->
-                                    android.util.Log.e("ChatImageError", "原因: ${errorState.result.throwable}")
-                                }
-                            )
-                        }
-                    } else if (callLog != null) {
-                        // 🌟 🎯 改造 2：通話紀錄渲染優化
-                        // 移除原本包裹在外層、帶有背景與 Padding 的 Box，改由長按/點擊事件的容器包住 CallLogBubble
-                        Box(
-                            modifier = Modifier
-                                .widthIn(max = 280.dp)
-                                // 讓通話紀錄一樣能響應點擊與長按（如刪除、回覆）
-                                .combinedClickable(
-                                    onLongClick = { onReplyClick(message) },
-                                    onClick = { onRowClick(message) }
-                                )
-                        ) {
-                            CallLogBubble(
-                                callLog = callLog,
-                                isMe = isMe,
-                                currentUserId = currentUserId,
-                                partnerDisplayName = partnerDisplayName
-                            )
-                        }
-                    } else {
-                        // 🌟 文字訊息：維持原本的 Box 氣泡樣式
-                        Box(
-                            modifier = Modifier
-                                .widthIn(max = 280.dp)
-                                .clip(
-                                    RoundedCornerShape(
-                                        topStart = 12.dp, topEnd = 12.dp,
-                                        bottomStart = if (isMe) 12.dp else 0.dp,
-                                        bottomEnd = if (isMe) 0.dp else 12.dp
-                                    )
-                                )
-                                .combinedClickable(
-                                    onLongClick = { onReplyClick(message) },
-                                    onClick = { onRowClick(message) }
-                                )
-                                .background(color = finalBubbleColor)
-                                .padding(horizontal = 12.dp, vertical = 8.dp)
-                        ) {
-                            Column {
+                                    .widthIn(max = 240.dp)
+                                    .combinedClickable(
+                                        onLongClick = { onReplyClick(message) },
+                                        onClick = { onRowClick(message) }
+                                    ),
+                                horizontalAlignment = if (isMe) Alignment.End else Alignment.Start
+                            ) {
                                 message.repliedMessage?.let { replied ->
                                     RepliedMessagePreview(replied, isMe, partnerDisplayName, currentUserId)
                                 }
 
-                                Text(
-                                    text = rawContent,
-                                    style = MaterialTheme.typography.bodyMedium.copy(fontSize = 16.sp)
+                                AsyncImage(
+                                    model = finalMediaUrl,
+                                    contentDescription = "聊天圖片",
+                                    contentScale = ContentScale.Fit,
+                                    modifier = Modifier
+                                        .padding(top = 4.dp)
+                                        .sizeIn(maxWidth = 240.dp, maxHeight = 300.dp)
+                                        .clip(RoundedCornerShape(12.dp))
+                                        .border(
+                                            width = 0.5.dp,
+                                            color = Color.LightGray.copy(alpha = 0.4f),
+                                            shape = RoundedCornerShape(12.dp)
+                                        )
+                                        .background(Color(0xFFF5F5F5)),
+                                    onError = { errorState ->
+                                        android.util.Log.e("ChatImageError", "原因: ${errorState.result.throwable}")
+                                    }
                                 )
+                            }
+                        }
+
+                        // 🌟 核心分流 2：影片處理 (新增)
+                        isVideo -> {
+                            Column(
+                                modifier = Modifier
+                                    .widthIn(max = 240.dp)
+                                    .combinedClickable(
+                                        onLongClick = { onReplyClick(message) },
+                                        onClick = { onRowClick(message) } // 點擊時可以在此觸發開啟影片播放器
+                                    ),
+                                horizontalAlignment = if (isMe) Alignment.End else Alignment.Start
+                            ) {
+                                message.repliedMessage?.let { replied ->
+                                    RepliedMessagePreview(replied, isMe, partnerDisplayName, currentUserId)
+                                }
+
+                                // 影片佈局：使用 Box 將「播放圖示」疊加在預覽圖（或黑色背景）上方
+                                Box(
+                                    modifier = Modifier
+                                        .padding(top = 4.dp)
+                                        .size(width = 240.dp, height = 160.dp) // 給予影片固定的預覽比例
+                                        .clip(RoundedCornerShape(12.dp))
+                                        .background(Color.Black) // 預防沒載入圖時顯示黑色底
+                                        .border(
+                                            width = 0.5.dp,
+                                            color = Color.LightGray.copy(alpha = 0.4f),
+                                            shape = RoundedCornerShape(12.dp)
+                                        ),
+                                    contentAlignment = Alignment.Center
+                                ) {
+                                    // 💡 注意：這裡 model 給 finalMediaUrl。
+                                    // 如果後端支援，通常會另外傳一個 video_thumbnail_url；
+                                    // 如果直接給影片 URL，部分圖片載入庫（如 Coil 搭配 VideoFrameDecoder）可以直接擷取第一幀。
+                                    AsyncImage(
+                                        model = finalMediaUrl,
+                                        contentDescription = "影片預覽",
+                                        contentScale = ContentScale.Crop,
+                                        modifier = Modifier.fillMaxSize(),
+                                        alpha = 0.8f // 稍微壓暗，讓播放按鈕更明顯
+                                    )
+
+                                    // 播放圖示容器
+                                    Box(
+                                        modifier = Modifier
+                                            .size(48.dp)
+                                            .background(Color.Black.copy(alpha = 0.5f), CircleShape),
+                                        contentAlignment = Alignment.Center
+                                    ) {
+                                        Icon(
+                                            imageVector = androidx.compose.material.icons.Icons.Default.PlayArrow,
+                                            contentDescription = "播放影片",
+                                            tint = Color.White,
+                                            modifier = Modifier.size(28.dp)
+                                        )
+                                    }
+                                }
+                            }
+                        }
+
+                        // 核心分流 3：通話紀錄
+                        callLog != null -> {
+                            Box(
+                                modifier = Modifier
+                                    .widthIn(max = 280.dp)
+                                    .combinedClickable(
+                                        onLongClick = { onReplyClick(message) },
+                                        onClick = { onRowClick(message) }
+                                    )
+                            ) {
+                                CallLogBubble(
+                                    callLog = callLog,
+                                    isMe = isMe,
+                                    currentUserId = currentUserId,
+                                    partnerDisplayName = partnerDisplayName
+                                )
+                            }
+                        }
+
+                        // 核心分流 4：純文字訊息
+                        else -> {
+                            Box(
+                                modifier = Modifier
+                                    .widthIn(max = 280.dp)
+                                    .clip(
+                                        RoundedCornerShape(
+                                            topStart = 12.dp, topEnd = 12.dp,
+                                            bottomStart = if (isMe) 12.dp else 0.dp,
+                                            bottomEnd = if (isMe) 0.dp else 12.dp
+                                        )
+                                    )
+                                    .combinedClickable(
+                                        onLongClick = { onReplyClick(message) },
+                                        onClick = { onRowClick(message) }
+                                    )
+                                    .background(color = finalBubbleColor)
+                                    .padding(horizontal = 12.dp, vertical = 8.dp)
+                            ) {
+                                Column {
+                                    message.repliedMessage?.let { replied ->
+                                        RepliedMessagePreview(replied, isMe, partnerDisplayName, currentUserId)
+                                    }
+
+                                    Text(
+                                        text = rawContent,
+                                        style = MaterialTheme.typography.bodyMedium.copy(fontSize = 16.sp)
+                                    )
+                                }
                             }
                         }
                     }
 
-                    // 3. 按讚/反應功能（無論文字或圖片都靠下對齊顯示）
+                    // 3. 按讚/反應功能
                     if (!message.reactions.isNullOrEmpty()) {
                         ReactionRow(
                             reactions = message.reactions,
