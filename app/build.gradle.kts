@@ -104,4 +104,7 @@ dependencies {
     val media3Version = "1.5.1" // 建議統一宣告版本，避免版本衝突
     implementation("androidx.media3:media3-exoplayer:$media3Version")
     implementation("androidx.media3:media3-ui:$media3Version")
+
+    //video decode
+    implementation("io.coil-kt:coil-video:2.6.0")
 }

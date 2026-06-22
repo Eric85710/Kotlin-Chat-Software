@@ -77,6 +77,8 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material.icons.filled.Call
 import androidx.compose.material.icons.filled.MoreVert
 import androidx.compose.material.icons.filled.PlayArrow
+import coil.ImageLoader
+import coil.decode.VideoFrameDecoder
 import com.example.login_v3.data.api.api_class.CallLogInfo
 import com.example.login_v3.home.Message.UI.Detail.Message_Component.CallLogBubble
 import com.example.login_v3.home.Message.UI.Detail.Message_Component.ImageLightbox
@@ -739,9 +741,18 @@ fun MessageRow(
                                     AsyncImage(
                                         model = finalMediaUrl,
                                         contentDescription = "影片預覽",
+                                        // 🌟 注入一個支援影片解碼的 ImageLoader
+                                        imageLoader = ImageLoader.Builder(LocalContext.current)
+                                            .components {
+                                                add(VideoFrameDecoder.Factory())
+                                            }
+                                            .build(),
                                         contentScale = ContentScale.Crop,
                                         modifier = Modifier.fillMaxSize(),
-                                        alpha = 0.8f // 稍微壓暗，讓播放按鈕更明顯
+                                        alpha = 0.8f,
+                                        onError = { errorState ->
+                                            android.util.Log.e("ChatVideoThumbError", "原因: ${errorState.result.throwable}")
+                                        }
                                     )
 
                                     // 播放圖示容器
