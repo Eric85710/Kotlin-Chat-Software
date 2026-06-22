@@ -99,4 +99,9 @@ dependencies {
     implementation("androidx.room:room-runtime:$roomVersion")
     implementation("androidx.room:room-ktx:$roomVersion") // 支援 Flow 必須要加這行
     ksp("androidx.room:room-compiler:$roomVersion")       // 使用 KSP 來編譯 Room 註解
+
+    //video player
+    val media3Version = "1.5.1" // 建議統一宣告版本，避免版本衝突
+    implementation("androidx.media3:media3-exoplayer:$media3Version")
+    implementation("androidx.media3:media3-ui:$media3Version")
 }

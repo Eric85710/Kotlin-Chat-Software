@@ -81,6 +81,7 @@ import com.example.login_v3.data.api.api_class.CallLogInfo
 import com.example.login_v3.home.Message.UI.Detail.Message_Component.CallLogBubble
 import com.example.login_v3.home.Message.UI.Detail.Message_Component.ImageLightbox
 import com.example.login_v3.home.Message.UI.Detail.Message_Component.UserStatusDot
+import com.example.login_v3.home.Message.UI.Detail.Message_Component.VideoLightbox
 
 
 //bottom bar state
@@ -117,6 +118,9 @@ fun MessageMessaging(
 
     //inspect image
     var lightboxImageUrl by remember { mutableStateOf<String?>(null) }
+
+    //inspect video
+    var lightboxVideoUrl by remember { mutableStateOf<String?>(null) }
 
     // 🌟 核心：使用 derivedStateOf 統一控管狀態權限（長按優先權通常大於單擊）
     val bottomBarState by remember {
@@ -431,17 +435,24 @@ fun MessageMessaging(
                                 },
                                 // 💡 單擊事件：開啟 Emoji 選單，同時清空長按選單
                                 onRowClick = { message ->
-                                    val isAttachmentImage = message.attachment?.mimeType?.startsWith("image/") == true
                                     val contentLowerCase = (message.content ?: "").lowercase()
-                                    val imageExtensions = listOf(".jpg", ".jpeg", ".png", ".webp", ".heic", ".heif")
-                                    val isLegacyImage = imageExtensions.any { contentLowerCase.contains(it) }
 
-                                    if (isAttachmentImage || isLegacyImage) {
-                                        // 🎯 A 狀態：這是圖片，計算圖片完整 URL 並塞入 lightbox 狀態觸發放大
-                                        val rawPath = if (isAttachmentImage && !message.attachment?.filename.isNullOrBlank()) {
-                                            message.attachment!!.filename
-                                        } else {
-                                            message.content ?: ""
+                                    //is image
+                                    val isAttachmentImage = message.attachment?.mimeType?.startsWith("image/") == true
+                                    val imageExtensions = listOf(".jpg", ".jpeg", ".png", ".webp", ".heic", ".heif")
+                                    val isImage = isAttachmentImage || imageExtensions.any { contentLowerCase.contains(it) }
+
+                                    //is video
+                                    val isAttachmentVideo = message.attachment?.mimeType?.startsWith("video/") == true
+                                    val videoExtensions = listOf(".mp4", ".mov", ".mkv", ".avi", ".3gp", ".webm")
+                                    val isVideo = isAttachmentVideo || videoExtensions.any { contentLowerCase.contains(it) }
+
+                                    if (isImage || isVideo) {
+                                        // 計算乾淨的 URL 網址
+                                        val rawPath = when {
+                                            isAttachmentImage && !message.attachment?.filename.isNullOrBlank() -> message.attachment!!.filename
+                                            isAttachmentVideo && !message.attachment?.filename.isNullOrBlank() -> message.attachment!!.filename
+                                            else -> message.content ?: ""
                                         }
                                         val baseUrl = "https://tg.technologia-tw.com"
                                         val finalUrl = when {
@@ -457,12 +468,18 @@ fun MessageMessaging(
                                             }
                                         }
 
-                                        // 關閉可能開啟的選單，並打開大圖
+                                        // 關閉所有底部的 Emoji 或動作選單
                                         viewModel.clearActionMessage()
                                         emojiTargetMessage = null
-                                        lightboxImageUrl = finalUrl
+
+                                        // 依據類型，分流塞入對應的狀態
+                                        if (isImage) {
+                                            lightboxImageUrl = finalUrl
+                                        } else {
+                                            lightboxVideoUrl = finalUrl // 🎯 觸發影片全螢幕
+                                        }
                                     } else {
-                                        // 🎯 B 狀態：一般文字或通話，維持原本點擊叫出 Emoji Bar 的邏輯
+                                        // 🎯 一般文字或通話，叫出 Emoji Bar
                                         viewModel.clearActionMessage()
                                         emojiTargetMessage = message
                                     }
@@ -492,10 +509,19 @@ fun MessageMessaging(
         }
     }
 
+    //image inspect
     lightboxImageUrl?.let { url ->
         ImageLightbox(
             imageUrl = url,
             onDismiss = { lightboxImageUrl = null }
+        )
+    }
+
+    //video inspect
+    lightboxVideoUrl?.let { url ->
+        VideoLightbox(
+            videoUrl = url,
+            onDismiss = { lightboxVideoUrl = null }
         )
     }
 }
