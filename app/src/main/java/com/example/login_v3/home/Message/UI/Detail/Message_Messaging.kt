@@ -583,6 +583,7 @@ fun MessageRow(
     onReactionClick: (Message, String) -> Unit,
     onRowClick: (Message) -> Unit,
 ) {
+    //圖片判斷
     val isAttachmentImage = message.attachment?.mimeType?.startsWith("image/") == true
     val contentLowerCase = (message.content ?: "").lowercase()
     val imageExtensions = listOf(".jpg", ".jpeg", ".png", ".webp", ".heic", ".heif")
@@ -596,6 +597,13 @@ fun MessageRow(
     val videoExtensions = listOf(".mp4", ".mov", ".mkv", ".avi", ".3gp", ".webm")
     val isLegacyVideo = videoExtensions.any { contentLowerCase.contains(it) }
     val isVideo = isAttachmentVideo || isLegacyVideo
+
+    //音訊判斷
+    val isTypeAudio = message.type == "audio"
+    val isAttachmentAudio = message.attachment?.mimeType?.startsWith("audio/") == true
+    val audioExtensions = listOf(".mp3", ".wav", ".m4a", ".aac", ".ogg", ".opus", ".amr")
+    val isLegacyAudio = audioExtensions.any { contentLowerCase.contains(it) }
+    val isAudio = isTypeAudio || isAttachmentAudio || isLegacyAudio
 
     val callLog = message.callLogInfo
 
