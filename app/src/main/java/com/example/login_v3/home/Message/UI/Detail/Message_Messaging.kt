@@ -608,17 +608,21 @@ fun MessageRow(
     val callLog = message.callLogInfo
 
     // 🌟 3. 計算媒體 URL (將原本的圖片 URL 邏輯通用化至媒體檔案)
-    val finalMediaUrl = remember(message, isImage, isVideo) {
+    val finalMediaUrl = remember(message, isImage, isVideo, isAudio) {
         val rawPath = when {
             isAttachmentImage && !message.attachment?.filename.isNullOrBlank() -> message.attachment!!.filename
             isAttachmentVideo && !message.attachment?.filename.isNullOrBlank() -> message.attachment!!.filename
+            isAttachmentAudio && !message.attachment?.filename.isNullOrBlank() -> message.attachment!!.filename // 2. 🌟 新增音訊附件路徑抓取
             else -> message.content ?: ""
         }
+
         val baseUrl = "https://tg.technologia-tw.com"
+
         when {
             rawPath.isBlank() -> ""
             rawPath.startsWith("http") -> rawPath
             else -> {
+                // 移除可能重複的前綴，確保路徑乾淨
                 val cleanPath = rawPath.removePrefix("/").removePrefix("uploads/")
                 if (cleanPath.startsWith("attachment/")) {
                     "$baseUrl/uploads/$cleanPath"
