@@ -80,6 +80,7 @@ import androidx.compose.material.icons.filled.PlayArrow
 import coil.ImageLoader
 import coil.decode.VideoFrameDecoder
 import com.example.login_v3.data.api.api_class.CallLogInfo
+import com.example.login_v3.home.Message.UI.Detail.Message_Component.AudioMessageBubble
 import com.example.login_v3.home.Message.UI.Detail.Message_Component.CallLogBubble
 import com.example.login_v3.home.Message.UI.Detail.Message_Component.ImageLightbox
 import com.example.login_v3.home.Message.UI.Detail.Message_Component.UserStatusDot
@@ -431,6 +432,7 @@ fun MessageMessaging(
                                 partnerDisplayName = state.roomTitle,
                                 activeEmojiMessageId = emojiTargetMessage?.id,   // ✨ 新增短按目標 ID
                                 activeActionMessageId = actionMessage?.id,
+                                viewModel = viewModel,
                                 onReplyClick = { message ->
                                     emojiTargetMessage = null
                                     viewModel.setActionMessage(message)
@@ -536,6 +538,7 @@ fun MessageList(
     messages: List<Message>,
     activeEmojiMessageId: String?,
     activeActionMessageId: String?,
+    viewModel: ChatViewModel,
     onReplyClick: (Message) -> Unit,
     onReactionClick: (Message, String) -> Unit,
     onRowClick: (Message) -> Unit,
@@ -564,7 +567,8 @@ fun MessageList(
                 currentUserId = currentUserId,
                 onReplyClick = onReplyClick,
                 onReactionClick = onReactionClick,
-                onRowClick = onRowClick
+                onRowClick = onRowClick,
+                viewModel = viewModel,
             )
         }
     }
@@ -579,6 +583,7 @@ fun MessageRow(
     partnerDisplayName: String,
     isHighlight: Boolean,
     currentUserId: String,
+    viewModel: ChatViewModel,
     onReplyClick: (Message) -> Unit,
     onReactionClick: (Message, String) -> Unit,
     onRowClick: (Message) -> Unit,
@@ -782,6 +787,33 @@ fun MessageRow(
                                         )
                                     }
                                 }
+                            }
+                        }
+
+                        //isAudio
+                        isAudio -> {
+                            Column(
+                                modifier = Modifier
+                                    .widthIn(max = 250.dp) // 音訊氣泡設定稍窄，更像一般通訊軟體
+                                    .combinedClickable(
+                                        onLongClick = { onReplyClick(message) },
+                                        onClick = { /* 整塊氣泡點擊邏輯，可留空 */ }
+                                    ),
+                                horizontalAlignment = if (isMe) Alignment.End else Alignment.Start
+                            ) {
+                                // 如果有回覆別人的訊息，一樣顯示回覆預覽
+                                message.repliedMessage?.let { replied ->
+                                    RepliedMessagePreview(replied, isMe, partnerDisplayName, currentUserId)
+                                }
+
+                                // 呼叫你的音訊播放器元件
+                                AudioMessageBubble(
+                                    message = message,
+                                    audioUrl = finalMediaUrl,
+                                    isMe = isMe,
+                                    bubbleColor = finalBubbleColor,
+                                    viewModel = viewModel
+                                )
                             }
                         }
 
