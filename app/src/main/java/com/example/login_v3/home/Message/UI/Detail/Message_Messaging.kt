@@ -597,6 +597,9 @@ fun MessageRow(
     val isImage = isAttachmentImage || isLegacyImage
     val rawContent = message.content ?: ""
 
+    // 新增一個專門用來判斷是否為 GIF 的布林值
+    val isGif = message.attachment?.mimeType == "image/gif" || contentLowerCase.endsWith(".gif")
+
     // 🌟 2. 影片判斷
     val isAttachmentVideo = message.attachment?.mimeType?.startsWith("video/") == true
     val videoExtensions = listOf(".mp4", ".mov", ".mkv", ".avi", ".3gp", ".webm")

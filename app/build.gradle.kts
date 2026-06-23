@@ -107,4 +107,7 @@ dependencies {
 
     //video decode
     implementation("io.coil-kt:coil-video:2.6.0")
+
+    // 依據你專案中使用的 coil 版本（例如 2.x.x），補上 gif 支援庫
+    implementation("io.coil-kt:coil-gif:2.6.0") // 版本號請與你現有的 coil 保持一致
 }
