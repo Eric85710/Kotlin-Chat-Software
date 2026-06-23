@@ -1,10 +1,15 @@
 package com.example.login_v3.home.Message.ViewModel.Detail
 
 
+import android.app.Application
 import android.net.Uri
 import android.util.Log
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import androidx.media3.common.MediaItem
+import androidx.media3.common.Player
+import androidx.media3.exoplayer.ExoPlayer
+import androidx.media3.exoplayer.ExoPlayer.*
 import com.example.login_v3.R
 import com.example.login_v3.data.repository.dm.ChatRoomsRepository
 import dagger.hilt.android.lifecycle.HiltViewModel
@@ -15,10 +20,12 @@ import com.example.login_v3.data.api.api_class.fullContactAvatarUrl
 import com.example.login_v3.data.repository.basic.TokenManager
 import com.example.login_v3.home.Message.ViewModel.UserStatus
 import kotlinx.coroutines.Job
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.isActive
 
 //emoji reaction state
 sealed class ReactionUsersState {
@@ -45,7 +52,6 @@ sealed class DeleteMessageState {
     data class Error(val message: String) : DeleteMessageState()           // 刪除失敗
 }
 
-
 sealed interface MessagesUiState {
     object Loading : MessagesUiState
     data class Success(
@@ -59,10 +65,20 @@ sealed interface MessagesUiState {
     data class Error(val message: String) : MessagesUiState
 }
 
+//audio status
+data class AudioPlaybackState(
+    val currentPlayingMessageId: String? = null, // 當前播放的 Message ID
+    val isPlaying: Boolean = false,              // 是否正在播放
+    val currentPosition: Long = 0L,              // 當前播放位置 (毫秒)
+    val duration: Long = 0L                      // 總時長 (毫秒)
+)
+
+
 @HiltViewModel
 class ChatViewModel @Inject constructor(
     private val repository: ChatRoomsRepository,
-    private val tokenManager: TokenManager
+    private val tokenManager: TokenManager,
+    private val application: Application
 ) : ViewModel() {
 
     // --- 訊息長按動作選單與回覆狀態 (保持原樣) ---
@@ -250,6 +266,121 @@ class ChatViewModel @Inject constructor(
                     repository.refreshChatMessages(roomId)
                 }
         }
+    }
+
+
+
+    //audio status
+    private val _audioState = MutableStateFlow(AudioPlaybackState())
+    val audioState: StateFlow<AudioPlaybackState> = _audioState.asStateFlow()
+
+    // 唯一播放器實例
+    private var exoPlayer: ExoPlayer? = null
+    // 用來定時輪詢進度條的 Job
+    private var progressLogJob: Job? = null
+
+    init {
+        // 初始化 ExoPlayer
+        initializePlayer()
+    }
+
+    private fun initializePlayer() {
+        exoPlayer = Builder(application).build().apply {
+            addListener(object : Player.Listener {
+                override fun onIsPlayingChanged(isPlaying: Boolean) {
+                    _audioState.value = _audioState.value.copy(isPlaying = isPlaying)
+                    if (isPlaying) {
+                        startProgressTracker()
+                    } else {
+                        stopProgressTracker()
+                    }
+                }
+
+                override fun onPlaybackStateChanged(playbackState: Int) {
+                    when (playbackState) {
+                        Player.STATE_READY -> {
+                            _audioState.value = _audioState.value.copy(
+                                duration = duration.coerceAtLeast(0L)
+                            )
+                        }
+                        Player.STATE_ENDED -> {
+                            // 播放完畢，重置進度與播放狀態
+                            stopProgressTracker()
+                            seekTo(0)
+                            _audioState.value = _audioState.value.copy(
+                                isPlaying = false,
+                                currentPosition = 0L
+                            )
+                        }
+                    }
+                }
+            })
+        }
+    }
+
+    // 點擊音訊氣泡的外部接口
+    fun toggleAudioPlayback(messageId: String, audioUrl: String) {
+        val player = exoPlayer ?: return
+        val currentState = _audioState.value
+
+        if (currentState.currentPlayingMessageId == messageId) {
+            // 點擊的是同一個音訊 -> 切換 播放/暫停
+            if (player.isPlaying) {
+                player.pause()
+            } else {
+                player.play()
+            }
+        } else {
+            // 點擊的是新音訊 -> 停止上一個，載入新音訊播放
+            player.stop()
+            _audioState.value = AudioPlaybackState(
+                currentPlayingMessageId = messageId,
+                isPlaying = false
+            )
+
+            val mediaItem = MediaItem.fromUri(audioUrl)
+            player.setMediaItem(mediaItem)
+            player.prepare()
+            player.play()
+        }
+    }
+
+    // 拖動進度條時調整播放位置
+    fun seekAudioTo(progressRatio: Float) {
+        val player = exoPlayer ?: return
+        val targetPosition = (progressRatio * _audioState.value.duration).toLong()
+        player.seekTo(targetPosition)
+        _audioState.value = _audioState.value.copy(currentPosition = targetPosition)
+    }
+
+    // 啟動協程計時器，即時刷新播放進度
+    private fun startProgressTracker() {
+        progressLogJob?.cancel()
+        progressLogJob = viewModelScope.launch {
+            while (isActive) {
+                exoPlayer?.let { player ->
+                    _audioState.value = _audioState.value.copy(
+                        currentPosition = player.currentPosition
+                    )
+                }
+                delay(200) // 每 200 毫秒刷新一次 UI
+            }
+        }
+    }
+
+    private fun stopProgressTracker() {
+        progressLogJob?.cancel()
+        progressLogJob = null
+    }
+
+    // =====================================================================
+    // 🌟 生命週期釋放：ViewModel 銷毀時，必須徹底關閉 Player
+    // =====================================================================
+    override fun onCleared() {
+        super.onCleared()
+        stopProgressTracker()
+        exoPlayer?.release()
+        exoPlayer = null
     }
 
     fun resetDeleteMessageState() { _deleteMessageState.value = DeleteMessageState.Idle }
