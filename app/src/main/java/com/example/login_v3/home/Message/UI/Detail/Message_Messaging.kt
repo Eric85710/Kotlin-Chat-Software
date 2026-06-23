@@ -78,6 +78,9 @@ import androidx.compose.material.icons.filled.Call
 import androidx.compose.material.icons.filled.MoreVert
 import androidx.compose.material.icons.filled.PlayArrow
 import coil.ImageLoader
+import coil.compose.LocalImageLoader
+import coil.decode.GifDecoder
+import coil.decode.ImageDecoderDecoder
 import coil.decode.VideoFrameDecoder
 import com.example.login_v3.data.api.api_class.CallLogInfo
 import com.example.login_v3.home.Message.UI.Detail.Message_Component.AudioMessageBubble
@@ -591,13 +594,13 @@ fun MessageRow(
     //圖片判斷
     val isAttachmentImage = message.attachment?.mimeType?.startsWith("image/") == true
     val contentLowerCase = (message.content ?: "").lowercase()
-    val imageExtensions = listOf(".jpg", ".jpeg", ".png", ".webp", ".heic", ".heif")
+    val imageExtensions = listOf(".jpg", ".jpeg", ".png", ".webp", ".heic", ".heif", ".gif")
 
     val isLegacyImage = imageExtensions.any { contentLowerCase.contains(it) }
     val isImage = isAttachmentImage || isLegacyImage
     val rawContent = message.content ?: ""
 
-    // 新增一個專門用來判斷是否為 GIF 的布林值
+// 🌟 新增一個專門用來判斷是否為 GIF 的布林值，UI 載入時會用到
     val isGif = message.attachment?.mimeType == "image/gif" || contentLowerCase.endsWith(".gif")
 
     // 🌟 2. 影片判斷
@@ -705,9 +708,29 @@ fun MessageRow(
                                     RepliedMessagePreview(replied, isMe, partnerDisplayName, currentUserId)
                                 }
 
+                                // 🌟 根據是否為 GIF，動態配置 ImageLoader
+                                val context = LocalContext.current
+                                val gifImageLoader = remember(isGif) {
+                                    if (isGif) {
+                                        ImageLoader.Builder(context)
+                                            .components {
+                                                // 依據 Android 版本自動選擇最佳的 GIF 解碼器
+                                                if (android.os.Build.VERSION.SDK_INT >= 28) {
+                                                    add(ImageDecoderDecoder.Factory())
+                                                } else {
+                                                    add(GifDecoder.Factory())
+                                                }
+                                            }
+                                            .build()
+                                    } else {
+                                        null // 普通圖片用系統預設的即可，省記憶體
+                                    }
+                                }
+
                                 AsyncImage(
                                     model = finalMediaUrl,
-                                    contentDescription = "聊天圖片",
+                                    contentDescription = if (isGif) "動態 GIF" else "聊天圖片",
+                                    imageLoader = gifImageLoader ?: LocalImageLoader.current, // 🎯 如果是 GIF 就用專屬解碼器
                                     contentScale = ContentScale.Fit,
                                     modifier = Modifier
                                         .padding(top = 4.dp)
