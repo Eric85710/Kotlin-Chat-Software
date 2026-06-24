@@ -427,13 +427,14 @@ fun MessageMessaging(
 
                         is BottomBarState.AttachmentMenu -> {
                             MessageAttachmentBar(
-                                onImageClick = {
-                                    imagePickerLauncher.launch("image/*")
-                                    // 🎯 選完圖片後，將本地狀態重置，自動回歸 Input 輸入框
+                                onImageSelected = { uri ->
+                                    // 🎯 使用者在預覽列中點選了某張圖片，直接觸發上傳
+                                    viewModel.uploadAttachment(roomId, uri)
+                                    // 上傳後自動退回輸入框
                                     localBottomBarState = null
                                 },
                                 onCancel = {
-                                    // 🎯 點擊關閉，同樣回歸 Input 輸入框
+                                    // 點擊關閉退回輸入框
                                     localBottomBarState = null
                                 }
                             )
