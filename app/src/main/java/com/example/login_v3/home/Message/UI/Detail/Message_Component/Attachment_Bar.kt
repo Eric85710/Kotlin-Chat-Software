@@ -84,14 +84,31 @@ fun MessageAttachmentBar(
     val localImages = remember { mutableStateListOf<Uri>() }
     var refreshTrigger by remember { mutableStateOf(0) }
 
-    //attachment menu
+    // 🎯 1. 新增一個 State 來追蹤目前畫面上應該顯示什麼標題，預設為 "Attachment"
+    var currentMenuTitle by remember { mutableStateOf("Attachment") }
+
+    // attachment menu
     val attachmentOptions = remember {
         listOf(
-            AttachmentOption("圖片", Icons.Default.Image, { /* 已在網格處理，這裡可做其他事 */ }),
-            AttachmentOption("音訊", Icons.Default.Audiotrack, onAudioClick),
-            AttachmentOption("文件", Icons.Default.Description, onDocumentClick),
-            AttachmentOption("位置", Icons.Default.LocationOn, onLocationClick),
-            AttachmentOption("聯絡人", Icons.Default.ContactPage, onContactClick)
+            AttachmentOption("圖片", Icons.Default.Image, {
+                currentMenuTitle = "Media" // 點擊圖片或重置時回到原來的標題
+            }),
+            AttachmentOption("音訊", Icons.Default.Audiotrack, {
+                currentMenuTitle = "Audio"      // 🎯 變更標題
+                onAudioClick()
+            }),
+            AttachmentOption("文件", Icons.Default.Description, {
+                currentMenuTitle = "Document"   // 🎯 變更標題
+                onDocumentClick()
+            }),
+            AttachmentOption("位置", Icons.Default.LocationOn, {
+                currentMenuTitle = "Location"   // 🎯 變更標題
+                onLocationClick()
+            }),
+            AttachmentOption("聯絡人", Icons.Default.ContactPage, {
+                currentMenuTitle = "Contact"    // 🎯 變更標題
+                onContactClick()
+            })
         )
     }
 
@@ -167,7 +184,7 @@ fun MessageAttachmentBar(
                 horizontalArrangement = Arrangement.SpaceBetween
             ) {
                 Text(
-                    text = "Send Attachment",
+                    text = "Send $currentMenuTitle",
                     style = MaterialTheme.typography.titleSmall,
                     color = Color.White,
                     fontWeight = FontWeight.Bold
@@ -280,13 +297,6 @@ fun MessageAttachmentBar(
                                 modifier = Modifier.size(20.dp)
                             )
                         }
-
-                        // 功能文字
-                        Text(
-                            text = option.title,
-                            color = Color.White.copy(alpha = 0.8f),
-                            style = MaterialTheme.typography.labelSmall
-                        )
                     }
                 }
             }
