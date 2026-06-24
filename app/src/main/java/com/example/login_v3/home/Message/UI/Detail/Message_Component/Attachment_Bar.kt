@@ -167,7 +167,7 @@ fun MessageAttachmentBar(
                 horizontalArrangement = Arrangement.SpaceBetween
             ) {
                 Text(
-                    text = "傳送媒體檔案",
+                    text = "Send Attachment",
                     style = MaterialTheme.typography.titleSmall,
                     color = Color.White,
                     fontWeight = FontWeight.Bold
