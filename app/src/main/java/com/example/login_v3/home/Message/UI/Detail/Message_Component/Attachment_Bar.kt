@@ -173,17 +173,20 @@ fun MessageAttachmentBar(
                     fontWeight = FontWeight.Bold
                 )
 
-                IconButton(
-                    onClick = onCancel,
+                // 🎯 精緻化縮小後的關閉按鈕
+                Box(
                     modifier = Modifier
-                        .size(16.dp)
+                        .size(24.dp) // 1. 控制整個外圈圓形背景的大小
                         .background(Color.White.copy(alpha = 0.15f), CircleShape)
+                        .clip(CircleShape)
+                        .clickable { onCancel() }, // 2. 點擊事件直接綁在圓圈上
+                    contentAlignment = Alignment.Center
                 ) {
                     Icon(
                         imageVector = Icons.Default.Close,
                         contentDescription = "返回輸入",
                         tint = Color.White,
-                        modifier = Modifier.size(10.dp)
+                        modifier = Modifier.size(14.dp) // 3. 控制內層叉叉 Icon 的尺寸
                     )
                 }
             }
