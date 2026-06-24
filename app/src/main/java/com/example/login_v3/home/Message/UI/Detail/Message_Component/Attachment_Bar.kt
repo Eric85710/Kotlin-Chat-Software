@@ -50,20 +50,17 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.mutableStateListOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
+import androidx.compose.ui.text.font.FontWeight
 
 @Composable
 fun MessageAttachmentBar(
-    onImageSelected: (Uri) -> Unit, // 🎯 改為直接回傳選中的圖片 Uri
+    onImageSelected: (Uri) -> Unit,
     onCancel: () -> Unit
 ) {
     val context = LocalContext.current
-
     val localImages = remember { mutableStateListOf<Uri>() }
-
-    // 🎯 2. 用於手動觸發刷新的計數器（主要應對 Android 14+ 管理照片回來後的即時刷新）
     var refreshTrigger by remember { mutableStateOf(0) }
 
-    // 檢查目前是不是處於「部分照片允許」的狀態 (Android 14+)
     val isPartialAccess by remember(refreshTrigger) {
         derivedStateOf {
             if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.UPSIDE_DOWN_CAKE) {
@@ -75,49 +72,34 @@ fun MessageAttachmentBar(
         }
     }
 
-    // 處理 Android 14 重新調整選取照片的回呼
     val permissionLauncher = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.RequestPermission()
     ) { _ ->
-        // 使用者調整完照片回來，變更計數器觸發 LaunchedEffect 重新查詢
         refreshTrigger++
     }
 
-    // 🎯 3. 核心修正：利用 LaunchedEffect 監聽生命週期與刷新狀態
-    // 當元件首次載入、或者 refreshTrigger 改變時，會重跑裡面的非同步查詢
     LaunchedEffect(refreshTrigger) {
         val imageUris = mutableListOf<Uri>()
-        val projection = arrayOf(
-            MediaStore.Images.Media._ID,
-            MediaStore.Images.Media.DATE_TAKEN
-        )
+        val projection = arrayOf(MediaStore.Images.Media._ID, MediaStore.Images.Media.DATE_TAKEN)
         val sortOrder = "${MediaStore.Images.Media.DATE_TAKEN} DESC"
 
         try {
             context.contentResolver.query(
                 MediaStore.Images.Media.EXTERNAL_CONTENT_URI,
-                projection,
-                null,
-                null,
-                sortOrder
+                projection, null, null, sortOrder
             )?.use { cursor ->
                 val idColumn = cursor.getColumnIndexOrThrow(MediaStore.Images.Media._ID)
                 var count = 0
                 while (cursor.moveToNext() && count < 20) {
                     val id = cursor.getLong(idColumn)
-                    val contentUri = ContentUris.withAppendedId(
-                        MediaStore.Images.Media.EXTERNAL_CONTENT_URI,
-                        id
-                    )
+                    val contentUri = ContentUris.withAppendedId(MediaStore.Images.Media.EXTERNAL_CONTENT_URI, id)
                     imageUris.add(contentUri)
                     count++
                 }
             }
-            // 查詢成功後安全地更新 UI 狀態
             localImages.clear()
             localImages.addAll(imageUris)
         } catch (e: SecurityException) {
-            // 如果此時完全沒權限，捕獲異常不崩潰，保持列表為空
             localImages.clear()
         }
     }
@@ -128,47 +110,76 @@ fun MessageAttachmentBar(
             .navigationBarsPadding()
             .padding(horizontal = 16.dp, vertical = 8.dp)
     ) {
-        // 毛玻璃背景與邊框 (保持與 InputBar 一致)
+        // 毛玻璃背景與邊框
         Box(modifier = Modifier.matchParentSize().blur(10.dp))
         Box(
             modifier = Modifier
                 .matchParentSize()
-                .background(MaterialTheme.colorScheme.primary, RoundedCornerShape(16.dp))
-                .border(1.dp, Color.White.copy(alpha = 0.3f), RoundedCornerShape(16.dp))
+                .background(MaterialTheme.colorScheme.primary, RoundedCornerShape(24.dp)) // 稍微加寬圓角迎合高面板
+                .border(1.dp, Color.White.copy(alpha = 0.3f), RoundedCornerShape(24.dp))
         )
 
-        Row(
+        // 🎯 核心修改：改為 Column 佈局
+        Column(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(horizontal = 12.dp, vertical = 12.dp),
-            verticalAlignment = Alignment.CenterVertically
+                .padding(16.dp), // 內邊距均勻分布
+            verticalArrangement = Arrangement.spacedBy(16.dp)
         ) {
+            // 頂部列：左邊是標題或功能名稱，右邊是關閉按鈕
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.SpaceBetween
+            ) {
+                Text(
+                    text = "傳送媒體檔案",
+                    style = MaterialTheme.typography.titleSmall,
+                    color = Color.White,
+                    fontWeight = FontWeight.Bold
+                )
 
-            // 🎯 橫向媒體檢視器
+                IconButton(
+                    onClick = onCancel,
+                    modifier = Modifier
+                        .size(16.dp)
+                        .background(Color.White.copy(alpha = 0.15f), CircleShape)
+                ) {
+                    Icon(
+                        imageVector = Icons.Default.Close,
+                        contentDescription = "返回輸入",
+                        tint = Color.White,
+                        modifier = Modifier.size(10.dp)
+                    )
+                }
+            }
+
+            // 中部列：放大後的媒體檢視器
             LazyRow(
-                modifier = Modifier.weight(1f).height(70.dp),
-                horizontalArrangement = Arrangement.spacedBy(8.dp),
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(110.dp), // 🎯 高度從 70dp 顯著提升到 110dp，預覽更大更清晰
+                horizontalArrangement = Arrangement.spacedBy(10.dp),
                 verticalAlignment = Alignment.CenterVertically
             ) {
-                // 🎯 核心優化：如果是 Android 14 部分允許，在最左邊固定顯示一個「編輯存取範圍」的按鈕
+                // Android 14+ 管理選取範圍按鈕
                 if (isPartialAccess) {
                     item {
                         Box(
                             modifier = Modifier
-                                .size(70.dp)
-                                .clip(RoundedCornerShape(8.dp))
+                                .size(110.dp) // 同步放大為正方形
+                                .clip(RoundedCornerShape(12.dp))
                                 .background(Color.White.copy(alpha = 0.1f))
                                 .clickable {
-                                    // 再次要求 READ_MEDIA_IMAGES，系統會自動彈出「管理已選取的照片」視窗
                                     if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.UPSIDE_DOWN_CAKE) {
                                         permissionLauncher.launch(Manifest.permission.READ_MEDIA_IMAGES)
                                     }
                                 },
                             contentAlignment = Alignment.Center
                         ) {
-                            Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                            Column(horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.spacedBy(4.dp)) {
                                 Icon(imageVector = Icons.Default.Add, contentDescription = "管理照片", tint = Color.White)
-                                Text("管理", color = Color.White, style = MaterialTheme.typography.bodySmall)
+                                Text("管理檔案", color = Color.White, style = MaterialTheme.typography.labelSmall)
                             }
                         }
                     }
@@ -176,35 +187,29 @@ fun MessageAttachmentBar(
 
                 if (localImages.isEmpty()) {
                     item {
-                        Text(text = "無媒體檔案", color = Color.White.copy(alpha = 0.6f), modifier = Modifier.padding(start = 4.dp))
+                        Box(
+                            modifier = Modifier.fillParentMaxWidth().height(110.dp),
+                            contentAlignment = Alignment.Center
+                        ) {
+                            Text(text = "無最近媒體檔案", color = Color.White.copy(alpha = 0.5f))
+                        }
                     }
                 } else {
                     items(localImages) { uri ->
                         AsyncImage(
                             model = uri,
                             contentDescription = "媒體預覽",
-                            modifier = Modifier.size(70.dp).clip(RoundedCornerShape(8.dp)).clickable { onImageSelected(uri) },
+                            modifier = Modifier
+                                .size(110.dp) // 🎯 同步放大
+                                .clip(RoundedCornerShape(12.dp))
+                                .clickable { onImageSelected(uri) },
                             contentScale = androidx.compose.ui.layout.ContentScale.Crop
                         )
                     }
                 }
             }
 
-            Spacer(modifier = Modifier.width(12.dp))
-
-            // 關閉/返回輸入框按鈕
-            IconButton(
-                onClick = onCancel,
-                modifier = Modifier
-                    .size(36.dp)
-                    .background(Color.White.copy(alpha = 0.15f), CircleShape)
-            ) {
-                Icon(
-                    imageVector = Icons.Default.Close,
-                    contentDescription = "返回輸入",
-                    tint = Color.White
-                )
-            }
+            // 💡 提示：這裡可以作為未來的第三列空間，比如放置「文件、位置、名片」等其他 Icon 按鈕。
         }
     }
 }
