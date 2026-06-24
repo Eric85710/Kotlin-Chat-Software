@@ -1,6 +1,9 @@
 package com.example.login_v3.home.Message.UI.Detail
 
+import android.Manifest
+import android.content.pm.PackageManager
 import android.net.Uri
+import android.os.Build
 import android.widget.Toast
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
@@ -80,6 +83,7 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material.icons.filled.Call
 import androidx.compose.material.icons.filled.MoreVert
 import androidx.compose.material.icons.filled.PlayArrow
+import androidx.core.content.ContextCompat
 import coil.ImageLoader
 import coil.compose.LocalImageLoader
 import coil.decode.GifDecoder
@@ -175,6 +179,24 @@ fun MessageMessaging(
             }
             else -> {}
         }
+    }
+
+    //media permision required
+    val mainPermissionLauncher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.RequestPermission()
+    ) { isGranted ->
+        if (isGranted) {
+            // 關鍵：只有當使用者真的按下了「允許」，才在 Callback 裡開啟附件面板！
+            localBottomBarState = BottomBarState.AttachmentMenu
+        } else {
+            Toast.makeText(context, "需要相簿權限才能預覽照片喔！", Toast.LENGTH_SHORT).show()
+        }
+    }
+
+    val requiredPermission = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+        Manifest.permission.READ_MEDIA_IMAGES // 🎯 Android 13+ 必須是這個
+    } else {
+        Manifest.permission.READ_EXTERNAL_STORAGE // Android 12 以下是這個
     }
 
     val deleteState by viewModel.deleteMessageState.collectAsState()
@@ -374,7 +396,15 @@ fun MessageMessaging(
                                 onSendClick = { content -> viewModel.sendMessage(roomId, content) },
                                 // 🎯 改為直接修改本地狀態，切換至附件選單
                                 onAttachmentClick = {
-                                    localBottomBarState = BottomBarState.AttachmentMenu
+                                    val hasPermission = ContextCompat.checkSelfPermission(context, requiredPermission) == PackageManager.PERMISSION_GRANTED
+
+                                    if (hasPermission) {
+                                        // 已經有權限了，直接大方開啟
+                                        localBottomBarState = BottomBarState.AttachmentMenu
+                                    } else {
+                                        // 沒權限，只管叫起權限請求視窗，千萬不要在這裡改 localBottomBarState！
+                                        mainPermissionLauncher.launch(requiredPermission)
+                                    }
                                 }
                             )
                         }

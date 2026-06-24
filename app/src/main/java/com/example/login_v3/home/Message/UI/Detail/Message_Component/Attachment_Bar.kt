@@ -46,6 +46,10 @@ import coil.compose.AsyncImage // 建議使用 Coil 來載入本地圖片 Uri，
 import android.Manifest
 import androidx.compose.foundation.layout.Column
 import androidx.compose.material.icons.filled.Add
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.mutableStateListOf
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.setValue
 
 @Composable
 fun MessageAttachmentBar(
@@ -54,7 +58,13 @@ fun MessageAttachmentBar(
 ) {
     val context = LocalContext.current
 
-    val isPartialAccess by remember {
+    val localImages = remember { mutableStateListOf<Uri>() }
+
+    // 🎯 2. 用於手動觸發刷新的計數器（主要應對 Android 14+ 管理照片回來後的即時刷新）
+    var refreshTrigger by remember { mutableStateOf(0) }
+
+    // 檢查目前是不是處於「部分照片允許」的狀態 (Android 14+)
+    val isPartialAccess by remember(refreshTrigger) {
         derivedStateOf {
             if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.UPSIDE_DOWN_CAKE) {
                 ContextCompat.checkSelfPermission(context, Manifest.permission.READ_MEDIA_VISUAL_USER_SELECTED) == PackageManager.PERMISSION_GRANTED &&
@@ -65,24 +75,25 @@ fun MessageAttachmentBar(
         }
     }
 
-    // 處理 Android 14 重新調整選取照片的 Launcher
+    // 處理 Android 14 重新調整選取照片的回呼
     val permissionLauncher = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.RequestPermission()
     ) { _ ->
-        // 重新讀取或觸發相簿狀態更新（這裡會觸發 localImages 重新 query）
+        // 使用者調整完照片回來，變更計數器觸發 LaunchedEffect 重新查詢
+        refreshTrigger++
     }
 
-    // 💡 非同步讀取手機內最新的數張圖片 Uri
-    val localImages by remember {
-        derivedStateOf {
-            val imageUris = mutableListOf<Uri>()
-            val projection = arrayOf(
-                MediaStore.Images.Media._ID,
-                MediaStore.Images.Media.DATE_TAKEN
-            )
-            // 依時間倒序排序，讓最新的照片排在最前面
-            val sortOrder = "${MediaStore.Images.Media.DATE_TAKEN} DESC"
+    // 🎯 3. 核心修正：利用 LaunchedEffect 監聽生命週期與刷新狀態
+    // 當元件首次載入、或者 refreshTrigger 改變時，會重跑裡面的非同步查詢
+    LaunchedEffect(refreshTrigger) {
+        val imageUris = mutableListOf<Uri>()
+        val projection = arrayOf(
+            MediaStore.Images.Media._ID,
+            MediaStore.Images.Media.DATE_TAKEN
+        )
+        val sortOrder = "${MediaStore.Images.Media.DATE_TAKEN} DESC"
 
+        try {
             context.contentResolver.query(
                 MediaStore.Images.Media.EXTERNAL_CONTENT_URI,
                 projection,
@@ -91,7 +102,6 @@ fun MessageAttachmentBar(
                 sortOrder
             )?.use { cursor ->
                 val idColumn = cursor.getColumnIndexOrThrow(MediaStore.Images.Media._ID)
-                // 這裡限制讀取前 20 張，避免一次載入太多有效能隱憂
                 var count = 0
                 while (cursor.moveToNext() && count < 20) {
                     val id = cursor.getLong(idColumn)
@@ -103,7 +113,12 @@ fun MessageAttachmentBar(
                     count++
                 }
             }
-            imageUris
+            // 查詢成功後安全地更新 UI 狀態
+            localImages.clear()
+            localImages.addAll(imageUris)
+        } catch (e: SecurityException) {
+            // 如果此時完全沒權限，捕獲異常不崩潰，保持列表為空
+            localImages.clear()
         }
     }
 
