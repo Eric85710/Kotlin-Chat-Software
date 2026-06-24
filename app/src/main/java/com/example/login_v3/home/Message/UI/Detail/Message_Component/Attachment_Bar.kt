@@ -85,7 +85,7 @@ fun MessageAttachmentBar(
     var refreshTrigger by remember { mutableStateOf(0) }
 
     // 🎯 1. 新增一個 State 來追蹤目前畫面上應該顯示什麼標題，預設為 "Attachment"
-    var currentMenuTitle by remember { mutableStateOf("Attachment") }
+    var currentMenuTitle by remember { mutableStateOf("Media") }
 
     // attachment menu
     val attachmentOptions = remember {
