@@ -95,8 +95,8 @@ sealed interface BottomBarState {
     object Input : BottomBarState                                // 預設：輸入框
     data class ActionMenu(val message: Message) : BottomBarState // 長按：動作選單
     data class EmojiMenu(val message: Message) : BottomBarState  // 單擊：Emoji 工具列
+    object AttachmentMenu : BottomBarState                       // 🎯 新增：附件選單
 }
-
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun MessageMessaging(
