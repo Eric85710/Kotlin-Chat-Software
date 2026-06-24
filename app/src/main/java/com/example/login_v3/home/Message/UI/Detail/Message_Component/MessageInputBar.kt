@@ -17,6 +17,7 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.BasicTextField
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.AddCircle
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.Photo
 import androidx.compose.material.icons.filled.Send
@@ -123,12 +124,12 @@ fun MessageInputBar(
                     .padding(horizontal = 8.dp, vertical = 6.dp),
                 verticalAlignment = Alignment.CenterVertically
             ) {
-                // 圖片選擇按鈕
+                // 檔案上傳
                 IconButton(onClick = { imagePickerLauncher.launch("image/*") }) {
                     Icon(
-                        imageVector = Icons.Default.Photo,
-                        contentDescription = "選擇圖片",
-                        tint = Color.Gray
+                        imageVector = Icons.Default.AddCircle,
+                        contentDescription = "attachment bar",
+                        tint = Color.White
                     )
                 }
 
