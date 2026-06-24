@@ -1,5 +1,6 @@
 package com.example.login_v3.home.Message.UI.Detail.Message_Component
 
+import android.R.attr.onClick
 import android.net.Uri
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
@@ -45,16 +46,9 @@ fun MessageInputBar(
     replyingMessage: Message?,
     onCancelReply: () -> Unit,
     onSendClick: (String) -> Unit,
-    onImageSelected: (Uri) -> Unit
+    onAttachmentClick: () -> Unit
 ) {
     var textState by remember { mutableStateOf("") }
-
-    val imagePickerLauncher =
-        rememberLauncherForActivityResult(
-            contract = ActivityResultContracts.GetContent()
-        ) { uri: Uri? ->
-            uri?.let { onImageSelected(it) }
-        }
 
     // 💡 外層包裹一層 Box，並加上 padding 與 navigationBarsPadding，確保懸浮且不被系統列擋住
     Box(
@@ -125,7 +119,7 @@ fun MessageInputBar(
                 verticalAlignment = Alignment.CenterVertically
             ) {
                 // 檔案上傳
-                IconButton(onClick = { imagePickerLauncher.launch("image/*") }) {
+                IconButton(onClick = { onAttachmentClick() }) {
                     Icon(
                         imageVector = Icons.Default.AddCircle,
                         contentDescription = "attachment bar",

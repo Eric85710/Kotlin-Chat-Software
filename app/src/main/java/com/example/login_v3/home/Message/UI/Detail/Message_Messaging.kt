@@ -1,6 +1,9 @@
 package com.example.login_v3.home.Message.UI.Detail
 
+import android.net.Uri
 import android.widget.Toast
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.animation.AnimatedContent
 import androidx.compose.animation.AnimatedVisibilityScope
 import androidx.compose.animation.SharedTransitionScope
@@ -86,6 +89,7 @@ import com.example.login_v3.data.api.api_class.CallLogInfo
 import com.example.login_v3.home.Message.UI.Detail.Message_Component.AudioMessageBubble
 import com.example.login_v3.home.Message.UI.Detail.Message_Component.CallLogBubble
 import com.example.login_v3.home.Message.UI.Detail.Message_Component.ImageLightbox
+import com.example.login_v3.home.Message.UI.Detail.Message_Component.MessageAttachmentBar
 import com.example.login_v3.home.Message.UI.Detail.Message_Component.UserStatusDot
 import com.example.login_v3.home.Message.UI.Detail.Message_Component.VideoLightbox
 
@@ -129,14 +133,23 @@ fun MessageMessaging(
     var lightboxVideoUrl by remember { mutableStateOf<String?>(null) }
 
     // 🌟 核心：使用 derivedStateOf 統一控管狀態權限（長按優先權通常大於單擊）
+    // 🎯 新增：用來控管非訊息觸發的底部狀態（例如：AttachmentMenu）
+    var localBottomBarState by remember { mutableStateOf<BottomBarState?>(null) }
     val bottomBarState by remember {
         derivedStateOf {
             when {
                 actionMessage != null -> BottomBarState.ActionMenu(actionMessage!!)
                 emojiTargetMessage != null -> BottomBarState.EmojiMenu(emojiTargetMessage!!)
+                localBottomBarState != null -> localBottomBarState!! // 🎯 如果有本地狀態，則採用它
                 else -> BottomBarState.Input
             }
         }
+    }
+
+    val imagePickerLauncher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.GetContent()
+    ) { uri: Uri? ->
+        uri?.let { viewModel.uploadAttachment(roomId, it) }
     }
 
     //進入時重整
@@ -359,7 +372,10 @@ fun MessageMessaging(
                                 replyingMessage = replyingMessage,
                                 onCancelReply = { viewModel.setReplyingMessage(null) },
                                 onSendClick = { content -> viewModel.sendMessage(roomId, content) },
-                                onImageSelected = { uri -> viewModel.uploadAttachment(roomId, uri) },
+                                // 🎯 改為直接修改本地狀態，切換至附件選單
+                                onAttachmentClick = {
+                                    localBottomBarState = BottomBarState.AttachmentMenu
+                                }
                             )
                         }
 
@@ -405,6 +421,20 @@ fun MessageMessaging(
                                 },
                                 onCancel = {
                                     emojiTargetMessage = null // 點擊關閉
+                                }
+                            )
+                        }
+
+                        is BottomBarState.AttachmentMenu -> {
+                            MessageAttachmentBar(
+                                onImageClick = {
+                                    imagePickerLauncher.launch("image/*")
+                                    // 🎯 選完圖片後，將本地狀態重置，自動回歸 Input 輸入框
+                                    localBottomBarState = null
+                                },
+                                onCancel = {
+                                    // 🎯 點擊關閉，同樣回歸 Input 輸入框
+                                    localBottomBarState = null
                                 }
                             )
                         }
