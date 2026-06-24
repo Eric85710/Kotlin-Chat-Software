@@ -9,7 +9,6 @@ import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
@@ -31,9 +30,6 @@ import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.layout.width
-import androidx.compose.foundation.lazy.LazyRow
-import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material3.Text
 import androidx.compose.runtime.derivedStateOf
@@ -45,21 +41,59 @@ import androidx.core.content.ContextCompat
 import coil.compose.AsyncImage // 建議使用 Coil 來載入本地圖片 Uri，效能極佳
 import android.Manifest
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.aspectRatio
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.lazy.LazyRow
+import androidx.compose.foundation.lazy.grid.GridCells
+import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
+import androidx.compose.foundation.lazy.grid.items
+import androidx.compose.foundation.lazy.items
 import androidx.compose.material.icons.filled.Add
+import androidx.compose.material.icons.filled.Audiotrack
+import androidx.compose.material.icons.filled.ContactPage
+import androidx.compose.material.icons.filled.Description
+import androidx.compose.material.icons.filled.Image
+import androidx.compose.material.icons.filled.LocationOn
+import androidx.compose.material3.Divider
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.mutableStateListOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
+import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.font.FontWeight
+
+
+// 🎯 定義底部功能按鈕的資料結構
+data class AttachmentOption(
+    val title: String,
+    val icon: ImageVector,
+    val onClick: () -> Unit
+)
 
 @Composable
 fun MessageAttachmentBar(
     onImageSelected: (Uri) -> Unit,
-    onCancel: () -> Unit
+    onCancel: () -> Unit,
+    onAudioClick: () -> Unit = {},
+    onDocumentClick: () -> Unit = {},
+    onLocationClick: () -> Unit = {},
+    onContactClick: () -> Unit = {}
 ) {
     val context = LocalContext.current
     val localImages = remember { mutableStateListOf<Uri>() }
     var refreshTrigger by remember { mutableStateOf(0) }
+
+    //attachment menu
+    val attachmentOptions = remember {
+        listOf(
+            AttachmentOption("圖片", Icons.Default.Image, { /* 已在網格處理，這裡可做其他事 */ }),
+            AttachmentOption("音訊", Icons.Default.Audiotrack, onAudioClick),
+            AttachmentOption("文件", Icons.Default.Description, onDocumentClick),
+            AttachmentOption("位置", Icons.Default.LocationOn, onLocationClick),
+            AttachmentOption("聯絡人", Icons.Default.ContactPage, onContactClick)
+        )
+    }
 
     val isPartialAccess by remember(refreshTrigger) {
         derivedStateOf {
@@ -90,7 +124,7 @@ fun MessageAttachmentBar(
             )?.use { cursor ->
                 val idColumn = cursor.getColumnIndexOrThrow(MediaStore.Images.Media._ID)
                 var count = 0
-                while (cursor.moveToNext() && count < 20) {
+                while (cursor.moveToNext() && count < 24) { // 🎯 調整為 24 張
                     val id = cursor.getLong(idColumn)
                     val contentUri = ContentUris.withAppendedId(MediaStore.Images.Media.EXTERNAL_CONTENT_URI, id)
                     imageUris.add(contentUri)
@@ -155,61 +189,105 @@ fun MessageAttachmentBar(
             }
 
             // 中部列：放大後的媒體檢視器
-            LazyRow(
+            Box(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .height(110.dp), // 🎯 高度從 70dp 顯著提升到 110dp，預覽更大更清晰
-                horizontalArrangement = Arrangement.spacedBy(10.dp),
-                verticalAlignment = Alignment.CenterVertically
+                    .height(240.dp) // 🎯 顯著拉高 Attachment Bar 容器
             ) {
-                // Android 14+ 管理選取範圍按鈕
-                if (isPartialAccess) {
-                    item {
-                        Box(
-                            modifier = Modifier
-                                .size(110.dp) // 同步放大為正方形
-                                .clip(RoundedCornerShape(12.dp))
-                                .background(Color.White.copy(alpha = 0.1f))
-                                .clickable {
-                                    if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.UPSIDE_DOWN_CAKE) {
-                                        permissionLauncher.launch(Manifest.permission.READ_MEDIA_IMAGES)
+                if (localImages.isEmpty() && !isPartialAccess) {
+                    Box(
+                        modifier = Modifier.fillMaxSize(),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Text(text = "無最近媒體檔案", color = Color.White.copy(alpha = 0.5f))
+                    }
+                } else {
+                    LazyVerticalGrid(
+                        columns = GridCells.Fixed(3), // 🎯 固定 3 直欄網格（你也可以改成 4）
+                        modifier = Modifier.fillMaxSize(),
+                        horizontalArrangement = Arrangement.spacedBy(8.dp),
+                        verticalArrangement = Arrangement.spacedBy(8.dp)
+                    ) {
+                        // Android 14+ 管理選取範圍按鈕 (在網格的第一格)
+                        if (isPartialAccess) {
+                            item {
+                                Box(
+                                    modifier = Modifier
+                                        .aspectRatio(1f) // 確保正方形
+                                        .clip(RoundedCornerShape(12.dp))
+                                        .background(Color.White.copy(alpha = 0.1f))
+                                        .clickable {
+                                            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.UPSIDE_DOWN_CAKE) {
+                                                permissionLauncher.launch(Manifest.permission.READ_MEDIA_IMAGES)
+                                            }
+                                        },
+                                    contentAlignment = Alignment.Center
+                                ) {
+                                    Column(horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                                        Icon(imageVector = Icons.Default.Add, contentDescription = "管理照片", tint = Color.White)
+                                        Text("管理檔案", color = Color.White, style = MaterialTheme.typography.labelSmall)
                                     }
-                                },
-                            contentAlignment = Alignment.Center
-                        ) {
-                            Column(horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.spacedBy(4.dp)) {
-                                Icon(imageVector = Icons.Default.Add, contentDescription = "管理照片", tint = Color.White)
-                                Text("管理檔案", color = Color.White, style = MaterialTheme.typography.labelSmall)
+                                }
                             }
+                        }
+
+                        // 渲染相片列表
+                        items(localImages) { uri ->
+                            AsyncImage(
+                                model = uri,
+                                contentDescription = "媒體預覽",
+                                modifier = Modifier
+                                    .aspectRatio(1f) // 🎯 強制圖片縮圖為完美的正方形
+                                    .clip(RoundedCornerShape(12.dp))
+                                    .clickable { onImageSelected(uri) },
+                                contentScale = androidx.compose.ui.layout.ContentScale.Crop
+                            )
                         }
                     }
                 }
+            }
 
-                if (localImages.isEmpty()) {
-                    item {
+            Divider(color = Color.White.copy(alpha = 0.15f), thickness = 1.dp) // 加一條細緻的分割線
+
+            LazyRow(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(20.dp), // 按鈕之間的間距
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                items(attachmentOptions) { option ->
+                    Column(
+                        modifier = Modifier
+                            .width(60.dp)
+                            .clickable { option.onClick() },
+                        horizontalAlignment = Alignment.CenterHorizontally,
+                        verticalArrangement = Arrangement.spacedBy(6.dp)
+                    ) {
+                        // 圖示圓圈背景
                         Box(
-                            modifier = Modifier.fillParentMaxWidth().height(110.dp),
+                            modifier = Modifier
+                                .size(44.dp)
+                                .clip(CircleShape)
+                                .background(Color.White.copy(alpha = 0.12f)),
                             contentAlignment = Alignment.Center
                         ) {
-                            Text(text = "無最近媒體檔案", color = Color.White.copy(alpha = 0.5f))
+                            Icon(
+                                imageVector = option.icon,
+                                contentDescription = option.title,
+                                tint = Color.White,
+                                modifier = Modifier.size(20.dp)
+                            )
                         }
-                    }
-                } else {
-                    items(localImages) { uri ->
-                        AsyncImage(
-                            model = uri,
-                            contentDescription = "媒體預覽",
-                            modifier = Modifier
-                                .size(110.dp) // 🎯 同步放大
-                                .clip(RoundedCornerShape(12.dp))
-                                .clickable { onImageSelected(uri) },
-                            contentScale = androidx.compose.ui.layout.ContentScale.Crop
+
+                        // 功能文字
+                        Text(
+                            text = option.title,
+                            color = Color.White.copy(alpha = 0.8f),
+                            style = MaterialTheme.typography.labelSmall
                         )
                     }
                 }
             }
 
-            // 💡 提示：這裡可以作為未來的第三列空間，比如放置「文件、位置、名片」等其他 Icon 按鈕。
         }
     }
 }
