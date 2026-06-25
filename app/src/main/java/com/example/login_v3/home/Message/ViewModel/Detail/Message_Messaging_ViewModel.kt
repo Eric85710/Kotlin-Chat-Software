@@ -230,20 +230,28 @@ class ChatViewModel @Inject constructor(
     fun uploadAttachment(roomId: String, fileUri: Uri) {
         viewModelScope.launch {
             _sendMessageState.value = SendMessageState.Loading
-            val result = repository.uploadAttachment(roomId, fileUri)
 
-            result.onSuccess {
-                // 💡 ✅ 修正點：移除參數括號，直接指派 object 狀態
-                _sendMessageState.value = SendMessageState.Success
+            // 🎯 【偵錯步驟 1】檢查這個音訊 Uri 到底長怎樣、MimeType 是什麼
+            try {
+                val contentResolver = application.contentResolver
+                val mimeType = contentResolver.getType(fileUri)
 
-                // 🌟 核心同步：因為上傳檔案成功後，後端可能已經將新訊息寫入。
-                // 我們在背景主動觸發一次 refresh 默默拉回最新訊息寫入 Room，
-                // 這樣你的 MessageList 就能透過 Flow 秒速自動跳出剛剛上傳的圖片氣泡！
-                repository.refreshChatMessages(roomId)
+                // 🎯 【偵錯步驟 2】呼叫 Repository
+                val result = repository.uploadAttachment(roomId, fileUri)
 
-            }.onFailure { error ->
-                Log.e("ChatViewModel", "Upload attachment failed", error)
-                _sendMessageState.value = SendMessageState.Error(error.message ?: "上傳失敗")
+                result.onSuccess {
+                    _sendMessageState.value = SendMessageState.Success
+                    repository.refreshChatMessages(roomId)
+                }.onFailure { error ->
+                    // 🎯 【偵錯步驟 3】這裡能抓到 Repository 傳回來的 API 錯誤
+                    Log.e("ChatDebug", "Repository 回報上傳失敗: ${error.message}", error)
+                    _sendMessageState.value = SendMessageState.Error(error.message ?: "上傳失敗")
+                }
+
+            } catch (e: Exception) {
+                // 🎯 【偵錯步驟 4】這裡能抓到本機讀取檔案就崩潰的錯誤（例如權限或 Stream 問題）
+                Log.e("ChatDebug", "ViewModel 處理檔案時發生異常: ${e.message}", e)
+                _sendMessageState.value = SendMessageState.Error(e.message ?: "讀取檔案失敗")
             }
         }
     }

@@ -353,7 +353,7 @@ fun MessageAttachmentBar(
             // 下方選單 Icon 列
             LazyRow(
                 modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.spacedBy(20.dp),
+                horizontalArrangement = Arrangement.spacedBy(12.dp),
                 verticalAlignment = Alignment.CenterVertically
             ) {
                 items(attachmentOptions) { option ->
