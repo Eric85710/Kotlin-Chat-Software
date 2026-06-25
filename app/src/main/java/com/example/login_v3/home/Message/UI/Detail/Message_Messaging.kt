@@ -182,22 +182,43 @@ fun MessageMessaging(
         }
     }
 
-    //media permision required
-    val mainPermissionLauncher = rememberLauncherForActivityResult(
-        contract = ActivityResultContracts.RequestPermission()
-    ) { isGranted ->
-        if (isGranted) {
-            // 關鍵：只有當使用者真的按下了「允許」，才在 Callback 裡開啟附件面板！
-            localBottomBarState = BottomBarState.AttachmentMenu
+    // 1. 定義需要向系統「申請」的權限陣列（維持不變）
+    val requiredPermissions = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+        arrayOf(
+            Manifest.permission.READ_MEDIA_IMAGES,
+            Manifest.permission.READ_MEDIA_AUDIO
+        )
+    } else {
+        arrayOf(Manifest.permission.READ_EXTERNAL_STORAGE)
+    }
+
+    // 2. 🎯 核心修正：判斷「目前是否能夠進入選單」的邏輯
+    fun checkHasRequiredPermissions(): Boolean {
+        return if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.UPSIDE_DOWN_CAKE) {
+            // 【Android 14+】
+            // 音訊必須要過
+            val audioGranted = ContextCompat.checkSelfPermission(context, Manifest.permission.READ_MEDIA_AUDIO) == PackageManager.PERMISSION_GRANTED
+            // 圖片不管是「全過(READ_MEDIA_IMAGES)」還是「部分過(READ_MEDIA_VISUAL_USER_SELECTED)」都可以算過！
+            val imageGranted = ContextCompat.checkSelfPermission(context, Manifest.permission.READ_MEDIA_IMAGES) == PackageManager.PERMISSION_GRANTED
+            val partialImageGranted = ContextCompat.checkSelfPermission(context, Manifest.permission.READ_MEDIA_VISUAL_USER_SELECTED) == PackageManager.PERMISSION_GRANTED
+
+            audioGranted && (imageGranted || partialImageGranted)
         } else {
-            Toast.makeText(context, "需要相簿權限才能預覽照片喔！", Toast.LENGTH_SHORT).show()
+            // 【Android 13 及以下】
+            requiredPermissions.all { ContextCompat.checkSelfPermission(context, it) == PackageManager.PERMISSION_GRANTED }
         }
     }
 
-    val requiredPermission = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
-        Manifest.permission.READ_MEDIA_IMAGES // 🎯 Android 13+ 必須是這個
-    } else {
-        Manifest.permission.READ_EXTERNAL_STORAGE // Android 12 以下是這個
+// 3. Launcher 接收結果時的判斷
+    val mainPermissionLauncher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.RequestMultiplePermissions()
+    ) { _ ->
+        // 🎯 不要直接用傳回來的 Map，而是用我們上面寫好的自訂檢查
+        if (checkHasRequiredPermissions()) {
+            localBottomBarState = BottomBarState.AttachmentMenu
+        } else {
+            Toast.makeText(context, "Need Access Permission", Toast.LENGTH_SHORT).show()
+        }
     }
 
     val deleteState by viewModel.deleteMessageState.collectAsState()
@@ -395,16 +416,15 @@ fun MessageMessaging(
                                 replyingMessage = replyingMessage,
                                 onCancelReply = { viewModel.setReplyingMessage(null) },
                                 onSendClick = { content -> viewModel.sendMessage(roomId, content) },
-                                // 🎯 改為直接修改本地狀態，切換至附件選單
+                                // 🎯 修正這部分的權限檢查邏輯
                                 onAttachmentClick = {
-                                    val hasPermission = ContextCompat.checkSelfPermission(context, requiredPermission) == PackageManager.PERMISSION_GRANTED
-
-                                    if (hasPermission) {
-                                        // 已經有權限了，直接大方開啟
+                                    // 1. 使用我們剛剛封裝好的多重權限檢查函式
+                                    if (checkHasRequiredPermissions()) {
+                                        // 已經有權限了，直接開啟附件選單
                                         localBottomBarState = BottomBarState.AttachmentMenu
                                     } else {
-                                        // 沒權限，只管叫起權限請求視窗，千萬不要在這裡改 localBottomBarState！
-                                        mainPermissionLauncher.launch(requiredPermission)
+                                        // 2. 沒權限，叫起多重權限請求視窗（傳入 requiredPermissions 陣列）
+                                        mainPermissionLauncher.launch(requiredPermissions)
                                     }
                                 }
                             )
