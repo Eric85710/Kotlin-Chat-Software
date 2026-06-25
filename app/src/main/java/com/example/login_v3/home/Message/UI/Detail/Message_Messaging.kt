@@ -105,6 +105,7 @@ sealed interface BottomBarState {
     data class EmojiMenu(val message: Message) : BottomBarState  // 單擊：Emoji 工具列
     object AttachmentMenu : BottomBarState                       // 🎯 新增：附件選單
 }
+
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun MessageMessaging(
@@ -460,6 +461,12 @@ fun MessageMessaging(
                                 onImageSelected = { uri ->
                                     // 🎯 使用者在預覽列中點選了某張圖片，直接觸發上傳
                                     viewModel.uploadAttachment(roomId, uri)
+                                    // 上傳後自動退回輸入框
+                                    localBottomBarState = null
+                                },
+                                onAudioSelected = { uri ->
+                                    // 處理音訊上傳的邏輯（通常跟圖片上傳類似，或是呼叫你專門處理音訊的函式）
+                                    viewModel.uploadAttachment(roomId, uri) // 假設你的 ViewModel 上傳函式是通用的
                                     // 上傳後自動退回輸入框
                                     localBottomBarState = null
                                 },

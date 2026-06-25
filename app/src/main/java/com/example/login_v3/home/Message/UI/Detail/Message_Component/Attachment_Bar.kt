@@ -40,6 +40,7 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.core.content.ContextCompat
 import coil.compose.AsyncImage // 建議使用 Coil 來載入本地圖片 Uri，效能極佳
 import android.Manifest
+import androidx.compose.animation.Crossfade
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.aspectRatio
 import androidx.compose.foundation.layout.fillMaxSize
@@ -62,9 +63,25 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextOverflow
 
 
-// 🎯 定義底部功能按鈕的資料結構
+// 1. 定義目前支援的選單類型
+enum class AttachmentType(val title: String) {
+    MEDIA("Media"),
+    AUDIO("Audio"),
+    DOCUMENT("Document"),
+    LOCATION("Location"),
+    CONTACT("Contact")
+}
+
+// 音訊資料結構
+data class AudioItem(
+    val uri: Uri,
+    val displayName: String,
+    val duration: Long
+)
+
 data class AttachmentOption(
     val title: String,
     val icon: ImageVector,
@@ -74,44 +91,35 @@ data class AttachmentOption(
 @Composable
 fun MessageAttachmentBar(
     onImageSelected: (Uri) -> Unit,
+    onAudioSelected: (Uri) -> Unit, // 🎯 新增：音訊選取回呼
     onCancel: () -> Unit,
-    onAudioClick: () -> Unit = {},
     onDocumentClick: () -> Unit = {},
     onLocationClick: () -> Unit = {},
     onContactClick: () -> Unit = {}
 ) {
     val context = LocalContext.current
+
+    // 🎯 2. 追蹤當前的選單狀態，預設為 MEDIA
+    var currentType by remember { mutableStateOf(AttachmentType.MEDIA) }
+
+    // 資料狀態
     val localImages = remember { mutableStateListOf<Uri>() }
+    val localAudios = remember { mutableStateListOf<AudioItem>() }
+
     var refreshTrigger by remember { mutableStateOf(0) }
 
-    // 🎯 1. 新增一個 State 來追蹤目前畫面上應該顯示什麼標題，預設為 "Attachment"
-    var currentMenuTitle by remember { mutableStateOf("Media") }
-
-    // attachment menu
+    // 下方功能按鈕清單
     val attachmentOptions = remember {
         listOf(
-            AttachmentOption("圖片", Icons.Default.Image, {
-                currentMenuTitle = "Media" // 點擊圖片或重置時回到原來的標題
-            }),
-            AttachmentOption("音訊", Icons.Default.Audiotrack, {
-                currentMenuTitle = "Audio"      // 🎯 變更標題
-                onAudioClick()
-            }),
-            AttachmentOption("文件", Icons.Default.Description, {
-                currentMenuTitle = "Document"   // 🎯 變更標題
-                onDocumentClick()
-            }),
-            AttachmentOption("位置", Icons.Default.LocationOn, {
-                currentMenuTitle = "Location"   // 🎯 變更標題
-                onLocationClick()
-            }),
-            AttachmentOption("聯絡人", Icons.Default.ContactPage, {
-                currentMenuTitle = "Contact"    // 🎯 變更標題
-                onContactClick()
-            })
+            AttachmentOption("圖片", Icons.Default.Image, { currentType = AttachmentType.MEDIA }),
+            AttachmentOption("音訊", Icons.Default.Audiotrack, { currentType = AttachmentType.AUDIO }),
+            AttachmentOption("文件", Icons.Default.Description, { currentType = AttachmentType.DOCUMENT; onDocumentClick() }),
+            AttachmentOption("位置", Icons.Default.LocationOn, { currentType = AttachmentType.LOCATION; onLocationClick() }),
+            AttachmentOption("聯絡人", Icons.Default.ContactPage, { currentType = AttachmentType.CONTACT; onContactClick() })
         )
     }
 
+    // Android 14+ 圖片部分權限檢查
     val isPartialAccess by remember(refreshTrigger) {
         derivedStateOf {
             if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.UPSIDE_DOWN_CAKE) {
@@ -125,26 +133,20 @@ fun MessageAttachmentBar(
 
     val permissionLauncher = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.RequestPermission()
-    ) { _ ->
-        refreshTrigger++
-    }
+    ) { _ -> refreshTrigger++ }
 
+    // 🎯 3. 讀取圖片的 Effect (保持原樣)
     LaunchedEffect(refreshTrigger) {
         val imageUris = mutableListOf<Uri>()
         val projection = arrayOf(MediaStore.Images.Media._ID, MediaStore.Images.Media.DATE_TAKEN)
         val sortOrder = "${MediaStore.Images.Media.DATE_TAKEN} DESC"
-
         try {
-            context.contentResolver.query(
-                MediaStore.Images.Media.EXTERNAL_CONTENT_URI,
-                projection, null, null, sortOrder
-            )?.use { cursor ->
+            context.contentResolver.query(MediaStore.Images.Media.EXTERNAL_CONTENT_URI, projection, null, null, sortOrder)?.use { cursor ->
                 val idColumn = cursor.getColumnIndexOrThrow(MediaStore.Images.Media._ID)
                 var count = 0
-                while (cursor.moveToNext() && count < 24) { // 🎯 調整為 24 張
+                while (cursor.moveToNext() && count < 24) {
                     val id = cursor.getLong(idColumn)
-                    val contentUri = ContentUris.withAppendedId(MediaStore.Images.Media.EXTERNAL_CONTENT_URI, id)
-                    imageUris.add(contentUri)
+                    imageUris.add(ContentUris.withAppendedId(MediaStore.Images.Media.EXTERNAL_CONTENT_URI, id))
                     count++
                 }
             }
@@ -155,126 +157,215 @@ fun MessageAttachmentBar(
         }
     }
 
+    // 🎯 4. 新增：讀取音訊的 Effect (記得在 AndroidManifest 宣告 READ_EXTERNAL_STORAGE 或 READ_MEDIA_AUDIO)
+    LaunchedEffect(refreshTrigger) {
+        val audioItems = mutableListOf<AudioItem>()
+        val projection = arrayOf(
+            MediaStore.Audio.Media._ID,
+            MediaStore.Audio.Media.DISPLAY_NAME,
+            MediaStore.Audio.Media.DURATION
+        )
+        val sortOrder = "${MediaStore.Audio.Media.DATE_ADDED} DESC"
+        try {
+            context.contentResolver.query(MediaStore.Audio.Media.EXTERNAL_CONTENT_URI, projection, null, null, sortOrder)?.use { cursor ->
+                val idColumn = cursor.getColumnIndexOrThrow(MediaStore.Audio.Media._ID)
+                val nameColumn = cursor.getColumnIndexOrThrow(MediaStore.Audio.Media.DISPLAY_NAME)
+                val durationColumn = cursor.getColumnIndexOrThrow(MediaStore.Audio.Media.DURATION)
+                var count = 0
+                while (cursor.moveToNext() && count < 20) {
+                    val id = cursor.getLong(idColumn)
+                    val name = cursor.getString(nameColumn) ?: "未知音訊"
+                    val duration = cursor.getLong(durationColumn)
+                    val uri = ContentUris.withAppendedId(MediaStore.Audio.Media.EXTERNAL_CONTENT_URI, id)
+                    audioItems.add(AudioItem(uri, name, duration))
+                    count++
+                }
+            }
+            localAudios.clear()
+            localAudios.addAll(audioItems)
+        } catch (e: SecurityException) {
+            localAudios.clear()
+        }
+    }
+
     Box(
         modifier = Modifier
             .fillMaxWidth()
             .navigationBarsPadding()
             .padding(horizontal = 16.dp, vertical = 8.dp)
     ) {
-        // 毛玻璃背景與邊框
+        // 背景
         Box(modifier = Modifier.matchParentSize().blur(10.dp))
         Box(
             modifier = Modifier
                 .matchParentSize()
-                .background(MaterialTheme.colorScheme.primary, RoundedCornerShape(24.dp)) // 稍微加寬圓角迎合高面板
+                .background(MaterialTheme.colorScheme.primary, RoundedCornerShape(24.dp))
                 .border(1.dp, Color.White.copy(alpha = 0.3f), RoundedCornerShape(24.dp))
         )
 
-        // 🎯 核心修改：改為 Column 佈局
         Column(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(16.dp), // 內邊距均勻分布
+                .padding(16.dp),
             verticalArrangement = Arrangement.spacedBy(16.dp)
         ) {
-            // 頂部列：左邊是標題或功能名稱，右邊是關閉按鈕
+            // 頂部列：顯示動態標題
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 verticalAlignment = Alignment.CenterVertically,
                 horizontalArrangement = Arrangement.SpaceBetween
             ) {
                 Text(
-                    text = "Send $currentMenuTitle",
+                    text = "Send ${currentType.title}", // 🎯 動態標題
                     style = MaterialTheme.typography.titleSmall,
                     color = Color.White,
                     fontWeight = FontWeight.Bold
                 )
 
-                // 🎯 精緻化縮小後的關閉按鈕
                 Box(
                     modifier = Modifier
-                        .size(24.dp) // 1. 控制整個外圈圓形背景的大小
+                        .size(24.dp)
                         .background(Color.White.copy(alpha = 0.15f), CircleShape)
                         .clip(CircleShape)
-                        .clickable { onCancel() }, // 2. 點擊事件直接綁在圓圈上
+                        .clickable { onCancel() },
                     contentAlignment = Alignment.Center
                 ) {
                     Icon(
                         imageVector = Icons.Default.Close,
                         contentDescription = "返回輸入",
                         tint = Color.White,
-                        modifier = Modifier.size(14.dp) // 3. 控制內層叉叉 Icon 的尺寸
+                        modifier = Modifier.size(14.dp)
                     )
                 }
             }
 
-            // 中部列：放大後的媒體檢視器
+            // 中部列：使用 Crossfade 達成平滑切換內容
             Box(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .height(240.dp) // 🎯 顯著拉高 Attachment Bar 容器
+                    .height(240.dp)
             ) {
-                if (localImages.isEmpty() && !isPartialAccess) {
-                    Box(
-                        modifier = Modifier.fillMaxSize(),
-                        contentAlignment = Alignment.Center
-                    ) {
-                        Text(text = "無最近媒體檔案", color = Color.White.copy(alpha = 0.5f))
-                    }
-                } else {
-                    LazyVerticalGrid(
-                        columns = GridCells.Fixed(3), // 🎯 固定 3 直欄網格（你也可以改成 4）
-                        modifier = Modifier.fillMaxSize(),
-                        horizontalArrangement = Arrangement.spacedBy(8.dp),
-                        verticalArrangement = Arrangement.spacedBy(8.dp)
-                    ) {
-                        // Android 14+ 管理選取範圍按鈕 (在網格的第一格)
-                        if (isPartialAccess) {
-                            item {
-                                Box(
-                                    modifier = Modifier
-                                        .aspectRatio(1f) // 確保正方形
-                                        .clip(RoundedCornerShape(12.dp))
-                                        .background(Color.White.copy(alpha = 0.1f))
-                                        .clickable {
-                                            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.UPSIDE_DOWN_CAKE) {
-                                                permissionLauncher.launch(Manifest.permission.READ_MEDIA_IMAGES)
-                                            }
-                                        },
-                                    contentAlignment = Alignment.Center
+                Crossfade(targetState = currentType, label = "ContentSwitch") { type ->
+                    when (type) {
+                        AttachmentType.MEDIA -> {
+                            // 圖片網格邏輯 (維持原樣)
+                            if (localImages.isEmpty() && !isPartialAccess) {
+                                EmptyStateView("無最近媒體檔案")
+                            } else {
+                                LazyVerticalGrid(
+                                    columns = GridCells.Fixed(3),
+                                    modifier = Modifier.fillMaxSize(),
+                                    horizontalArrangement = Arrangement.spacedBy(8.dp),
+                                    verticalArrangement = Arrangement.spacedBy(8.dp)
                                 ) {
-                                    Column(horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.spacedBy(4.dp)) {
-                                        Icon(imageVector = Icons.Default.Add, contentDescription = "管理照片", tint = Color.White)
-                                        Text("管理檔案", color = Color.White, style = MaterialTheme.typography.labelSmall)
+                                    if (isPartialAccess) {
+                                        item {
+                                            Box(
+                                                modifier = Modifier
+                                                    .aspectRatio(1f)
+                                                    .clip(RoundedCornerShape(12.dp))
+                                                    .background(Color.White.copy(alpha = 0.1f))
+                                                    .clickable {
+                                                        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.UPSIDE_DOWN_CAKE) {
+                                                            permissionLauncher.launch(Manifest.permission.READ_MEDIA_IMAGES)
+                                                        }
+                                                    },
+                                                contentAlignment = Alignment.Center
+                                            ) {
+                                                Column(horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                                                    Icon(imageVector = Icons.Default.Add, contentDescription = "管理照片", tint = Color.White)
+                                                    Text("管理檔案", color = Color.White, style = MaterialTheme.typography.labelSmall)
+                                                }
+                                            }
+                                        }
+                                    }
+
+                                    items(localImages) { uri ->
+                                        AsyncImage(
+                                            model = uri,
+                                            contentDescription = "媒體預覽",
+                                            modifier = Modifier
+                                                .aspectRatio(1f)
+                                                .clip(RoundedCornerShape(12.dp))
+                                                .clickable { onImageSelected(uri) },
+                                            contentScale = androidx.compose.ui.layout.ContentScale.Crop
+                                        )
                                     }
                                 }
                             }
                         }
 
-                        // 渲染相片列表
-                        items(localImages) { uri ->
-                            AsyncImage(
-                                model = uri,
-                                contentDescription = "媒體預覽",
-                                modifier = Modifier
-                                    .aspectRatio(1f) // 🎯 強制圖片縮圖為完美的正方形
-                                    .clip(RoundedCornerShape(12.dp))
-                                    .clickable { onImageSelected(uri) },
-                                contentScale = androidx.compose.ui.layout.ContentScale.Crop
-                            )
+                        AttachmentType.AUDIO -> {
+                            // 🎯 5. 新增：音訊渲染 UI (音訊檔名較長，改用垂直捲動清單比網格好看)
+                            if (localAudios.isEmpty()) {
+                                EmptyStateView("無最近音訊檔案")
+                            } else {
+                                androidx.compose.foundation.lazy.LazyColumn(
+                                    modifier = Modifier.fillMaxSize(),
+                                    verticalArrangement = Arrangement.spacedBy(8.dp)
+                                ) {
+                                    items(localAudios) { audio ->
+                                        Row(
+                                            modifier = Modifier
+                                                .fillMaxWidth()
+                                                .clip(RoundedCornerShape(12.dp))
+                                                .background(Color.White.copy(alpha = 0.08f))
+                                                .clickable { onAudioSelected(audio.uri) }
+                                                .padding(horizontal = 12.dp, vertical = 10.dp),
+                                            verticalAlignment = Alignment.CenterVertically,
+                                            horizontalArrangement = Arrangement.spacedBy(12.dp)
+                                        ) {
+                                            Icon(
+                                                imageVector = Icons.Default.Audiotrack,
+                                                contentDescription = null,
+                                                tint = Color.White.copy(alpha = 0.7f)
+                                            )
+                                            Column(modifier = Modifier.weight(1f)) {
+                                                Text(
+                                                    text = audio.displayName,
+                                                    color = Color.White,
+                                                    style = MaterialTheme.typography.bodyMedium,
+                                                    maxLines = 1,
+                                                    overflow = TextOverflow.Ellipsis
+                                                )
+                                                Text(
+                                                    text = formatDuration(audio.duration),
+                                                    color = Color.White.copy(alpha = 0.5f),
+                                                    style = MaterialTheme.typography.labelSmall
+                                                )
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+                        }
+
+                        // 其他沒做完的狀態可以在這裡做對應的 Placeholder 處理
+                        else -> {
+                            EmptyStateView("${type.title} 功能尚未開放")
                         }
                     }
                 }
             }
 
-            Divider(color = Color.White.copy(alpha = 0.15f), thickness = 1.dp) // 加一條細緻的分割線
+            Divider(color = Color.White.copy(alpha = 0.15f), thickness = 1.dp)
 
+            // 下方選單 Icon 列
             LazyRow(
                 modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.spacedBy(20.dp), // 按鈕之間的間距
+                horizontalArrangement = Arrangement.spacedBy(20.dp),
                 verticalAlignment = Alignment.CenterVertically
             ) {
                 items(attachmentOptions) { option ->
+                    // 🎯 6. 稍微優化：如果選中當前項目，給予特別的高亮白底
+                    val isSelected = option.title == when(currentType) {
+                        AttachmentType.MEDIA -> "圖片"
+                        AttachmentType.AUDIO -> "音訊"
+                        AttachmentType.DOCUMENT -> "文件"
+                        AttachmentType.LOCATION -> "位置"
+                        AttachmentType.CONTACT -> "聯絡人"
+                    }
+
                     Column(
                         modifier = Modifier
                             .width(60.dp)
@@ -282,12 +373,11 @@ fun MessageAttachmentBar(
                         horizontalAlignment = Alignment.CenterHorizontally,
                         verticalArrangement = Arrangement.spacedBy(6.dp)
                     ) {
-                        // 圖示圓圈背景
                         Box(
                             modifier = Modifier
                                 .size(44.dp)
                                 .clip(CircleShape)
-                                .background(Color.White.copy(alpha = 0.12f)),
+                                .background(if (isSelected) Color.White.copy(alpha = 0.3f) else Color.White.copy(alpha = 0.12f)),
                             contentAlignment = Alignment.Center
                         ) {
                             Icon(
@@ -300,7 +390,24 @@ fun MessageAttachmentBar(
                     }
                 }
             }
-
         }
     }
+}
+
+@Composable
+fun EmptyStateView(text: String) {
+    Box(
+        modifier = Modifier.fillMaxSize(),
+        contentAlignment = Alignment.Center
+    ) {
+        Text(text = text, color = Color.White.copy(alpha = 0.5f))
+    }
+}
+
+// 輔助函式：將毫秒轉為 mm:ss 格式
+fun formatDuration(ms: Long): String {
+    val totalSec = ms / 1000
+    val min = totalSec / 60
+    val sec = totalSec % 60
+    return String.format("%02d:%02d", min, sec)
 }
