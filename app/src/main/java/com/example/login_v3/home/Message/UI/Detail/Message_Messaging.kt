@@ -704,14 +704,23 @@ fun MessageRow(
     val isLegacyAudio = audioExtensions.any { contentLowerCase.contains(it) }
     val isAudio = isTypeAudio || isAttachmentAudio || isLegacyAudio
 
+    // 🌟 新增：檔案判斷 (包含 zip、rar、pdf、doc 等常規檔案)
+    val isAttachmentFile = message.attachment?.mimeType?.startsWith("application/") == true ||
+            message.attachment?.mimeType == "text/plain"
+    val fileExtensions = listOf(".zip", ".rar", ".7z", ".pdf", ".doc", ".docx", ".xls", ".xlsx", ".ppt", ".pptx", ".txt")
+    val isLegacyFile = fileExtensions.any { contentLowerCase.contains(it) }
+    val isFile = isAttachmentFile || isLegacyFile
+
     val callLog = message.callLogInfo
 
-    // 🌟 3. 計算媒體 URL (將原本的圖片 URL 邏輯通用化至媒體檔案)
-    val finalMediaUrl = remember(message, isImage, isVideo, isAudio) {
+    // 計算媒體 URL
+    val finalMediaUrl = remember(message, isImage, isVideo, isAudio, isFile) {
         val rawPath = when {
             isAttachmentImage && !message.attachment?.filename.isNullOrBlank() -> message.attachment!!.filename
             isAttachmentVideo && !message.attachment?.filename.isNullOrBlank() -> message.attachment!!.filename
-            isAttachmentAudio && !message.attachment?.filename.isNullOrBlank() -> message.attachment!!.filename // 2. 🌟 新增音訊附件路徑抓取
+            isAttachmentAudio && !message.attachment?.filename.isNullOrBlank() -> message.attachment!!.filename
+            // 🌟 新增：檔案附件路徑抓取
+            isFile && message.attachment?.filename?.isNotBlank() == true -> message.attachment!!.filename
             else -> message.content ?: ""
         }
 
@@ -721,7 +730,6 @@ fun MessageRow(
             rawPath.isBlank() -> ""
             rawPath.startsWith("http") -> rawPath
             else -> {
-                // 移除可能重複的前綴，確保路徑乾淨
                 val cleanPath = rawPath.removePrefix("/").removePrefix("uploads/")
                 if (cleanPath.startsWith("attachment/")) {
                     "$baseUrl/uploads/$cleanPath"
@@ -729,6 +737,17 @@ fun MessageRow(
                     "$baseUrl/uploads/attachment/$cleanPath"
                 }
             }
+        }
+    }
+
+    // 取得檔案的顯示名稱（如果是 zip 這種長檔名，可以從 URL 或 attachment 抓取）
+    val displayFileName = remember(message, finalMediaUrl) {
+        if (!message.attachment?.filename.isNullOrBlank()) {
+            // 如果後端有給原始檔名（例如：資料.zip），優先顯示
+            message.attachment.filename.substringAfterLast("/")
+        } else {
+            // 如果只有 URL，抓出最後一段當作檔名
+            finalMediaUrl.substringAfterLast("/")
         }
     }
 
