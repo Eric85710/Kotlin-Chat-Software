@@ -80,7 +80,9 @@ import androidx.compose.foundation.layout.sizeIn
 import androidx.compose.foundation.layout.windowInsetsTopHeight
 import androidx.compose.foundation.layout.statusBars // 如果要使用 statusBars 也需要這個
 import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.material.icons.filled.Build
 import androidx.compose.material.icons.filled.Call
+import androidx.compose.material.icons.filled.Info
 import androidx.compose.material.icons.filled.MoreVert
 import androidx.compose.material.icons.filled.PlayArrow
 import androidx.core.content.ContextCompat
@@ -947,6 +949,70 @@ fun MessageRow(
                                     bubbleColor = finalBubbleColor,
                                     viewModel = viewModel
                                 )
+                            }
+                        }
+
+                        isFile -> {
+                            Box(
+                                modifier = Modifier
+                                    .widthIn(max = 260.dp)
+                                    .clip(
+                                        RoundedCornerShape(
+                                            topStart = 12.dp, topEnd = 12.dp,
+                                            bottomStart = if (isMe) 12.dp else 0.dp,
+                                            bottomEnd = if (isMe) 0.dp else 12.dp
+                                        )
+                                    )
+                                    .combinedClickable(
+                                        onLongClick = { onReplyClick(message) },
+                                        onClick = { onRowClick(message) } // 🎯 點擊時可以在此觸發下載或開啟檔案
+                                    )
+                                    .background(color = finalBubbleColor)
+                                    .padding(horizontal = 12.dp, vertical = 10.dp)
+                            ) {
+                                Column {
+                                    message.repliedMessage?.let { replied ->
+                                        RepliedMessagePreview(replied, isMe, partnerDisplayName, currentUserId)
+                                    }
+
+                                    // 檔案的 UI 佈局 (左邊圖示，右邊文字)
+                                    Row(
+                                        verticalAlignment = Alignment.CenterVertically,
+                                        horizontalArrangement = Arrangement.spacedBy(10.dp)
+                                    ) {
+                                        // 根據副檔名決定圖示，這裡示範用內建圖示，你也可以換成自己的 zip 圖片
+                                        Box(
+                                            modifier = Modifier
+                                                .size(40.dp)
+                                                .background(Color.White.copy(alpha = 0.6f), CircleShape),
+                                            contentAlignment = Alignment.Center
+                                        ) {
+                                            Icon(
+                                                imageVector = if (displayFileName.endsWith(".zip") || displayFileName.endsWith(".rar")) {
+                                                    androidx.compose.material.icons.Icons.Default.Build // 或者是常規的 Folder / Img
+                                                } else {
+                                                    androidx.compose.material.icons.Icons.Default.Info
+                                                },
+                                                contentDescription = "檔案",
+                                                tint = Color.Gray,
+                                                modifier = Modifier.size(24.dp)
+                                            )
+                                        }
+
+                                        Column(modifier = Modifier.weight(1f)) {
+                                            Text(
+                                                text = displayFileName,
+                                                style = MaterialTheme.typography.bodyMedium.copy(fontSize = 15.sp),
+                                                maxLines = 2,
+                                                overflow = TextOverflow.Ellipsis
+                                            )
+                                            Text(
+                                                text = "檔案", // 如果後端有提供大小（例如 12.5 MB），放這裡最適合
+                                                style = MaterialTheme.typography.bodySmall.copy(fontSize = 11.sp, color = Color.Gray)
+                                            )
+                                        }
+                                    }
+                                }
                             }
                         }
 
