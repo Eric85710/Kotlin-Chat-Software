@@ -6,6 +6,7 @@ import android.graphics.BitmapFactory
 import android.net.Uri
 import android.os.Environment
 import android.provider.OpenableColumns
+import android.util.Log
 import androidx.datastore.core.use
 import com.example.login_v3.data.api.TecnologiaApi
 import com.example.login_v3.data.api.api_class.ChatRoom
@@ -435,63 +436,74 @@ class ChatRoomsRepository @Inject constructor(
     //download file
     private val httpClient = OkHttpClient()
     fun downloadFileFromUrlFlow(fileUrl: String, fileName: String): Flow<Result<Float>> = flow {
+        // 🎯 1. 檢查並自動拼接完整的 Base URL
+        val finalUrl = if (fileUrl.startsWith("http://") || fileUrl.startsWith("https://")) {
+            fileUrl
+        } else {
+            // 💡 這裡請換成你專案中實際使用的後端伺服器域名或 IP
+            val baseUrl = "https://tg.technologia-tw.com"
+
+            // 確保路徑拼接不會有多餘的斜線
+            val cleanedBase = baseUrl.removeSuffix("/")
+            val cleanedPath = if (fileUrl.startsWith("/")) fileUrl else "/$fileUrl"
+            "$cleanedBase$cleanedPath"
+        }
+
+        Log.d("ChatDebug", "🚀 拼接完成後的下載任務\n🔗 修正後 URL: $finalUrl\n📁 檔名: $fileName")
+
         try {
-            // 1. 建立 OkHttp Request，直接 GET 該網址
+            // 2. 使用修正後的完整網址發送請求
             val request = Request.Builder()
-                .url(fileUrl)
+                .url(finalUrl)
                 .get()
                 .build()
 
             val response = httpClient.newCall(request).execute()
+            Log.d("ChatDebug", "📥 收到回應, HTTP Status Code: ${response.code}")
 
             if (!response.isSuccessful) {
-                emit(Result.failure(Exception("下載失敗，HTTP 錯誤碼: ${response.code}")))
+                val errorBody = response.body?.string() ?: "無回應內容"
+                emit(Result.failure(Exception("HTTP 錯誤 ${response.code}: $errorBody")))
                 return@flow
             }
 
             val body = response.body
             if (body == null) {
-                emit(Result.failure(Exception("下載失敗，回應身體為空")))
+                emit(Result.failure(Exception("ResponseBody 為 null")))
                 return@flow
             }
 
-            // 2. 定義手機本機儲存路徑
-            val targetDirectory = context.getExternalFilesDir(Environment.DIRECTORY_DOWNLOADS)
-                ?: context.cacheDir
-            val targetFile = File(targetDirectory, fileName)
-
-            // 3. 讀取網路串流並寫入檔案
             val totalBytes = body.contentLength()
+            val targetDirectory = context.getExternalFilesDir(Environment.DIRECTORY_DOWNLOADS) ?: context.cacheDir
+            val targetFile = File(targetDirectory, fileName)
+            Log.d("ChatDebug", "📊 檔案總大小: $totalBytes bytes, 儲存路徑: ${targetFile.absolutePath}")
+
             var bytesCopied = 0L
             val buffer = ByteArray(DEFAULT_BUFFER_SIZE)
 
             body.byteStream().use { inputStream ->
                 FileOutputStream(targetFile).use { outputStream ->
                     var bytesRead = inputStream.read(buffer)
-
                     while (bytesRead != -1) {
                         outputStream.write(buffer, 0, bytesRead)
                         bytesCopied += bytesRead
 
-                        // 4. 計算並發送進度
                         if (totalBytes > 0) {
-                            val progress = bytesCopied.toFloat() / totalBytes.toFloat()
-                            emit(Result.success(progress))
+                            emit(Result.success(bytesCopied.toFloat() / totalBytes.toFloat()))
                         } else {
-                            // 如果後端沒給 Content-Length，傳 -1f 走無限轉圈模式
                             emit(Result.success(-1f))
                         }
-
                         bytesRead = inputStream.read(buffer)
                     }
                 }
             }
 
-            // 5. 下載成功，發送 100%
+            Log.d("ChatDebug", "✅ 檔案寫入完成! 實際寫入: $bytesCopied bytes")
             emit(Result.success(1.0f))
 
         } catch (e: Exception) {
+            Log.e("ChatDebug", "💥 Repository 下載過程中發生異常", e)
             emit(Result.failure(e))
         }
-    }.flowOn(Dispatchers.IO) // 確保硬碟與網路 I/O 不卡 UI 執行緒
+    }.flowOn(Dispatchers.IO)
 }
