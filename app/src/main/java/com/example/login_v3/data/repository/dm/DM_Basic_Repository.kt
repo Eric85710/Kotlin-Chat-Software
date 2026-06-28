@@ -4,7 +4,9 @@ import android.content.Context
 import android.graphics.Bitmap
 import android.graphics.BitmapFactory
 import android.net.Uri
+import android.os.Environment
 import android.provider.OpenableColumns
+import androidx.datastore.core.use
 import com.example.login_v3.data.api.TecnologiaApi
 import com.example.login_v3.data.api.api_class.ChatRoom
 import com.example.login_v3.data.api.api_class.Message
@@ -16,15 +18,24 @@ import com.example.login_v3.home.Message.ViewModel.Detail.MessageDao
 import com.example.login_v3.home.Message.ViewModel.Detail.MessageEntity
 import com.example.login_v3.home.Message.ViewModel.Detail.MessageStatus
 import dagger.hilt.android.qualifiers.ApplicationContext
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.flow
+import kotlinx.coroutines.flow.flowOn
 import kotlinx.coroutines.flow.map
 import okhttp3.MediaType.Companion.toMediaTypeOrNull
 import okhttp3.MultipartBody
+import okhttp3.OkHttpClient
+import okhttp3.Request
 import okhttp3.RequestBody.Companion.toRequestBody
 import java.io.ByteArrayOutputStream
+import java.io.File
+import java.io.FileOutputStream
 import java.util.UUID
 import javax.inject.Inject
 import javax.inject.Singleton
+import kotlin.io.use
+import kotlin.use
 
 @Singleton
 class ChatRoomsRepository @Inject constructor(
@@ -211,40 +222,6 @@ class ChatRoomsRepository @Inject constructor(
                 Result.failure(Exception("標記已讀失敗，錯誤碼: ${response.code()}, 訊息: $errorMsg"))
             }
         } catch (e: Exception) {
-            Result.failure(e)
-        }
-    }
-
-    //send message
-    suspend fun sendMessage(
-        roomId: String,
-        content: String,
-        replyToId: String? = null
-    ): Result<Message> {
-        return try {
-            // 打包 Request Body
-            val requestBody = SendMessageRequest(
-                content = content,
-                replyToId = replyToId
-            )
-
-            // 呼叫 API
-            val response = api.sendMessage(roomId, requestBody)
-
-            if (response.isSuccessful) {
-                val body = response.body()
-                if (body != null) {
-                    Result.success(body)
-                } else {
-                    Result.failure(Exception("發送成功但回應身體為空 (Empty response body)"))
-                }
-            } else {
-                // 抓取後端傳回的錯誤訊息
-                val errorMsg = response.errorBody()?.string() ?: "未知錯誤"
-                Result.failure(Exception("發送訊息失敗，錯誤碼: ${response.code()}, 訊息: $errorMsg"))
-            }
-        } catch (e: Exception) {
-            // 捕捉網路斷線或解析 JSON 失敗等狀況
             Result.failure(e)
         }
     }
@@ -452,4 +429,69 @@ class ChatRoomsRepository @Inject constructor(
             Result.failure(e)
         }
     }
+
+
+
+    //download file
+    private val httpClient = OkHttpClient()
+    fun downloadFileFromUrlFlow(fileUrl: String, fileName: String): Flow<Result<Float>> = flow {
+        try {
+            // 1. 建立 OkHttp Request，直接 GET 該網址
+            val request = Request.Builder()
+                .url(fileUrl)
+                .get()
+                .build()
+
+            val response = httpClient.newCall(request).execute()
+
+            if (!response.isSuccessful) {
+                emit(Result.failure(Exception("下載失敗，HTTP 錯誤碼: ${response.code}")))
+                return@flow
+            }
+
+            val body = response.body
+            if (body == null) {
+                emit(Result.failure(Exception("下載失敗，回應身體為空")))
+                return@flow
+            }
+
+            // 2. 定義手機本機儲存路徑
+            val targetDirectory = context.getExternalFilesDir(Environment.DIRECTORY_DOWNLOADS)
+                ?: context.cacheDir
+            val targetFile = File(targetDirectory, fileName)
+
+            // 3. 讀取網路串流並寫入檔案
+            val totalBytes = body.contentLength()
+            var bytesCopied = 0L
+            val buffer = ByteArray(DEFAULT_BUFFER_SIZE)
+
+            body.byteStream().use { inputStream ->
+                FileOutputStream(targetFile).use { outputStream ->
+                    var bytesRead = inputStream.read(buffer)
+
+                    while (bytesRead != -1) {
+                        outputStream.write(buffer, 0, bytesRead)
+                        bytesCopied += bytesRead
+
+                        // 4. 計算並發送進度
+                        if (totalBytes > 0) {
+                            val progress = bytesCopied.toFloat() / totalBytes.toFloat()
+                            emit(Result.success(progress))
+                        } else {
+                            // 如果後端沒給 Content-Length，傳 -1f 走無限轉圈模式
+                            emit(Result.success(-1f))
+                        }
+
+                        bytesRead = inputStream.read(buffer)
+                    }
+                }
+            }
+
+            // 5. 下載成功，發送 100%
+            emit(Result.success(1.0f))
+
+        } catch (e: Exception) {
+            emit(Result.failure(e))
+        }
+    }.flowOn(Dispatchers.IO) // 確保硬碟與網路 I/O 不卡 UI 執行緒
 }

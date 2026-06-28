@@ -80,8 +80,11 @@ import androidx.compose.foundation.layout.sizeIn
 import androidx.compose.foundation.layout.windowInsetsTopHeight
 import androidx.compose.foundation.layout.statusBars // 如果要使用 statusBars 也需要這個
 import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.material.icons.filled.ArrowDownward
 import androidx.compose.material.icons.filled.Build
 import androidx.compose.material.icons.filled.Call
+import androidx.compose.material.icons.filled.Check
+import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.Info
 import androidx.compose.material.icons.filled.MoreVert
 import androidx.compose.material.icons.filled.PlayArrow
@@ -98,6 +101,7 @@ import com.example.login_v3.home.Message.UI.Detail.Message_Component.ImageLightb
 import com.example.login_v3.home.Message.UI.Detail.Message_Component.MessageAttachmentBar
 import com.example.login_v3.home.Message.UI.Detail.Message_Component.UserStatusDot
 import com.example.login_v3.home.Message.UI.Detail.Message_Component.VideoLightbox
+import com.example.login_v3.home.Message.ViewModel.Detail.DownloadStatus
 
 
 //bottom bar state
@@ -952,7 +956,11 @@ fun MessageRow(
                             }
                         }
 
+                        //file message
                         isFile -> {
+                            // 1. 🎯 從 ViewModel 取得當前訊息的下載狀態
+                            val downloadStatus = viewModel.getDownloadStatus(message.id)
+
                             Box(
                                 modifier = Modifier
                                     .widthIn(max = 260.dp)
@@ -965,7 +973,15 @@ fun MessageRow(
                                     )
                                     .combinedClickable(
                                         onLongClick = { onReplyClick(message) },
-                                        onClick = { onRowClick(message) } // 🎯 點擊時可以在此觸發下載或開啟檔案
+                                        onClick = {
+                                            // 點擊整個氣泡：如果是已完成就直接開啟，否則可維持你原本的行為
+                                            if (downloadStatus is DownloadStatus.Completed) {
+                                                onRowClick(message)
+                                            } else {
+                                                // 也可以在這裡同樣觸發下載
+                                                viewModel.downloadFile(message, displayFileName)
+                                            }
+                                        }
                                     )
                                     .background(color = finalBubbleColor)
                                     .padding(horizontal = 12.dp, vertical = 10.dp)
@@ -975,30 +991,89 @@ fun MessageRow(
                                         RepliedMessagePreview(replied, isMe, partnerDisplayName, currentUserId)
                                     }
 
-                                    // 檔案的 UI 佈局 (左邊圖示，右邊文字)
+                                    // 檔案的 UI 佈局 (左邊按鈕，右邊文字)
                                     Row(
                                         verticalAlignment = Alignment.CenterVertically,
                                         horizontalArrangement = Arrangement.spacedBy(10.dp)
                                     ) {
-                                        // 根據副檔名決定圖示，這裡示範用內建圖示，你也可以換成自己的 zip 圖片
+                                        // 檔案下載按鈕 / 進度顯示
                                         Box(
                                             modifier = Modifier
                                                 .size(40.dp)
-                                                .background(Color.White.copy(alpha = 0.6f), CircleShape),
+                                                .background(Color.White.copy(alpha = 0.6f), CircleShape)
+                                                .clip(CircleShape)
+                                                .clickable {
+                                                    // 2. 🎯 點擊按鈕觸發下載或開啟邏輯
+                                                    when (downloadStatus) {
+                                                        is DownloadStatus.NotStarted, is DownloadStatus.Error -> {
+                                                            viewModel.downloadFile(message, displayFileName)
+                                                        }
+                                                        is DownloadStatus.Completed -> {
+                                                            onRowClick(message) // 觸發下載完成後的開啟檔案
+                                                        }
+                                                        is DownloadStatus.Downloading -> {
+                                                            // 下載中可以留空，或者未來實作取消下載
+                                                        }
+                                                    }
+                                                },
                                             contentAlignment = Alignment.Center
                                         ) {
-                                            Icon(
-                                                imageVector = if (displayFileName.endsWith(".zip") || displayFileName.endsWith(".rar")) {
-                                                    androidx.compose.material.icons.Icons.Default.Build // 或者是常規的 Folder / Img
-                                                } else {
-                                                    androidx.compose.material.icons.Icons.Default.Info
-                                                },
-                                                contentDescription = "檔案",
-                                                tint = Color.Gray,
-                                                modifier = Modifier.size(24.dp)
-                                            )
+                                            // 3. 🎯 根據密封介面 (Sealed Interface) 狀態切換 Icon 與進度條
+                                            when (downloadStatus) {
+                                                is DownloadStatus.NotStarted -> {
+                                                    Icon(
+                                                        imageVector = androidx.compose.material.icons.Icons.Default.ArrowDownward,
+                                                        contentDescription = "下載檔案",
+                                                        tint = Color.Gray,
+                                                        modifier = Modifier.size(24.dp)
+                                                    )
+                                                }
+                                                is DownloadStatus.Downloading -> {
+                                                    // 💡 這裡的 progress 是從 downloadStatus.progress 拿出來的
+                                                    val progress = downloadStatus.progress
+
+                                                    if (progress >= 0f) {
+                                                        CircularProgressIndicator(
+                                                            progress = progress,
+                                                            modifier = Modifier.fillMaxSize().padding(2.dp),
+                                                            color = MaterialTheme.colorScheme.primary,
+                                                            strokeWidth = 3.dp
+                                                        )
+                                                    } else {
+                                                        // 如果後端沒給 Content-Length (progress = -1f)，改跑無限轉圈
+                                                        CircularProgressIndicator(
+                                                            modifier = Modifier.fillMaxSize().padding(2.dp),
+                                                            color = MaterialTheme.colorScheme.primary,
+                                                            strokeWidth = 3.dp
+                                                        )
+                                                    }
+                                                    Icon(
+                                                        imageVector = androidx.compose.material.icons.Icons.Default.Close,
+                                                        contentDescription = "下載中",
+                                                        tint = Color.Gray.copy(alpha = 0.7f),
+                                                        modifier = Modifier.size(16.dp)
+                                                    )
+                                                }
+                                                is DownloadStatus.Completed -> {
+                                                    Icon(
+                                                        imageVector = androidx.compose.material.icons.Icons.Default.Check,
+                                                        contentDescription = "下載完成",
+                                                        tint = Color.Green,
+                                                        modifier = Modifier.size(24.dp)
+                                                    )
+                                                }
+                                                is DownloadStatus.Error -> {
+                                                    Icon(
+                                                        imageVector = androidx.compose.material.icons.Icons.Default.Warning, // 或者是 Refresh 圖示
+                                                        contentDescription = "下載失敗，點擊重試",
+                                                        tint = Color.Red,
+                                                        modifier = Modifier.size(24.dp)
+                                                    )
+                                                }
+                                            }
                                         }
 
+                                        // 右側檔名與資訊
                                         Column(modifier = Modifier.weight(1f)) {
                                             Text(
                                                 text = displayFileName,
@@ -1007,7 +1082,15 @@ fun MessageRow(
                                                 overflow = TextOverflow.Ellipsis
                                             )
                                             Text(
-                                                text = "檔案", // 如果後端有提供大小（例如 12.5 MB），放這裡最適合
+                                                text = when (downloadStatus) {
+                                                    is DownloadStatus.Downloading -> {
+                                                        val progress = downloadStatus.progress
+                                                        if (progress >= 0f) "下載中... ${(progress * 100).toInt()}%" else "下載中..."
+                                                    }
+                                                    is DownloadStatus.Completed -> "已下載"
+                                                    is DownloadStatus.Error -> "下載失敗，點擊重試"
+                                                    else -> "檔案"
+                                                },
                                                 style = MaterialTheme.typography.bodySmall.copy(fontSize = 11.sp, color = Color.Gray)
                                             )
                                         }

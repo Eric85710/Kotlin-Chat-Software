@@ -4,6 +4,7 @@ package com.example.login_v3.home.Message.ViewModel.Detail
 import android.app.Application
 import android.net.Uri
 import android.util.Log
+import androidx.compose.runtime.mutableStateMapOf
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import androidx.media3.common.MediaItem
@@ -72,6 +73,14 @@ data class AudioPlaybackState(
     val currentPosition: Long = 0L,              // 當前播放位置 (毫秒)
     val duration: Long = 0L                      // 總時長 (毫秒)
 )
+
+// 🎯 檔案下載狀態管理
+sealed interface DownloadStatus {
+    object NotStarted : DownloadStatus
+    data class Downloading(val progress: Float) : DownloadStatus // 儲存 0.0 ~ 1.0f 的進度
+    object Completed : DownloadStatus
+    data class Error(val message: String) : DownloadStatus
+}
 
 
 @HiltViewModel
@@ -381,14 +390,58 @@ class ChatViewModel @Inject constructor(
         progressLogJob = null
     }
 
-    // =====================================================================
-    // 🌟 生命週期釋放：ViewModel 銷毀時，必須徹底關閉 Player
-    // =====================================================================
     override fun onCleared() {
         super.onCleared()
         stopProgressTracker()
         exoPlayer?.release()
         exoPlayer = null
+    }
+    // =====================================================================
+
+
+    //file download
+    val fileDownloadStates = mutableStateMapOf<String, DownloadStatus>()
+
+    // 取得特定訊息的下載狀態，若無則預設為 NotStarted
+    fun getDownloadStatus(messageId: String): DownloadStatus {
+        return fileDownloadStates[messageId] ?: DownloadStatus.NotStarted
+    }
+    fun downloadFile(message: Message, displayFileName: String) {
+        val messageId = message.id
+
+        // 🎯 取得後端給的直接 URL。請根據你實際的 Message 資料結構調整欄位名稱
+        val fileUrl = message.content // 假設你把 URL 存放在 content 裡，或是 message.fileUrl
+
+        if (fileUrl.isNullOrBlank()) {
+            fileDownloadStates[messageId] = DownloadStatus.Error("檔案下載連結無效")
+            return
+        }
+
+        if (fileDownloadStates[messageId] is DownloadStatus.Downloading) return
+
+        viewModelScope.launch {
+            fileDownloadStates[messageId] = DownloadStatus.Downloading(0f)
+
+            // 呼叫剛剛改好的 URL 版 Flow
+            repository.downloadFileFromUrlFlow(fileUrl, displayFileName)
+                .collect { progressResult ->
+                    progressResult.onSuccess { progress ->
+                        if (progress >= 1.0f) {
+                            fileDownloadStates[messageId] = DownloadStatus.Completed
+                        } else {
+                            fileDownloadStates[messageId] = DownloadStatus.Downloading(progress)
+                        }
+                    }.onFailure { error ->
+                        Log.e("ChatViewModel", "下載失敗: ${error.message}")
+                        fileDownloadStates[messageId] = DownloadStatus.Error(error.message ?: "下載失敗")
+                    }
+                }
+        }
+    }
+
+    // （選填）如果想要清除特定訊息的狀態（例如錯誤後想重試）
+    fun resetDownloadStatus(messageId: String) {
+        fileDownloadStates.remove(messageId)
     }
 
     fun resetDeleteMessageState() { _deleteMessageState.value = DeleteMessageState.Idle }
