@@ -474,7 +474,8 @@ class ChatRoomsRepository @Inject constructor(
             }
 
             val totalBytes = body.contentLength()
-            val targetDirectory = context.getExternalFilesDir(Environment.DIRECTORY_DOWNLOADS) ?: context.cacheDir
+            // 🎯 修正後的寫法：直接存入手機系統的公共 Download 資料夾
+            val targetDirectory = Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_DOWNLOADS)
             val targetFile = File(targetDirectory, fileName)
             Log.d("ChatDebug", "📊 檔案總大小: $totalBytes bytes, 儲存路徑: ${targetFile.absolutePath}")
 
