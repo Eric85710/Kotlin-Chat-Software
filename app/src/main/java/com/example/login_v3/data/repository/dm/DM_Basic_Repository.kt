@@ -7,12 +7,10 @@ import android.net.Uri
 import android.os.Environment
 import android.provider.OpenableColumns
 import android.util.Log
-import androidx.datastore.core.use
 import com.example.login_v3.data.api.TecnologiaApi
 import com.example.login_v3.data.api.api_class.ChatRoom
 import com.example.login_v3.data.api.api_class.Message
-import com.example.login_v3.data.api.api_class.MessageReactionUsersResponse
-import com.example.login_v3.data.api.api_class.MessageResponse
+import com.example.login_v3.data.api.api_class.Reaction
 import com.example.login_v3.data.api.api_class.RoomListResponse
 import com.example.login_v3.data.api.api_class.SendMessageRequest
 import com.example.login_v3.data.di.ChatWebSocketManager
@@ -20,6 +18,8 @@ import com.example.login_v3.data.repository.basic.TokenManager
 import com.example.login_v3.home.Message.ViewModel.Detail.MessageDao
 import com.example.login_v3.home.Message.ViewModel.Detail.MessageEntity
 import com.example.login_v3.home.Message.ViewModel.Detail.MessageStatus
+import com.squareup.moshi.Json
+import com.squareup.moshi.JsonClass
 import com.squareup.moshi.Moshi
 import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.CoroutineScope
@@ -44,7 +44,28 @@ import javax.inject.Inject
 import javax.inject.Singleton
 import kotlin.io.use
 import kotlin.jvm.java
-import kotlin.use
+
+@JsonClass(generateAdapter = true)
+data class WebSocketEventResponse(
+    @Json(name = "type") val type: String,
+    @Json(name = "payload") val payload: WebSocketMessagePayload? // 🎯 直接強型別對齊
+)
+
+// 這是專門給 Socket payload 用的臨時結構，用來解決 room_id 和 chat_room_id 欄位不一致的問題
+@JsonClass(generateAdapter = true)
+data class WebSocketMessagePayload(
+    @Json(name = "id") val id: String,
+    @Json(name = "room_id") val roomId: String, // 🎯 完美吃下後端的 room_id
+    @Json(name = "sender_id") val senderId: String,
+    @Json(name = "content") val content: String,
+    @Json(name = "type") val type: String,
+    @Json(name = "created_at") val createdAt: String,
+    @Json(name = "is_edited") val isEdited: Boolean,
+    @Json(name = "is_deleted") val isDeleted: Boolean,
+    @Json(name = "reply_to_id") val replyToId: String? = null,
+    @Json(name = "reactions") val reactions: List<Reaction>? = emptyList()
+)
+
 
 @Singleton
 class ChatRoomsRepository @Inject constructor(
@@ -68,27 +89,35 @@ class ChatRoomsRepository @Inject constructor(
         repositoryScope.launch {
             webSocketManager.incomingMessages.collect { jsonString ->
                 try {
-                    // 1. 🎯 精準對齊：使用你的 Message::class.java 進行解析
-                    val networkMessage = moshi.adapter(Message::class.java).fromJson(jsonString)
+                    // 1. 一口氣全解析完畢（包含外殼與內部的 payload）
+                    val event = moshi.adapter(WebSocketEventResponse::class.java).fromJson(jsonString)
 
-                    if (networkMessage != null) {
-                        // 2. 將 Message 轉換為你的 MessageEntity
+                    if (event != null && event.type == "new_message" && event.payload != null) {
+                        val payload = event.payload
+
+                        // 2. 直接拿解析好的強型別物件轉換為 MessageEntity
                         val entity = MessageEntity(
-                            id = networkMessage.id,
-                            chatRoomId = networkMessage.chatRoomId, // 👈 完美對齊你的欄位名稱
-                            senderId = networkMessage.senderId,
-                            content = networkMessage.content,
-                            type = networkMessage.type,
-                            createdAt = networkMessage.createdAt,
-                            isEdited = networkMessage.isEdited,
-                            isDeleted = networkMessage.isDeleted,
-                            replyToId = networkMessage.replyToId,
-                            status = MessageStatus.SUCCESS, // WebSocket 推過來的必定是成功發送的
-                            reactions = networkMessage.reactions
+                            id = payload.id,
+                            chatRoomId = payload.roomId, // 🎯 這裡百分之百能拿到後端的 room_id
+                            senderId = payload.senderId,
+                            content = payload.content,
+                            type = payload.type,
+                            createdAt = payload.createdAt,
+                            isEdited = payload.isEdited,
+                            isDeleted = payload.isDeleted,
+                            replyToId = payload.replyToId,
+                            status = MessageStatus.SUCCESS,
+                            reactions = payload.reactions
                         )
 
-                        // 3. 寫入本地資料庫，觸發 UI Flow 更新
+                        // 3. 寫入本地資料庫
                         messageDao.insertOrUpdate(entity)
+                        Log.d("ChatRoomsRepository", "WebSocket 訊息成功寫入資料庫: ${entity.content}")
+
+                    } else if (event?.type == "dm:typing") {
+                        // 💡 如果未來想要解析 typing 狀態，你可以另外把 event.payload 轉成 Map 來拿資料，因為 typing 的 payload 結構不同
+                        // 由於我們把外層改成了 WebSocketMessagePayload?，若 type 是 dm:typing，外層依然可以解析，但 payload 會是 null 或解析失敗
+                        // 如果你同時想處理 typing，可以用 `moshi.adapter(Map::class.java)` 單獨處理該事件。
                     }
                 } catch (e: Exception) {
                     Log.e("ChatRoomsRepository", "解析或寫入 WebSocket 即時訊息失敗", e)
