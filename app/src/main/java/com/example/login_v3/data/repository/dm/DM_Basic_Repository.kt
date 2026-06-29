@@ -459,7 +459,6 @@ class ChatRoomsRepository @Inject constructor(
                 .build()
 
             val response = httpClient.newCall(request).execute()
-            Log.d("ChatDebug", "📥 收到回應, HTTP Status Code: ${response.code}")
 
             if (!response.isSuccessful) {
                 val errorBody = response.body?.string() ?: "無回應內容"
@@ -477,7 +476,6 @@ class ChatRoomsRepository @Inject constructor(
             // 🎯 修正後的寫法：直接存入手機系統的公共 Download 資料夾
             val targetDirectory = Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_DOWNLOADS)
             val targetFile = File(targetDirectory, fileName)
-            Log.d("ChatDebug", "📊 檔案總大小: $totalBytes bytes, 儲存路徑: ${targetFile.absolutePath}")
 
             var bytesCopied = 0L
             val buffer = ByteArray(DEFAULT_BUFFER_SIZE)
@@ -499,11 +497,9 @@ class ChatRoomsRepository @Inject constructor(
                 }
             }
 
-            Log.d("ChatDebug", "✅ 檔案寫入完成! 實際寫入: $bytesCopied bytes")
             emit(Result.success(1.0f))
 
         } catch (e: Exception) {
-            Log.e("ChatDebug", "💥 Repository 下載過程中發生異常", e)
             emit(Result.failure(e))
         }
     }.flowOn(Dispatchers.IO)
