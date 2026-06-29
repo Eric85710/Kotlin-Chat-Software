@@ -15,15 +15,20 @@ import com.example.login_v3.data.api.api_class.MessageReactionUsersResponse
 import com.example.login_v3.data.api.api_class.MessageResponse
 import com.example.login_v3.data.api.api_class.RoomListResponse
 import com.example.login_v3.data.api.api_class.SendMessageRequest
+import com.example.login_v3.data.di.ChatWebSocketManager
 import com.example.login_v3.home.Message.ViewModel.Detail.MessageDao
 import com.example.login_v3.home.Message.ViewModel.Detail.MessageEntity
 import com.example.login_v3.home.Message.ViewModel.Detail.MessageStatus
+import com.squareup.moshi.Moshi
 import dagger.hilt.android.qualifiers.ApplicationContext
+import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.flow
 import kotlinx.coroutines.flow.flowOn
 import kotlinx.coroutines.flow.map
+import kotlinx.coroutines.launch
 import okhttp3.MediaType.Companion.toMediaTypeOrNull
 import okhttp3.MultipartBody
 import okhttp3.OkHttpClient
@@ -36,14 +41,66 @@ import java.util.UUID
 import javax.inject.Inject
 import javax.inject.Singleton
 import kotlin.io.use
+import kotlin.jvm.java
 import kotlin.use
 
 @Singleton
 class ChatRoomsRepository @Inject constructor(
     private val api: TecnologiaApi,
     private val messageDao: MessageDao,
+    private val webSocketManager: ChatWebSocketManager, // 👈 1. 注入 Socket 管理器
+    private val moshi: Moshi, // 👈 用於解析 Socket 傳來的 JSON
     @ApplicationContext private val context: Context // 注入 ApplicationContext 用於處理 Uri 檔案
 ) {
+
+    // 建立一個跟著 Repository 生命週期走的 Scope
+    private val repositoryScope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
+
+    init {
+        // 👈 2. 在初始化時，開始默默監聽全域的 WebSocket 訊息
+        observeWebSocketIncomingData()
+    }
+
+    private fun observeWebSocketIncomingData() {
+        repositoryScope.launch {
+            webSocketManager.incomingMessages.collect { jsonString ->
+                try {
+                    // 1. 🎯 精準對齊：使用你的 Message::class.java 進行解析
+                    val networkMessage = moshi.adapter(Message::class.java).fromJson(jsonString)
+
+                    if (networkMessage != null) {
+                        // 2. 將 Message 轉換為你的 MessageEntity
+                        val entity = MessageEntity(
+                            id = networkMessage.id,
+                            chatRoomId = networkMessage.chatRoomId, // 👈 完美對齊你的欄位名稱
+                            senderId = networkMessage.senderId,
+                            content = networkMessage.content,
+                            type = networkMessage.type,
+                            createdAt = networkMessage.createdAt,
+                            isEdited = networkMessage.isEdited,
+                            isDeleted = networkMessage.isDeleted,
+                            replyToId = networkMessage.replyToId,
+                            status = MessageStatus.SUCCESS, // WebSocket 推過來的必定是成功發送的
+                            reactions = networkMessage.reactions
+                        )
+
+                        // 3. 寫入本地資料庫，觸發 UI Flow 更新
+                        messageDao.insertOrUpdate(entity)
+                    }
+                } catch (e: Exception) {
+                    Log.e("ChatRoomsRepository", "解析或寫入 WebSocket 即時訊息失敗", e)
+                }
+            }
+        }
+    }
+
+    // 👈 4. 新增：提供給 ViewModel 在進入聊天室時呼叫的啟動連線功能
+    fun startChatSession(roomId: String) {
+        val webSocketUrl = "wss://tg.technologia-tw.com/api/ws?token=\$jwt"
+
+        // 2. 啟動連線
+        webSocketManager.connect(webSocketUrl)
+    }
 
     suspend fun fetchRooms(): Result<RoomListResponse> {
         return try {
