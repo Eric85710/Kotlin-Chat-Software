@@ -16,6 +16,7 @@ import com.example.login_v3.data.api.api_class.MessageResponse
 import com.example.login_v3.data.api.api_class.RoomListResponse
 import com.example.login_v3.data.api.api_class.SendMessageRequest
 import com.example.login_v3.data.di.ChatWebSocketManager
+import com.example.login_v3.data.repository.basic.TokenManager
 import com.example.login_v3.home.Message.ViewModel.Detail.MessageDao
 import com.example.login_v3.home.Message.ViewModel.Detail.MessageEntity
 import com.example.login_v3.home.Message.ViewModel.Detail.MessageStatus
@@ -25,6 +26,7 @@ import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.flow
 import kotlinx.coroutines.flow.flowOn
 import kotlinx.coroutines.flow.map
@@ -50,6 +52,7 @@ class ChatRoomsRepository @Inject constructor(
     private val messageDao: MessageDao,
     private val webSocketManager: ChatWebSocketManager, // 👈 1. 注入 Socket 管理器
     private val moshi: Moshi, // 👈 用於解析 Socket 傳來的 JSON
+    private val tokenManager: TokenManager,
     @ApplicationContext private val context: Context // 注入 ApplicationContext 用於處理 Uri 檔案
 ) {
 
@@ -94,12 +97,26 @@ class ChatRoomsRepository @Inject constructor(
         }
     }
 
-    // 👈 4. 新增：提供給 ViewModel 在進入聊天室時呼叫的啟動連線功能
-    fun startChatSession(roomId: String) {
-        val webSocketUrl = "wss://tg.technologia-tw.com/api/ws?token=\$jwt"
+    // 🎯 1. 改成 suspend fun，以便讀取 tokenManager
+    suspend fun startChatSession(roomId: String) {
+        // 2. 從你的 tokenManager 撈出最新的 Access Token (與你原本在 OkHttp 裡撈取的方式一致)
+        val token = tokenManager.currentAccessToken.first() ?: ""
 
-        // 2. 啟動連線
+        if (token.isBlank()) {
+            Log.e("Repository", "WebSocket 連線失敗：找不到 Token")
+            return
+        }
+
+        // 3. 🎯 動態組裝後端指定的網址，把 $jwt 替換成真正的 Token
+        val webSocketUrl = "wss://tg.technologia-tw.com/api/ws?token=$token"
+
+        // 4. 啟動連線
         webSocketManager.connect(webSocketUrl)
+
+        // 5. 💡 重要核心：因為是全域連線，後端怎麼知道你現在在看哪一個房間？
+        // 通常連線成功後，需要發送一個「訂閱房間」的 JSON 告訴後端：「Eric 現在進入了 roomId 聊天室，請把這個房間的即時訊息丟給我」
+        // 如果你們後端的設計是「只要連上，全域所有房間的訊息都會無腦推下來」，那下面這行就可以註解掉。
+        webSocketManager.subscribeToRoom(roomId)
     }
 
     suspend fun fetchRooms(): Result<RoomListResponse> {

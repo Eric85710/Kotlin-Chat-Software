@@ -123,6 +123,12 @@ class ChatViewModel @Inject constructor(
 
         messageListenerJob = viewModelScope.launch {
             // 🌟 優化防閃爍：只有在原本不是 Success 的情況下，才去 show 轉圈圈
+            try {
+                repository.startChatSession(roomId)
+            } catch (e: Exception) {
+                Log.e("ChatViewModel", "WebSocket 啟動失敗", e)
+            }
+
             if (_uiState.value !is MessagesUiState.Success) {
                 _uiState.value = MessagesUiState.Loading
             }
