@@ -125,6 +125,27 @@ data class Message(
     }
 }
 
+@JsonClass(generateAdapter = true)
+data class WebSocketEventResponse(
+    @Json(name = "type") val type: String,
+    @Json(name = "payload") val payload: WebSocketMessagePayload? // 🎯 直接強型別對齊
+)
+
+// 這是專門給 Socket payload 用的臨時結構，用來解決 room_id 和 chat_room_id 欄位不一致的問題
+@JsonClass(generateAdapter = true)
+data class WebSocketMessagePayload(
+    @Json(name = "id") val id: String,
+    @Json(name = "room_id") val roomId: String, // 🎯 完美吃下後端的 room_id
+    @Json(name = "sender_id") val senderId: String,
+    @Json(name = "content") val content: String,
+    @Json(name = "type") val type: String,
+    @Json(name = "created_at") val createdAt: String,
+    @Json(name = "is_edited") val isEdited: Boolean,
+    @Json(name = "is_deleted") val isDeleted: Boolean,
+    @Json(name = "reply_to_id") val replyToId: String? = null,
+    @Json(name = "reactions") val reactions: List<Reaction>? = emptyList()
+)
+
 //send message
 @JsonClass(generateAdapter = true)
 data class SendMessageRequest(

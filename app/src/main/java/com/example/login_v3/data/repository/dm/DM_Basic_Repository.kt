@@ -13,6 +13,7 @@ import com.example.login_v3.data.api.api_class.Message
 import com.example.login_v3.data.api.api_class.Reaction
 import com.example.login_v3.data.api.api_class.RoomListResponse
 import com.example.login_v3.data.api.api_class.SendMessageRequest
+import com.example.login_v3.data.api.api_class.WebSocketEventResponse
 import com.example.login_v3.data.di.ChatWebSocketManager
 import com.example.login_v3.data.repository.basic.TokenManager
 import com.example.login_v3.home.Message.ViewModel.Detail.MessageDao
@@ -44,27 +45,6 @@ import javax.inject.Inject
 import javax.inject.Singleton
 import kotlin.io.use
 import kotlin.jvm.java
-
-@JsonClass(generateAdapter = true)
-data class WebSocketEventResponse(
-    @Json(name = "type") val type: String,
-    @Json(name = "payload") val payload: WebSocketMessagePayload? // 🎯 直接強型別對齊
-)
-
-// 這是專門給 Socket payload 用的臨時結構，用來解決 room_id 和 chat_room_id 欄位不一致的問題
-@JsonClass(generateAdapter = true)
-data class WebSocketMessagePayload(
-    @Json(name = "id") val id: String,
-    @Json(name = "room_id") val roomId: String, // 🎯 完美吃下後端的 room_id
-    @Json(name = "sender_id") val senderId: String,
-    @Json(name = "content") val content: String,
-    @Json(name = "type") val type: String,
-    @Json(name = "created_at") val createdAt: String,
-    @Json(name = "is_edited") val isEdited: Boolean,
-    @Json(name = "is_deleted") val isDeleted: Boolean,
-    @Json(name = "reply_to_id") val replyToId: String? = null,
-    @Json(name = "reactions") val reactions: List<Reaction>? = emptyList()
-)
 
 
 @Singleton
