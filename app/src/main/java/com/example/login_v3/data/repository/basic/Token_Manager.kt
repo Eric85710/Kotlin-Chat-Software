@@ -80,4 +80,8 @@ class TokenManager @Inject constructor(
             }
         }
     }
+
+    suspend fun switchAccount(userId: String) {
+        // 目前暫不實作
+    }
 }
