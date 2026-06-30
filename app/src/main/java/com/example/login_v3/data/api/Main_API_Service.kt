@@ -1,6 +1,7 @@
 package com.example.login_v3.data.api
 
 import com.example.login_v3.data.api.api_class.*
+import com.squareup.moshi.JsonClass
 import okhttp3.MultipartBody
 import retrofit2.Response
 import retrofit2.http.Body
@@ -15,6 +16,11 @@ import retrofit2.http.Part
 import retrofit2.http.Path
 import retrofit2.http.Query
 
+@JsonClass(generateAdapter = true)
+data class RefreshRequest(
+    val refresh_token: String
+)
+
 interface TecnologiaApi {
 
     @GET("api/health")
@@ -27,6 +33,9 @@ interface TecnologiaApi {
     // 登入：將回傳值包裹在 Response 中
     @POST("api/auth/login")
     suspend fun login(@Body body: LoginRequest): Response<LoginResponse>
+
+    @POST("api/auth/refresh")
+    suspend fun refreshToken(@Body body: RefreshRequest): Response<LoginResponse>
 
     // 取得個人資料：通常需要 Token
     @GET("api/me")
