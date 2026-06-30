@@ -34,8 +34,6 @@ data class UserInfo(
 )
 
 
-
-
 //register data
 @JsonClass(generateAdapter = true)
 data class RegisterRequest(
