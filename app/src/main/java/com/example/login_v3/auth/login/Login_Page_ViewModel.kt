@@ -49,13 +49,14 @@ class AuthViewModel @Inject constructor(
                 if (response.isSuccessful && response.body() != null) {
                     val loginResponse = response.body()!!
 
-                    // 修改：存入 token 時同時存入 userId (假設你的 user 物件裡有 id)
-                    // 如果 LoginResponse 沒給 id，也可以用 username 作為唯一識別碼
-                    val userId = loginResponse.user.id.toString()
+                    val userId = loginResponse.user.id // 這裡如果是 String 就不需要 toString()
 
+                    // 修正：帶入 Refresh Token 機制所需的所有新欄位
                     tokenManager.saveAuthData(
                         userId = userId,
-                        token = loginResponse.access_token
+                        accessToken = loginResponse.access_token,
+                        refreshToken = loginResponse.refresh_token,
+                        expiresInSec = loginResponse.expires_in
                     )
 
                     _loginState.value = LoginUiState.Success(loginResponse.user)
