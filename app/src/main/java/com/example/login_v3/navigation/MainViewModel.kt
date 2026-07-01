@@ -72,24 +72,18 @@ class AppViewModel @Inject constructor(
 
     private fun observeGlobalLogout() {
         viewModelScope.launch {
-            // 同時監聽「帳號清單」與「當前 Access Token」的狀態
-            // 只要這兩個其中一個被清空（變成空或 null），就代表完全失聯，必須踢回登入流程
-            combine(hasAccountLoggedIn, tokenManager.currentAccessToken) { hasAccount, token ->
-                hasAccount to token
-            }.collect { (hasAccount, token) ->
+            // 🌟 核心修正：只監聽「是不是連一個登入的帳號都沒有了」
+            // 或者是你有明確實作「登出事件通知」
+            hasAccountLoggedIn.collect { hasAccount ->
+                Log.d("AuthDebug", "ViewModel 收到帳號清單狀態變更 -> hasAccount: $hasAccount, 當前畫面: ${_currentScreen.value}")
 
-                // 🌟 修正後的黃金判斷式：
-                // 如果判定「已經沒有帳號登入」或者「當前畫面在主分頁但 Token 卻是空值」
-                if (!hasAccount || (token.isNullOrEmpty() && _currentScreen.value == AppScreen.ScreensTab)) {
-                    Log.e("AuthDebug", "🚨 觸發強制跳轉條件！")
-
-                    // 為了避免干擾正在註冊（PreReg, Register, Login）的使用者，
-                    // 只有在當前不在這些認證頁面時，才強制踢回 PreReg
+                if (!hasAccount) {
+                    // 只有在真的完全沒有帳號登入，且不在註冊/登入頁時，才踢回歡迎頁
                     if (_currentScreen.value != AppScreen.PreReg &&
                         _currentScreen.value != AppScreen.Login &&
                         _currentScreen.value != AppScreen.Register) {
 
-                        Log.d("NavTest", "偵測到 Token 或帳號失效，強制回歡迎頁")
+                        Log.e("AuthDebug", "🚨 偵測到完全無帳號登入，強制回歡迎頁")
                         _currentScreen.value = AppScreen.PreReg
                     }
                 }
