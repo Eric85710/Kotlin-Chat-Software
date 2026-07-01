@@ -64,9 +64,9 @@ class TokenAuthenticator @Inject constructor(
         }
 
         // 6. 失敗：如果連 Refresh Token 都失效（例如過期被後端拒絕），則強制登出，導回登入頁
+        // TokenAuthenticator.kt 失敗時
         runBlocking {
-            tokenManager.logout(currentUserId)
-            // 這裡可以透過 EventBus、SharedFlow 或 LiveData 貼出全域通知，要求 UI 跳轉到 LoginActivity/LoginScreen
+            tokenManager.logout(currentUserId) // 這會移除 USER_ID_LIST，觸發 hasAccountLoggedIn = false
         }
 
         return null
