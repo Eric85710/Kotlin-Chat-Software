@@ -43,7 +43,11 @@ fun AppNavGraph(
         )
 
         AppScreen.Login -> LoginScreen(
-            paddingValues = paddingValues
+            paddingValues = paddingValues,
+            // 🌟 在這裡呼叫 AppViewModel 跳轉到主頁分頁
+            onLoginSuccess = {
+                appViewModel.goTo(AppScreen.ScreensTab)
+            }
         )
 
         AppScreen.AddAccount -> {

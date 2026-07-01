@@ -13,6 +13,7 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.stateIn
@@ -71,11 +72,26 @@ class AppViewModel @Inject constructor(
 
     private fun observeGlobalLogout() {
         viewModelScope.launch {
-            // 監聽全域狀態。如果使用者在操作過程中（例如 TokenAuthenticator 刷新失敗觸發 logout），
-            // 導致帳號清單變空了，就把畫面強制踢回歡迎頁。
-            hasAccountLoggedIn.collect { hasAccount ->
-                if (!hasAccount && _currentScreen.value == AppScreen.ScreensTab) {
-                    _currentScreen.value = AppScreen.PreReg
+            // 同時監聽「帳號清單」與「當前 Access Token」的狀態
+            // 只要這兩個其中一個被清空（變成空或 null），就代表完全失聯，必須踢回登入流程
+            combine(hasAccountLoggedIn, tokenManager.currentAccessToken) { hasAccount, token ->
+                hasAccount to token
+            }.collect { (hasAccount, token) ->
+
+                // 🌟 修正後的黃金判斷式：
+                // 如果判定「已經沒有帳號登入」或者「當前畫面在主分頁但 Token 卻是空值」
+                if (!hasAccount || (token.isNullOrEmpty() && _currentScreen.value == AppScreen.ScreensTab)) {
+                    Log.e("AuthDebug", "🚨 觸發強制跳轉條件！")
+
+                    // 為了避免干擾正在註冊（PreReg, Register, Login）的使用者，
+                    // 只有在當前不在這些認證頁面時，才強制踢回 PreReg
+                    if (_currentScreen.value != AppScreen.PreReg &&
+                        _currentScreen.value != AppScreen.Login &&
+                        _currentScreen.value != AppScreen.Register) {
+
+                        Log.d("NavTest", "偵測到 Token 或帳號失效，強制回歡迎頁")
+                        _currentScreen.value = AppScreen.PreReg
+                    }
                 }
             }
         }

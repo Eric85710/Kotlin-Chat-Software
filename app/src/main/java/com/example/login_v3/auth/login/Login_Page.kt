@@ -63,6 +63,7 @@ import kotlin.text.ifEmpty
 @Composable
 fun LoginScreen(
     paddingValues: PaddingValues,
+    onLoginSuccess: () -> Unit = {},
     viewModel: AuthViewModel = hiltViewModel()
 ){
 
@@ -75,6 +76,11 @@ fun LoginScreen(
     var usernameError by remember { mutableStateOf("") }
     var passwordError by remember { mutableStateOf("") }
 
+    LaunchedEffect(uiState) {
+        if (uiState is LoginUiState.Success) {
+            onLoginSuccess()
+        }
+    }
 
 
     //background
@@ -94,7 +100,6 @@ fun LoginScreen(
         horizontalAlignment = Alignment.CenterHorizontally,
         verticalArrangement = Arrangement.Center
     ) {
-
 
 
 
@@ -140,7 +145,6 @@ fun LoginScreen(
                         shape = RoundedCornerShape(16.dp)
                     )
             )
-
 
 
 
