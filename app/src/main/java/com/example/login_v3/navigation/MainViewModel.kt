@@ -41,6 +41,7 @@ class AppViewModel @Inject constructor(
     private val tokenManager: TokenManager
 ) : ViewModel() {
 
+    //screen
     private val _currentScreen = MutableStateFlow<AppScreen>(AppScreen.Loading)
     val currentScreen: StateFlow<AppScreen> = _currentScreen.asStateFlow()
 
