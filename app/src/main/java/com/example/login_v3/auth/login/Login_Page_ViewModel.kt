@@ -49,17 +49,25 @@ class AuthViewModel @Inject constructor(
                 if (response.isSuccessful && response.body() != null) {
                     val loginResponse = response.body()!!
 
-                    val userId = loginResponse.user.id // 這裡如果是 String 就不需要 toString()
+                    // 💡 1. 提取 user 物件並用 val 鎖定，讓 Kotlin 可以進行 Smart Cast
+                    val userInfo = loginResponse.user
 
-                    // 修正：帶入 Refresh Token 機制所需的所有新欄位
-                    tokenManager.saveAuthData(
-                        userId = userId,
-                        accessToken = loginResponse.access_token,
-                        refreshToken = loginResponse.refresh_token,
-                        expiresInSec = loginResponse.expires_in
-                    )
+                    if (userInfo != null) {
+                        // 這裡的 userInfo 已經被 Kotlin 自動辨別為「絕對非空」的 UserInfo 了
+                        val userId = userInfo.id
 
-                    _loginState.value = LoginUiState.Success(loginResponse.user)
+                        tokenManager.saveAuthData(
+                            userId = userId,
+                            accessToken = loginResponse.access_token,
+                            refreshToken = loginResponse.refresh_token,
+                            expiresInSec = loginResponse.expires_in
+                        )
+
+                        _loginState.value = LoginUiState.Success(userInfo)
+                    } else {
+                        // 💡 2. 防禦後端雖然回傳 200，但 user 物件卻是 null 的極端狀況
+                        _loginState.value = LoginUiState.Error("登入失敗：伺服器未回傳用戶資訊")
+                    }
                 } else {
                     _loginState.value = LoginUiState.Error("登入失敗：${response.code()}")
                 }
