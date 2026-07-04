@@ -20,6 +20,13 @@ import retrofit2.http.Query
 data class RefreshRequest(
     val refresh_token: String
 )
+@JsonClass(generateAdapter = true)
+data class RefreshResponse(
+    val access_token: String,
+    val expires_in: Int,
+    val refresh_token: String,
+    val token: String? = null // 💡 設為可空並給預設值，防止後端沒吐時崩潰
+)
 
 interface TecnologiaApi {
 
@@ -34,8 +41,10 @@ interface TecnologiaApi {
     @POST("api/auth/login")
     suspend fun login(@Body body: LoginRequest): Response<LoginResponse>
 
-    @POST("api/auth/refresh")
-    suspend fun refreshToken(@Body body: RefreshRequest): Response<LoginResponse>
+    // 注意：如果是用 retrofit2.Response 包裹，請確保對應的 DTO 欄位都有容錯
+    @POST("api/auth/refresh") // 舉例你的路徑
+    suspend fun refreshToken(@Body request: RefreshRequest): Response<RefreshResponse>
+
 
     // 取得個人資料：通常需要 Token
     @GET("api/me")
