@@ -16,23 +16,23 @@ data class LoginResponse(
     val access_token: String,
     val expires_in: Int,
     val refresh_token: String,
-    val token: String,
-    val user: UserInfo
+    val token: String? = null, // 💡 改為可空
+    val user: UserInfo? = null // 💡 如果刷新或登入有時沒給，改為可空
 )
+
 @JsonClass(generateAdapter = true)
 data class UserInfo(
     val id: String,
     val username: String,
     val display_name: String,
     val email: String,
-    val avatar_url: String? = null, // 建議給預設 null
+    val avatar_url: String? = null,
     val banner_url: String? = null,
     val bio: String? = null,
-    val status: String,
+    val status: String? = "active",       // 💡 防禦：給可空與預設值
     val is_verified: Boolean = false,
-    val created_at: String
+    val created_at: String? = ""          // 💡 防禦：給可空與預設值
 )
-
 
 //register data
 @JsonClass(generateAdapter = true)
