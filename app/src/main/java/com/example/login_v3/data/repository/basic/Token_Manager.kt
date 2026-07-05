@@ -1,22 +1,21 @@
 package com.example.login_v3.data.repository.basic
 
-import android.content.Context
-import android.util.Log
 import androidx.datastore.core.DataStore
 import androidx.datastore.preferences.core.Preferences
-import androidx.datastore.preferences.core.booleanPreferencesKey
 import androidx.datastore.preferences.core.edit
 import androidx.datastore.preferences.core.longPreferencesKey
 import androidx.datastore.preferences.core.stringPreferencesKey
 import androidx.datastore.preferences.core.stringSetPreferencesKey
-import com.example.login_v3.data.api.RefreshRequest
 import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.map
 import javax.inject.Inject
+import kotlinx.coroutines.flow.flatMapLatest
 
 class TokenManager @Inject constructor(
     private val dataStore: DataStore<Preferences>
 ) {
+
     val allUserIds: Flow<Set<String>> = dataStore.data.map { preferences ->
         preferences[USER_ID_LIST] ?: emptySet()
     }
@@ -25,19 +24,17 @@ class TokenManager @Inject constructor(
         private val USER_ID_LIST = stringSetPreferencesKey("user_id_list")
         private val CURRENT_USER_ID = stringPreferencesKey("current_user_id")
 
-        // 動態生成每個 User 專屬的 Key
         private fun accessTokenKey(userId: String) = stringPreferencesKey("access_token_$userId")
         private fun refreshTokenKey(userId: String) = stringPreferencesKey("refresh_token_$userId")
         private fun expiresAtKey(userId: String) = longPreferencesKey("expires_at_$userId")
     }
 
-    // 儲存特定使用者的完整 Auth 資料（新增了 refreshToken 與 expiresIn）
+    // 儲存資料（維持原樣，這是安全的）
     suspend fun saveAuthData(userId: String, accessToken: String, refreshToken: String, expiresInSec: Int) {
         dataStore.edit { preferences ->
             preferences[accessTokenKey(userId)] = accessToken
             preferences[refreshTokenKey(userId)] = refreshToken
 
-            // 計算絕對過期時間戳記：當前時間（毫秒）+ 有效秒數 * 1000
             val expiresAt = System.currentTimeMillis() + (expiresInSec * 1000L)
             preferences[expiresAtKey(userId)] = expiresAt
 
@@ -50,16 +47,28 @@ class TokenManager @Inject constructor(
 
     val currentUserId: Flow<String?> = dataStore.data.map { it[CURRENT_USER_ID] }
 
-    // 獲取當前帳號的 Access Token
-    val currentAccessToken: Flow<String?> = dataStore.data.map { preferences ->
-        val userId = preferences[CURRENT_USER_ID] ?: return@map null
-        preferences[accessTokenKey(userId)]
+    // 🌟 核心修正一：提供一個可以直接傳入 userId 獲取 Token 的 suspend 函式
+    // 這樣在 Authenticator 內，當你已經有 currentUserId 時，直接用這個抓最安全！
+    suspend fun getAccessToken(userId: String): String? {
+        return dataStore.data.map { preferences ->
+            preferences[accessTokenKey(userId)]
+        }.first()
     }
 
-    // 💡 新增：獲取當前帳號的 Refresh Token（供 Authenticator 使用）
-    val currentRefreshToken: Flow<String?> = dataStore.data.map { preferences ->
-        val userId = preferences[CURRENT_USER_ID] ?: return@map null
-        preferences[refreshTokenKey(userId)]
+    // 🌟 核心修正二：改用 flatMapLatest (需要 import kotlinx.coroutines.flow.flatMapLatest)
+    // 確保當 CURRENT_USER_ID 改變時，舊的 Flow 會被立即取消並重導向，防止讀到髒資料
+    @OptIn(kotlinx.coroutines.ExperimentalCoroutinesApi::class)
+    val currentAccessToken: Flow<String?> = currentUserId.flatMapLatest { userId ->
+        dataStore.data.map { preferences ->
+            if (userId == null) null else preferences[accessTokenKey(userId)]
+        }
+    }
+
+    @OptIn(kotlinx.coroutines.ExperimentalCoroutinesApi::class)
+    val currentRefreshToken: Flow<String?> = currentUserId.flatMapLatest { userId ->
+        dataStore.data.map { preferences ->
+            if (userId == null) null else preferences[refreshTokenKey(userId)]
+        }
     }
 
     // 切換帳號、登出等邏輯保持不變，但登出時記得一併移除 refresh_token 與 expires_at
