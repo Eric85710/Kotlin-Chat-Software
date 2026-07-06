@@ -104,10 +104,12 @@ interface TecnologiaApi {
     @GET("api/dm/rooms")
     suspend fun getChatRooms(): Response<RoomListResponse>
 
-    // Get dm message
+    // Get dm message (支援分頁加載)
     @GET("api/dm/{room_id}/messages")
     suspend fun getChatMessages(
-        @Path("room_id") roomId: String
+        @Path("room_id") roomId: String,
+        @Query("cursor") cursor: String? = null, // 🎯 新增這個：載入歷史紀錄時帶入上一次的 nextCursor
+        @Query("limit") limit: Int? = null       // 💡 選填：如果後端有支援控制數量的話可以加上
     ): Response<MessageResponse>
 
     // 標記聊天室已讀
