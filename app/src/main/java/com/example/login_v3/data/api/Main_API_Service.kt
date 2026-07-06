@@ -104,7 +104,7 @@ interface TecnologiaApi {
     @GET("api/dm/rooms")
     suspend fun getChatRooms(): Response<RoomListResponse>
 
-    // Get dm message (支援分頁加載)
+    // Get dm message (分頁加載)
     @GET("api/dm/{room_id}/messages")
     suspend fun getChatMessages(
         @Path("room_id") roomId: String,
