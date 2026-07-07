@@ -175,7 +175,11 @@ class ChatRoomsRepository @Inject constructor(
 
 
     //api get message and push to local
-    suspend fun refreshChatMessages(roomId: String, cursor: String? = null): Result<MessageResponse> {
+    suspend fun refreshChatMessages(
+        roomId: String,
+        cursor: String? = null,
+        limit: Int? = null
+    ): Result<MessageResponse> {
         return try {
             // 1. 把 cursor 傳給 API
             val response = api.getChatMessages(roomId, cursor = cursor)
