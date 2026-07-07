@@ -220,7 +220,6 @@ class ChatRoomsRepository @Inject constructor(
         replyToId: String? = null
     ): Result<Unit> {
         val tempId = UUID.randomUUID().toString()
-        // 💡 配合你的 String 格式，產生 ISO 時間字串或乾淨的目前時間字串，例如 2026-06-07T05:26:48Z
         val currentIsoTime = java.time.Instant.now().toString()
 
         val tempMessageEntity = MessageEntity(
@@ -228,15 +227,16 @@ class ChatRoomsRepository @Inject constructor(
             chatRoomId = roomId,
             senderId = currentUserId,
             content = content,
-            type = "text", // 預設普通文字
+            type = "text",
             createdAt = currentIsoTime,
             isEdited = false,
             isDeleted = false,
             replyToId = replyToId,
-            status = MessageStatus.SENDING,
+            status = MessageStatus.SENDING, // 👈 畫面立刻轉圈圈
             reactions = emptyList()
         )
 
+        // 1. 先塞入暫存假資料
         messageDao.insertOrUpdate(tempMessageEntity)
 
         return try {
@@ -246,23 +246,26 @@ class ChatRoomsRepository @Inject constructor(
             if (response.isSuccessful) {
                 val body = response.body()
                 if (body != null) {
-                    // 成功：刪除假的，插入真的
-                    messageDao.deleteById(tempId)
 
                     val successEntity = MessageEntity(
-                        id = body.id,
+                        id = body.id, // 後端給的正式 ID
                         chatRoomId = roomId,
                         senderId = body.senderId,
                         content = body.content,
                         type = body.type,
-                        createdAt = body.createdAt, // 後端確認的正式時間
+                        createdAt = body.createdAt,
                         isEdited = body.isEdited,
                         isDeleted = body.isDeleted,
                         replyToId = body.replyToId,
-                        status = MessageStatus.SUCCESS,
+                        status = MessageStatus.SUCCESS, // 👈 狀態轉為成功
                         reactions = body.reactions
                     )
-                    messageDao.insertOrUpdate(successEntity)
+
+                    // 🎯 2. 【關鍵大優化】利用剛寫好的 Transaction 一口氣替換！
+                    // 這會讓 Room 在同一個事務內完成「刪除 tempId + 寫入 successEntity」
+                    // UI 監聽的 Flow 只會被觸發一次，完美絕緣任何閃爍問題！
+                    messageDao.replaceTempMessageWithSuccess(tempId, successEntity)
+
                     Result.success(Unit)
                 } else {
                     messageDao.insertOrUpdate(tempMessageEntity.copy(status = MessageStatus.FAILED))
@@ -273,6 +276,7 @@ class ChatRoomsRepository @Inject constructor(
                 Result.failure(Exception("API Error"))
             }
         } catch (e: Exception) {
+            // 網路斷線或超時，直接把本地假資料狀態改成 FAILED，UI 就會立刻顯示驚嘆號
             messageDao.insertOrUpdate(tempMessageEntity.copy(status = MessageStatus.FAILED))
             Result.failure(e)
         }

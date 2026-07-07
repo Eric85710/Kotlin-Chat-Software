@@ -37,7 +37,7 @@ interface MessageDao {
     @Query("SELECT * FROM messages WHERE id = :messageId LIMIT 1")
     suspend fun getMessageById(messageId: String): MessageEntity?
 
-    // 3. 插入或更新單筆訊息
+    // 3. 插入或更新單筆訊息ssss
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     suspend fun insertOrUpdate(message: MessageEntity)
 
