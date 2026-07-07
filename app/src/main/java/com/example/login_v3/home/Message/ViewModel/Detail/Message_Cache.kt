@@ -7,6 +7,7 @@ import androidx.room.OnConflictStrategy
 import androidx.room.PrimaryKey
 import kotlinx.coroutines.flow.Flow
 import androidx.room.Query
+import androidx.room.Transaction
 import com.example.login_v3.data.api.api_class.Reaction
 
 enum class MessageStatus { SENDING, SUCCESS, FAILED }
@@ -47,4 +48,10 @@ interface MessageDao {
     // 5. 根據 id 刪除特定訊息
     @Query("DELETE FROM messages WHERE id = :id")
     suspend fun deleteById(id: String)
+
+    @Transaction
+    suspend fun replaceTempMessageWithSuccess(tempId: String, successEntity: MessageEntity) {
+        deleteById(tempId)              // 1. 先刪除本地暫存 ID
+        insertOrUpdate(successEntity)   // 2. 立刻寫入後端正式 ID
+    }
 }
