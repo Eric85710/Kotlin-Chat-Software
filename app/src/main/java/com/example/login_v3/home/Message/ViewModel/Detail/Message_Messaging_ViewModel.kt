@@ -115,14 +115,23 @@ class ChatViewModel @Inject constructor(
     // 用來管理監聽 Room Flow 的 Job，避免重複綁定
     private var messageListenerJob: Job? = null
 
+    // --- 分頁加載狀態控制 ---
+    private var nextCursor: String? = null
+    private var hasMore: Boolean = true
+    private var isLoadingMore = false // 防止重複戳 API
+
     // =====================================================================
     // 💡 核心改造一：持續監聽本地資料庫的 Flow
     // =====================================================================
     fun loadMessages(roomId: String) {
         messageListenerJob?.cancel()
 
+        // 重置分頁狀態，避免切換聊天室時帶到舊的資料
+        nextCursor = null
+        hasMore = true
+        isLoadingMore = false
+
         messageListenerJob = viewModelScope.launch {
-            // 🌟 優化防閃爍：只有在原本不是 Success 的情況下，才去 show 轉圈圈
             try {
                 repository.startChatSession(roomId)
             } catch (e: Exception) {
@@ -146,7 +155,7 @@ class ChatViewModel @Inject constructor(
                 Triple("聊天室", UserStatus.UNKNOWN, R.drawable.avatar_v1)
             }
 
-            // 持續監聽本地資料庫
+            // 持續監聽本地資料庫（即使載入更多老訊息，這裡也會自動感應並外發完整的 List）
             repository.getChatMessagesFlow(roomId).collect { localMessages ->
                 _uiState.value = MessagesUiState.Success(
                     roomTitle = title,
@@ -158,13 +167,50 @@ class ChatViewModel @Inject constructor(
             }
         }
 
-        // 背景默默跟遠端伺服器同步
+        // 🎯 修正：背景首刷，取得第一頁最新訊息，並記錄分頁標記
         viewModelScope.launch {
-            repository.refreshChatMessages(roomId).onSuccess {
-                repository.markAsRead(roomId).onFailure { error ->
-                    Log.e("ChatViewModel", "標記已讀失敗: ${error.message}")
+            repository.refreshChatMessages(roomId, cursor = null) // 👈 傳入 null 代表抓最新
+                .onSuccess { response ->
+                    // 🌟 核心：記下這間聊天室第一頁的下一頁鑰匙
+                    this@ChatViewModel.nextCursor = response.nextCursor
+                    this@ChatViewModel.hasMore = response.hasMore
+
+                    repository.markAsRead(roomId).onFailure { error ->
+                        Log.e("ChatViewModel", "標記已讀失敗: ${error.message}")
+                    }
                 }
-            }
+                .onFailure { error ->
+                    Log.e("ChatViewModel", "首刷訊息失敗: ${error.message}")
+                }
+        }
+    }
+
+    // =====================================================================
+    // 💡 核心新增：往上滑載入更多老訊息
+    // =====================================================================
+    fun loadMoreMessages(roomId: String) {
+        // 1. 防禦性攔截：如果正在載入中、後端說沒更多了、或是鑰匙是空的，直接收工
+        if (isLoadingMore || !hasMore || nextCursor.isNullOrBlank()) return
+
+        isLoadingMore = true
+        Log.d("ChatViewModel", "觸發載入更多，當前 cursor: $nextCursor")
+
+        viewModelScope.launch {
+            // 2. 帶著目前最老的 nextCursor 去戳 Repository
+            repository.refreshChatMessages(roomId, cursor = nextCursor)
+                .onSuccess { response ->
+                    // 3. 成功後，更新下一階段的分頁標記
+                    this@ChatViewModel.nextCursor = response.nextCursor
+                    this@ChatViewModel.hasMore = response.hasMore
+                    Log.d("ChatViewModel", "載入更多成功，下一頁 cursor: $nextCursor, hasMore: $hasMore")
+                }
+                .onFailure { error ->
+                    Log.e("ChatViewModel", "載入更多老訊息失敗", error)
+                    // 這裡可以選擇不處理，或者透過一個單發的事件（SharedFlow）通知 UI 彈 Toast
+                }
+
+            // 4. 解鎖
+            isLoadingMore = false
         }
     }
 
