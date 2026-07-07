@@ -10,6 +10,7 @@ import android.util.Log
 import com.example.login_v3.data.api.TecnologiaApi
 import com.example.login_v3.data.api.api_class.ChatRoom
 import com.example.login_v3.data.api.api_class.Message
+import com.example.login_v3.data.api.api_class.MessageResponse
 import com.example.login_v3.data.api.api_class.Reaction
 import com.example.login_v3.data.api.api_class.RoomListResponse
 import com.example.login_v3.data.api.api_class.SendMessageRequest
@@ -172,15 +173,18 @@ class ChatRoomsRepository @Inject constructor(
         }
     }
 
-    // api get data and put to local
-    suspend fun refreshChatMessages(roomId: String): Result<Unit> {
+
+    //api get message and push to local
+    suspend fun refreshChatMessages(roomId: String, cursor: String? = null): Result<MessageResponse> {
         return try {
-            val response = api.getChatMessages(roomId)
+            // 1. 把 cursor 傳給 API
+            val response = api.getChatMessages(roomId, cursor = cursor)
+
             if (response.isSuccessful) {
                 val body = response.body()
                 if (body != null) {
 
-                    // 1. 使用 map 把網路資料轉換成 Entity 列表
+                    // 2. 轉換成 Entity 列表
                     val entities = body.messages.map { networkMessage ->
                         MessageEntity(
                             id = networkMessage.id,
@@ -197,10 +201,13 @@ class ChatRoomsRepository @Inject constructor(
                         )
                     }
 
-                    // 2. 一口氣整批塞進資料庫，Room 只會開啟一次資料庫事務 (Transaction)
+                    // 3. 寫入資料庫
+                    // 因為你寫了 OnConflictStrategy.REPLACE，歷史訊息會被乖乖追加進去，不會影響現有訊息！
                     messageDao.insertOrUpdateList(entities)
 
-                    Result.success(Unit)
+                    // 🎯 4. 關鍵：把整個 body 回傳回去（包含 nextCursor 和 hasMore）
+                    // 這樣 ViewModel 才能知道下一次往上滑時，要帶哪一個 cursor！
+                    Result.success(body)
                 } else {
                     Result.failure(Exception("Empty body"))
                 }
