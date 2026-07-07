@@ -4,6 +4,7 @@ import android.Manifest
 import android.content.pm.PackageManager
 import android.net.Uri
 import android.os.Build
+import android.util.Log
 import android.widget.Toast
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
@@ -79,6 +80,7 @@ import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.sizeIn
 import androidx.compose.foundation.layout.windowInsetsTopHeight
 import androidx.compose.foundation.layout.statusBars // 如果要使用 statusBars 也需要這個
+import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material.icons.filled.ArrowDownward
 import androidx.compose.material.icons.filled.Build
@@ -88,6 +90,7 @@ import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.Info
 import androidx.compose.material.icons.filled.MoreVert
 import androidx.compose.material.icons.filled.PlayArrow
+import androidx.compose.runtime.snapshotFlow
 import androidx.core.content.ContextCompat
 import coil.ImageLoader
 import coil.compose.LocalImageLoader
@@ -523,6 +526,7 @@ fun MessageMessaging(
                             Text("目前沒有新訊息")
                         } else {
                             MessageList(
+                                roomId = roomId,
                                 currentUserId = state.currentUserId,
                                 messages = state.messages,
                                 partnerAvatarUrl = state.partnerAvatarUrl,
@@ -629,6 +633,7 @@ fun MessageMessaging(
 
 @Composable
 fun MessageList(
+    roomId: String,
     currentUserId: String,
     partnerAvatarUrl: Any?,
     partnerDisplayName: String,
@@ -641,19 +646,43 @@ fun MessageList(
     onRowClick: (Message) -> Unit,
     modifier: Modifier = Modifier
 ) {
-    // 🌟 核心修正：過濾掉所有已被刪除的訊息，讓它們直接不參與渲染
+    // 1. 建立 LazyColumn 的滾動狀態監聽
+    val listState = rememberLazyListState()
+
     val visibleMessages = remember(messages) {
         messages.filter { !it.isDeleted }
     }
 
+    // 🎯 2. 核心分頁監聽：監聽滾動，快滑到最老訊息時默默去遠端載入更多
+    LaunchedEffect(listState, visibleMessages) {
+        snapshotFlow { listState.layoutInfo.visibleItemsInfo }
+            .collect { visibleItems ->
+                if (visibleItems.isNotEmpty()) {
+                    // 因為設定了 reverseLayout = true，最新訊息在 index = 0 (最底部)
+                    // 最老的訊息在列表的最後一項（最頂部）。
+                    val lastVisibleItem = visibleItems.last()
+
+                    // 當畫面上顯示的老訊息距離總資料量不到 5 條時，提前預加載歷史紀錄
+                    val threshold = 5
+                    if (lastVisibleItem.index >= visibleMessages.size - threshold) {
+                        Log.d("MessageList", "接近頂端老訊息，自動觸發載入更多")
+                        viewModel.loadMoreMessages(roomId)
+                    }
+                }
+            }
+    }
+
     LazyColumn(
+        state = listState, // 🎯 記得綁定 state
         modifier = modifier.fillMaxSize(),
         contentPadding = PaddingValues(6.dp),
         verticalArrangement = Arrangement.spacedBy(4.dp),
-        reverseLayout = true // ✨ 保持 true，讓畫面底部作為起點，並預設滾動到最下方
+        reverseLayout = true
     ) {
-        // 💡 改用過濾後的全新列表 visibleMessages
-        items(visibleMessages) { message ->
+        items(
+            items = visibleMessages,
+            key = { it.id } // 💡 加上 key 可以大幅提升 LazyColumn 刷新時的效能與動畫平滑度
+        ) { message ->
             val isMe = message.senderId == currentUserId
             MessageRow(
                 message = message,
