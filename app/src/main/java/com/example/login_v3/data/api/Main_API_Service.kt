@@ -108,8 +108,8 @@ interface TecnologiaApi {
     @GET("api/dm/{room_id}/messages")
     suspend fun getChatMessages(
         @Path("room_id") roomId: String,
-        @Query("cursor") cursor: String? = null, // 🎯 新增這個：載入歷史紀錄時帶入上一次的 nextCursor
-        @Query("limit") limit: Int? = null       // 💡 選填：如果後端有支援控制數量的話可以加上
+        @Query("before_id") cursor: String? = null, // 🎯 修正為與後端文件一致的 before_id
+        @Query("limit") limit: Int? = null
     ): Response<MessageResponse>
 
     // 標記聊天室已讀

@@ -165,6 +165,12 @@ fun MessageMessaging(
     ) { uri: Uri? ->
         uri?.let { viewModel.uploadAttachment(roomId, it) }
     }
+
+    //進入時重整
+    LaunchedEffect(roomId) {
+        viewModel.loadMessages(roomId)
+    }
+
     //bottom bar on and off
     DisposableEffect(Unit) {
         bottomBarViewModel.setVisible(false)

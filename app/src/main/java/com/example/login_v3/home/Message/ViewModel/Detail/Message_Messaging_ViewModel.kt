@@ -190,10 +190,21 @@ class ChatViewModel @Inject constructor(
     // 💡 核心新增：往上滑載入更多老訊息 (補上 limit)
     // =====================================================================
     fun loadMoreMessages(roomId: String) {
-        if (isLoadingMore || !hasMore || nextCursor.isNullOrBlank()) return
+        if (isLoadingMore) {
+            Log.d("ChatDebug", "⚠️ [ViewModel] loadMoreMessages 略過: 正在加載中...")
+            return
+        }
+        if (!hasMore) {
+            Log.d("ChatDebug", "⚠️ [ViewModel] loadMoreMessages 略過: 沒有更多訊息了 (hasMore=false)")
+            return
+        }
+        if (nextCursor.isNullOrBlank()) {
+            Log.d("ChatDebug", "⚠️ [ViewModel] loadMoreMessages 略過: nextCursor 為空")
+            return
+        }
 
         isLoadingMore = true
-        Log.d("ChatViewModel", "觸發載入更多，當前 cursor: $nextCursor")
+        Log.d("ChatDebug", "🚀 [ViewModel] 開始載入更多 | 當前 cursor: $nextCursor | roomId: $roomId")
 
         viewModelScope.launch {
             // 🎯 補上 limit = 20 傳遞給 Repository 與 API
@@ -201,10 +212,10 @@ class ChatViewModel @Inject constructor(
                 .onSuccess { response ->
                     this@ChatViewModel.nextCursor = response.nextCursor
                     this@ChatViewModel.hasMore = response.hasMore
-                    Log.d("ChatViewModel", "載入更多成功，新 cursor: $nextCursor, hasMore: $hasMore")
+                    Log.d("ChatDebug", "✅ [ViewModel] 載入更多成功 | 新 cursor: $nextCursor | hasMore: $hasMore")
                 }
                 .onFailure { error ->
-                    Log.e("ChatViewModel", "載入更多老訊息失敗", error)
+                    Log.e("ChatDebug", "❌ [ViewModel] 載入更多失敗", error)
                 }
 
             isLoadingMore = false

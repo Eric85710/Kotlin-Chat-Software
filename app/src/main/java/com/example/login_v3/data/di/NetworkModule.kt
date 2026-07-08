@@ -73,9 +73,18 @@ object NetworkModule {
         tokenInterceptor: Interceptor,
         tokenAuthenticator: TokenAuthenticator // 👈 注入前面實作好的 Authenticator
     ): OkHttpClient {
+        val loggingInterceptor = Interceptor { chain ->
+            val request = chain.request()
+            android.util.Log.d("ChatDebug", "🚀 [Network] Request: ${request.method} ${request.url}")
+            val response = chain.proceed(request)
+            android.util.Log.d("ChatDebug", "📦 [Network] Response: ${response.code} for ${request.url}")
+            response
+        }
+
         return OkHttpClient.Builder()
             .connectTimeout(15, TimeUnit.SECONDS)
             .readTimeout(15, TimeUnit.SECONDS)
+            .addInterceptor(loggingInterceptor)   // 負責 Log 網路請求
             .addInterceptor(tokenInterceptor)     // 負責幫一般請求加上 Token
             .authenticator(tokenAuthenticator)   // 負責在 401 時自動刷新 Token
             .build()

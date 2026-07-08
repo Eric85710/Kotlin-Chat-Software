@@ -180,13 +180,17 @@ class ChatRoomsRepository @Inject constructor(
         cursor: String? = null,
         limit: Int? = null
     ): Result<MessageResponse> {
+        Log.d("ChatDebug", "📡 [Repository] refreshChatMessages 觸發 | roomId: $roomId | cursor: $cursor | limit: $limit")
         return try {
-            // 1. 把 cursor 傳給 API
-            val response = api.getChatMessages(roomId, cursor = cursor)
+            // 1. 把 cursor 與 limit 傳給 API
+            val response = api.getChatMessages(roomId, cursor = cursor, limit = limit)
 
             if (response.isSuccessful) {
                 val body = response.body()
                 if (body != null) {
+                    val firstId = body.messages.firstOrNull()?.id
+                    val lastId = body.messages.lastOrNull()?.id
+                    Log.d("ChatDebug", "✅ [Repository] API 成功 | 收到 ${body.messages.size} 條訊息 | 首條ID: $firstId | 末條ID: $lastId | nextCursor: ${body.nextCursor}")
 
                     // 2. 轉換成 Entity 列表
                     val entities = body.messages.map { networkMessage ->
