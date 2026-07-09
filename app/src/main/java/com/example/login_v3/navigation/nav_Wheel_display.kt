@@ -45,6 +45,10 @@ import androidx.compose.runtime.snapshotFlow
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.unit.Dp
 import kotlinx.coroutines.flow.filter
+import kotlinx.coroutines.flow.distinctUntilChanged
+import kotlinx.coroutines.flow.map
+import kotlinx.coroutines.flow.collectLatest
+import kotlinx.coroutines.yield
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
@@ -171,21 +175,27 @@ fun HorizontalWheelPicker(
 
     val isInteracting by remember { derivedStateOf { listState.isScrollInProgress } }
 
-    // 使用 layoutInfo.visibleItemsInfo 計算最接近中心的 item
+    // 🎯 性能優化：只有當「中心項」真正改變時，才觸發更新
     LaunchedEffect(listState) {
-        snapshotFlow { listState.layoutInfo.visibleItemsInfo }
-            .filter { it.isNotEmpty() }
-            .collect { visibleItems ->
-                val viewportCenter =
-                    (listState.layoutInfo.viewportStartOffset + listState.layoutInfo.viewportEndOffset) / 2
+        snapshotFlow {
+            val layoutInfo = listState.layoutInfo
+            val visibleItems = layoutInfo.visibleItemsInfo
+            if (visibleItems.isEmpty()) return@snapshotFlow -1
 
-                val closest = visibleItems.minByOrNull { vi ->
-                    kotlin.math.abs((vi.offset + vi.size / 2) - viewportCenter)
-                } ?: visibleItems.first()
-
-                val selectedIndex = closest.key as Int
+            val viewportCenter = (layoutInfo.viewportStartOffset + layoutInfo.viewportEndOffset) / 2
+            
+            // 找到離中心最近的 Item
+            val closest = visibleItems.minByOrNull { vi ->
+                kotlin.math.abs((vi.offset + vi.size / 2) - viewportCenter)
+            } ?: visibleItems.first()
+            
+            closest.key as Int
+        }
+            .filter { it != -1 }
+            .distinctUntilChanged() // 關鍵：只有 Index 改變才往下走
+            .collectLatest { selectedIndex ->
+                yield() // 給予 UI 線程呼吸空間，防止快速滑動時卡頓
                 onValueChange(items[selectedIndex])
-
             }
     }
 

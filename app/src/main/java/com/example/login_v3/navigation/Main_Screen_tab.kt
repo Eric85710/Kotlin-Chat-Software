@@ -1,7 +1,12 @@
 package com.example.login_v3.navigation
 
+import androidx.compose.animation.core.Spring
 import androidx.compose.animation.core.animateDpAsState
+import androidx.compose.animation.core.animateFloat
 import androidx.compose.animation.core.animateFloatAsState
+import androidx.compose.animation.core.spring
+import androidx.compose.animation.core.tween
+import androidx.compose.animation.core.updateTransition
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxScope
@@ -34,13 +39,7 @@ import com.example.login_v3.home.Tg_Server
 import com.example.login_v3.home.setting.Tg_Setting
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.example.login_v3.home.setting.setting_detail_page.viewmodel.Theme_ViewModel
-
-
-import androidx.hilt.navigation.compose.hiltViewModel // 確保有引入 hiltViewModel
 import androidx.navigation.NavHostController
-import androidx.navigation.compose.NavHost
-import androidx.navigation.compose.composable
-import androidx.navigation.compose.rememberNavController
 import com.example.login_v3.navigation.components.AppWallpaperBackground
 
 @Composable
@@ -102,27 +101,43 @@ fun BottomBarAnimated(
     height: Dp,
     content: @Composable BoxScope.() -> Unit
 ) {
-    // 🎯 核心修正：讓實體高度也參與動畫
-    // 當 visible 為 false 時，這塊 Box 的高度會縮減到 0，從而讓 Scaffold 重新計算 innerPadding
-    val animatedHeight by animateDpAsState(targetValue = if (visible) height else 0.dp)
-    
-    // 位移與透明度動畫保持不變
-    val offsetY by animateDpAsState(targetValue = if (visible) 0.dp else height)
-    val alpha by animateFloatAsState(targetValue = if (visible) 1f else 0f)
+    // 🎯 高性能優化：使用單一 Transition 管理所有狀態，確保動畫同步
+    val transition = updateTransition(targetState = visible, label = "BottomBarTransition")
+
+    // 使用彈簧動畫 (Spring) 達成更流暢且自然的物理回饋感
+    val progress by transition.animateFloat(
+        transitionSpec = {
+            if (targetState) {
+                // 彈出時帶有一點點的回彈感 (LowBouncy)
+                spring(dampingRatio = Spring.DampingRatioLowBouncy, stiffness = Spring.StiffnessLow)
+            } else {
+                // 隱藏時則較為快速乾脆
+                spring(dampingRatio = Spring.DampingRatioNoBouncy, stiffness = Spring.StiffnessMediumLow)
+            }
+        },
+        label = "progress"
+    ) { state -> if (state) 1f else 0f }
+
+    val alpha by transition.animateFloat(
+        transitionSpec = { tween(durationMillis = 250) },
+        label = "alpha"
+    ) { state -> if (state) 1f else 0f }
 
     Box(
         modifier = Modifier
             .fillMaxWidth()
-            .height(animatedHeight) // 關鍵：動態高度決定了內容區域下方的留白
+            .height(height * progress) // 只有高度變化會觸發 Layout (為了回收空間)
             .graphicsLayer { this.alpha = alpha }
             .background(Color.Transparent)
     ) {
-        // 內部的內容容器則維持原高度，並配合 offset 達成滑出效果
+        // 🚀 關鍵優化：內部內容使用 translationY，這是 GPU 加速的位移，不會觸發 Layout Pass
         Box(
             modifier = Modifier
                 .fillMaxWidth()
                 .height(height)
-                .offset(y = offsetY)
+                .graphicsLayer {
+                    translationY = (height.toPx() * (1f - progress))
+                }
         ) {
             content()
         }
