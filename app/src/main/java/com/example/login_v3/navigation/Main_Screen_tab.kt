@@ -102,19 +102,31 @@ fun BottomBarAnimated(
     height: Dp,
     content: @Composable BoxScope.() -> Unit
 ) {
-    // 位移與透明度動畫
+    // 🎯 核心修正：讓實體高度也參與動畫
+    // 當 visible 為 false 時，這塊 Box 的高度會縮減到 0，從而讓 Scaffold 重新計算 innerPadding
+    val animatedHeight by animateDpAsState(targetValue = if (visible) height else 0.dp)
+    
+    // 位移與透明度動畫保持不變
     val offsetY by animateDpAsState(targetValue = if (visible) 0.dp else height)
     val alpha by animateFloatAsState(targetValue = if (visible) 1f else 0f)
 
     Box(
         modifier = Modifier
             .fillMaxWidth()
-            .height(height)
-            .offset(y = offsetY)
+            .height(animatedHeight) // 關鍵：動態高度決定了內容區域下方的留白
             .graphicsLayer { this.alpha = alpha }
-            .background(Color.Transparent),
-        content = content
-    )
+            .background(Color.Transparent)
+    ) {
+        // 內部的內容容器則維持原高度，並配合 offset 達成滑出效果
+        Box(
+            modifier = Modifier
+                .fillMaxWidth()
+                .height(height)
+                .offset(y = offsetY)
+        ) {
+            content()
+        }
+    }
 }
 
 @Composable
