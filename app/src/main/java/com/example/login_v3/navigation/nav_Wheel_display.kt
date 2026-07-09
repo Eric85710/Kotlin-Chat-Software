@@ -37,6 +37,7 @@ import androidx.compose.ui.draw.blur
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.dp
+import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -68,6 +69,7 @@ fun nav_Wheel_display_block(
     screensViewModel: ScreensViewModel
 ) {
     var isPressed by remember { mutableStateOf(false) }
+    val selectedScreen by screensViewModel.selected.collectAsState()
 
     //position_animation
     val floatingOffset by animateDpAsState(
@@ -81,12 +83,14 @@ fun nav_Wheel_display_block(
     )
 
     //different tab
-    val items = listOf(
-        WheelItemData(Icons.Filled.Message, Screen.Message),
-        WheelItemData(Icons.Filled.Dns, Screen.Server),
-        WheelItemData(Icons.Filled.Extension, Screen.MarketPlace),
-        WheelItemData(Icons.Filled.Settings, Screen.Setting)
-    )
+    val items = remember {
+        listOf(
+            WheelItemData(Icons.Filled.Message, Screen.Message),
+            WheelItemData(Icons.Filled.Dns, Screen.Server),
+            WheelItemData(Icons.Filled.Extension, Screen.MarketPlace),
+            WheelItemData(Icons.Filled.Settings, Screen.Setting)
+        )
+    }
 
     Column(
         modifier = Modifier.fillMaxSize(),
@@ -102,11 +106,10 @@ fun nav_Wheel_display_block(
         ) {
             HorizontalWheelPicker(
                 items = items,
+                currentScreen = selectedScreen,
                 onValueChange = { item ->
                     if (screensViewModel.selected.value != item.screen) {
                         screensViewModel.select(item.screen)
-                        // Note: Navigation is now handled by the Pager in MainScreen_tab
-                        // which observes the screensViewModel.selected state.
                     }
                 },
                 onInteractionChanged = { isPressed = it }
@@ -123,12 +126,24 @@ fun nav_Wheel_display_block(
 @Composable
 fun HorizontalWheelPicker(
     items: List<WheelItemData>,
+    currentScreen: Screen,
     itemWidth: Dp = 80.dp,
     onValueChange: (WheelItemData) -> Unit,
     onInteractionChanged: (Boolean) -> Unit
 ) {
     val listState = rememberLazyListState()
     val flingBehavior = rememberSnapFlingBehavior(listState)
+    val isInteracting by remember { derivedStateOf { listState.isScrollInProgress } }
+
+    // 🎯 核心修正：當螢幕被左右滑動時，同步讓 Wheel 捲動到對應位置
+    LaunchedEffect(currentScreen) {
+        if (!isInteracting) { // 只有在使用者沒在撥動 Wheel 時才自動捲動，避免互搶控制權
+            val targetIndex = items.indexOfFirst { it.screen == currentScreen }
+            if (targetIndex != -1) {
+                listState.animateScrollToItem(targetIndex)
+            }
+        }
+    }
 
     // 計算動態 horizontal padding（假設 LazyRow 佔滿螢幕寬度）
     val screenWidthDp = androidx.compose.ui.platform.LocalConfiguration.current.screenWidthDp.dp
@@ -172,8 +187,6 @@ fun HorizontalWheelPicker(
             )
         }
     }
-
-    val isInteracting by remember { derivedStateOf { listState.isScrollInProgress } }
 
     // 🎯 性能優化：只有當「中心項」真正改變時，才觸發更新
     LaunchedEffect(listState) {
