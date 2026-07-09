@@ -12,6 +12,8 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.viewmodel.compose.viewModel
+import androidx.navigation.NavHostController
+import androidx.navigation.compose.rememberNavController
 import com.example.login_v3.auth.login.LoginScreen
 import com.example.login_v3.auth.Login_or_Reg_page
 import com.example.login_v3.auth.SwitchAccount.AccountSwitchScreen
@@ -26,6 +28,7 @@ fun AppNavGraph(
     appViewModel: AppViewModel = hiltViewModel()
 ) {
     val currentScreen by appViewModel.currentScreen.collectAsState()
+    val navController = rememberNavController()
 
     when (currentScreen) {
 
@@ -79,7 +82,7 @@ fun AppNavGraph(
             onLogout = { appViewModel.onLogout() }
         )
 
-        AppScreen.ScreensTab -> MainScreen_tab()
+        AppScreen.ScreensTab -> MainScreen_tab(navController = navController)
 
         AppScreen.AccountSwitch -> {
             BackHandler {

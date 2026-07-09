@@ -60,6 +60,7 @@ data class WheelItemData(
 
 @Composable
 fun nav_Wheel_display_block(
+    navController: NavHostController,
     screensViewModel: ScreensViewModel
 ) {
     var isPressed by remember { mutableStateOf(false) }
@@ -97,7 +98,13 @@ fun nav_Wheel_display_block(
         ) {
             HorizontalWheelPicker(
                 items = items,
-                onValueChange = { item -> screensViewModel.select(item.screen) },
+                onValueChange = { item ->
+                    if (screensViewModel.selected.value != item.screen) {
+                        screensViewModel.select(item.screen)
+                        // Note: Navigation is now handled by the Pager in MainScreen_tab
+                        // which observes the screensViewModel.selected state.
+                    }
+                },
                 onInteractionChanged = { isPressed = it }
             )
         }

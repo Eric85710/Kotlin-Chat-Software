@@ -12,10 +12,15 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.offset
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.pager.HorizontalPager
+import androidx.compose.foundation.pager.rememberPagerState
 import androidx.compose.material3.Scaffold
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
@@ -32,10 +37,15 @@ import com.example.login_v3.home.setting.setting_detail_page.viewmodel.Theme_Vie
 
 
 import androidx.hilt.navigation.compose.hiltViewModel // 確保有引入 hiltViewModel
+import androidx.navigation.NavHostController
+import androidx.navigation.compose.NavHost
+import androidx.navigation.compose.composable
+import androidx.navigation.compose.rememberNavController
 import com.example.login_v3.navigation.components.AppWallpaperBackground
 
 @Composable
 fun MainScreen_tab(
+    navController: NavHostController,
     // 注入 Theme_ViewModel 來讀取壁紙狀態
     themeViewModel: Theme_ViewModel = hiltViewModel()
 ) {
@@ -64,7 +74,10 @@ fun MainScreen_tab(
                                     .fillMaxWidth()
                                     .height(navHeight)
                             ) {
-                                nav_Wheel_display_block(screensViewModel = screensViewModel)
+                                nav_Wheel_display_block(
+                                    navController = navController,
+                                    screensViewModel = screensViewModel
+                                )
                             }
                             Spacer(modifier = Modifier.height(gap))
                         }
@@ -73,6 +86,7 @@ fun MainScreen_tab(
             }
         ) { innerPadding ->
             Screens_NavGraph(
+                navController = navController,
                 paddingValues = innerPadding,
                 screensViewModel = screensViewModel,
                 bottomBarViewModel = bottomBarViewModel
@@ -104,21 +118,47 @@ fun BottomBarAnimated(
 
 @Composable
 fun Screens_NavGraph(
+    navController: NavHostController,
     paddingValues: PaddingValues,
     screensViewModel: ScreensViewModel,
     bottomBarViewModel: BottomBarViewModel,
 ) {
-    //nav_wheel_selecting tab
+    val mainScreens = remember { listOf(Screen.Message, Screen.Server, Screen.MarketPlace, Screen.Setting) }
+    val pagerState = rememberPagerState(pageCount = { mainScreens.size })
     val selectedScreen by screensViewModel.selected.collectAsState()
 
+    // 1. Sync ViewModel selection to Pager (Wheel -> Pager)
+    LaunchedEffect(selectedScreen) {
+        val targetPage = mainScreens.indexOf(selectedScreen)
+        if (targetPage != -1 && pagerState.currentPage != targetPage) {
+            pagerState.animateScrollToPage(targetPage)
+        }
+    }
 
-    when (selectedScreen) {
-        Screen.Message -> Tg_Message()
-        Screen.Server -> Tg_Server(viewModel = viewModel())
-        Screen.MarketPlace -> Tg_MarketPlace()
-        Screen.Setting -> Tg_Setting(
-            bottomBarViewModel = bottomBarViewModel
-        )
+    // 2. Sync Pager swipe to ViewModel (Pager -> Wheel)
+    LaunchedEffect(pagerState.currentPage) {
+        if (mainScreens[pagerState.currentPage] != screensViewModel.selected.value) {
+            screensViewModel.select(mainScreens[pagerState.currentPage])
+        }
+    }
+
+    HorizontalPager(
+        state = pagerState,
+        modifier = Modifier.fillMaxSize(),
+        beyondViewportPageCount = 1, // Pre-load adjacent screens for smoothness
+        userScrollEnabled = true    // Allow swiping between main tabs
+    ) { page ->
+        Box(modifier = Modifier
+            .fillMaxSize()
+            .padding(paddingValues)
+        ) {
+            when (mainScreens[page]) {
+                Screen.Message -> Tg_Message()
+                Screen.Server -> Tg_Server(viewModel = viewModel())
+                Screen.MarketPlace -> Tg_MarketPlace()
+                Screen.Setting -> Tg_Setting(bottomBarViewModel = bottomBarViewModel)
+            }
+        }
     }
 }
 
