@@ -49,7 +49,7 @@ fun MainScreen_tab(
     themeViewModel: Theme_ViewModel = hiltViewModel()
 ) {
     val screensViewModel: ScreensViewModel = viewModel()
-    val bottomBarViewModel: BottomBarViewModel = viewModel()
+    val bottomBarViewModel: BottomBarViewModel = hiltViewModel()
 
     // show bottom bar or not
     val showBottomBar by bottomBarViewModel.showBottomBar.collectAsState()
@@ -154,6 +154,7 @@ fun Screens_NavGraph(
     val mainScreens = remember { listOf(Screen.Message, Screen.Server, Screen.MarketPlace, Screen.Setting) }
     val pagerState = rememberPagerState(pageCount = { mainScreens.size })
     val selectedScreen by screensViewModel.selected.collectAsState()
+    val showBottomBar by bottomBarViewModel.showBottomBar.collectAsState()
 
     // 1. Sync ViewModel selection to Pager (Wheel -> Pager)
     LaunchedEffect(selectedScreen) {
@@ -174,14 +175,14 @@ fun Screens_NavGraph(
         state = pagerState,
         modifier = Modifier.fillMaxSize(),
         beyondViewportPageCount = 1, // Pre-load adjacent screens for smoothness
-        userScrollEnabled = true    // Allow swiping between main tabs
+        userScrollEnabled = showBottomBar    // Allow swiping between main tabs
     ) { page ->
         Box(modifier = Modifier
             .fillMaxSize()
             .padding(paddingValues)
         ) {
             when (mainScreens[page]) {
-                Screen.Message -> Tg_Message()
+                Screen.Message -> Tg_Message(bottomBarViewModel = bottomBarViewModel)
                 Screen.Server -> Tg_Server(viewModel = viewModel())
                 Screen.MarketPlace -> Tg_MarketPlace()
                 Screen.Setting -> Tg_Setting(bottomBarViewModel = bottomBarViewModel)
