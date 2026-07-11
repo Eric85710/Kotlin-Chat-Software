@@ -60,7 +60,7 @@ val Partner.fullContactAvatarUrl: Any
     } else if (avatarUrl.startsWith("http")) {
         avatarUrl // 已經是完整網址就直接用
     } else {
-        "http://192.168.0.217$avatarUrl" // 否則補上 Base URL
+        "https://tg.technologia-tw.com$avatarUrl" // 否則補上 Base URL
     }
 
 
