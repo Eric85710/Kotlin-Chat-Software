@@ -82,7 +82,7 @@ fun SharedTransitionScope.setting_list_Screen(
         .fillMaxSize()
     ) {
 
-        Spacer(modifier = Modifier.height(46.dp))
+        Spacer(modifier = Modifier.height(56.dp))
 
         TextField(
             value = query,
