@@ -1,6 +1,5 @@
 package com.example.login_v3.home.setting
 
-import android.R
 import android.net.Uri
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.AnimatedVisibilityScope
@@ -26,6 +25,7 @@ import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
+import androidx.compose.material3.ListItem
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.SearchBar
 import androidx.compose.material3.Text
@@ -59,32 +59,58 @@ fun SharedTransitionScope.setting_list_Screen(
     var query by remember { mutableStateOf("") }
     var active by remember { mutableStateOf(false) }
 
+    val settings by viewModel.settings.collectAsState()
 
+    // 搜尋過濾邏輯
+    val filteredSettings = remember(query, settings) {
+        if (query.isEmpty()) {
+            settings
+        } else {
+            settings.filter { item ->
+                item.title.contains(query, ignoreCase = true) ||
+                        (item.description?.contains(query, ignoreCase = true) ?: false) ||
+                        item.keywords.any { it.contains(query, ignoreCase = true) }
+            }
+        }
+    }
 
     Column(modifier = Modifier
         .fillMaxSize()
     ) {
-
-        val settings by viewModel.settings.collectAsState()
-
 
         Spacer(modifier = Modifier.height(46.dp))
 
         SearchBar(
             query = query,
             onQueryChange = { query = it },
-            onSearch = { /* 執行搜尋邏輯 */ },
+            onSearch = { active = false },
             active = active,
             shape = RoundedCornerShape(12.dp),
             onActiveChange = { active = it },
-            placeholder = { Text("搜尋設定") },
+            placeholder = { Text("搜尋設定 (例如: dark, profile...)") },
             modifier = Modifier
                 .fillMaxWidth()
                 .padding(horizontal = 8.dp)
 
         ) {
             // 這裡是 SearchBar 展開後的內容
-            Text("搜尋結果: $query")
+            LazyColumn(
+                modifier = Modifier.fillMaxWidth(),
+                contentPadding = PaddingValues(16.dp),
+                verticalArrangement = Arrangement.spacedBy(8.dp)
+            ) {
+                itemsIndexed(filteredSettings) { index, item ->
+                    ListItem(
+                        headlineContent = { Text(item.title) },
+                        supportingContent = { item.description?.let { Text(it) } },
+                        leadingContent = { Icon(item.setting_icon, contentDescription = null) },
+                        modifier = Modifier.clickable {
+                            onItemClick(item.title, item.iconKey)
+                            active = false
+                        }
+                    )
+                }
+            }
         } // ← 注意這個大括號要結束 SearchBar
 
         Spacer(modifier = Modifier.height(14.dp))
@@ -95,7 +121,7 @@ fun SharedTransitionScope.setting_list_Screen(
             verticalArrangement = Arrangement.spacedBy(2.dp), // 每個 item 之間 8.dp
             contentPadding = PaddingValues(vertical = 2.dp)
         ) {
-            itemsIndexed(settings){ index, item ->
+            itemsIndexed(filteredSettings){ index, item ->
 
                 Box(
                     modifier = Modifier
