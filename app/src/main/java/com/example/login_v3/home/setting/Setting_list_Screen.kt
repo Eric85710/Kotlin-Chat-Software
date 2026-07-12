@@ -25,10 +25,15 @@ import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
 import androidx.compose.material3.ListItem
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.SearchBar
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextField
+import androidx.compose.material3.TextFieldDefaults
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Clear
+import androidx.compose.material.icons.filled.Search
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
@@ -57,7 +62,6 @@ fun SharedTransitionScope.setting_list_Screen(
 ){
 
     var query by remember { mutableStateOf("") }
-    var active by remember { mutableStateOf(false) }
 
     val settings by viewModel.settings.collectAsState()
 
@@ -80,38 +84,29 @@ fun SharedTransitionScope.setting_list_Screen(
 
         Spacer(modifier = Modifier.height(46.dp))
 
-        SearchBar(
-            query = query,
-            onQueryChange = { query = it },
-            onSearch = { active = false },
-            active = active,
-            shape = RoundedCornerShape(12.dp),
-            onActiveChange = { active = it },
+        TextField(
+            value = query,
+            onValueChange = { query = it },
             placeholder = { Text("搜尋設定 (例如: dark, profile...)") },
+            leadingIcon = { Icon(Icons.Default.Search, contentDescription = null) },
+            trailingIcon = {
+                if (query.isNotEmpty()) {
+                    IconButton(onClick = { query = "" }) {
+                        Icon(Icons.Default.Clear, contentDescription = null)
+                    }
+                }
+            },
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(horizontal = 8.dp)
-
-        ) {
-            // 這裡是 SearchBar 展開後的內容
-            LazyColumn(
-                modifier = Modifier.fillMaxWidth(),
-                contentPadding = PaddingValues(16.dp),
-                verticalArrangement = Arrangement.spacedBy(8.dp)
-            ) {
-                itemsIndexed(filteredSettings) { index, item ->
-                    ListItem(
-                        headlineContent = { Text(item.title) },
-                        supportingContent = { item.description?.let { Text(it) } },
-                        leadingContent = { Icon(item.setting_icon, contentDescription = null) },
-                        modifier = Modifier.clickable {
-                            onItemClick(item.title, item.iconKey)
-                            active = false
-                        }
-                    )
-                }
-            }
-        } // ← 注意這個大括號要結束 SearchBar
+                .padding(horizontal = 8.dp),
+            shape = RoundedCornerShape(12.dp),
+            colors = TextFieldDefaults.colors(
+                focusedIndicatorColor = Color.Transparent,
+                unfocusedIndicatorColor = Color.Transparent,
+                disabledIndicatorColor = Color.Transparent
+            ),
+            singleLine = true
+        )
 
         Spacer(modifier = Modifier.height(14.dp))
 
