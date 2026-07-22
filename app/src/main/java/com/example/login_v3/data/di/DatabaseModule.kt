@@ -2,7 +2,7 @@ package com.example.login_v3.data.di
 
 import android.content.Context
 import androidx.room.Room
-import com.example.login_v3.home.Message.ViewModel.Detail.MessageDao
+import com.example.login_v3.data.local.dao.MessageDao
 import dagger.Module
 import dagger.Provides
 import dagger.hilt.InstallIn
@@ -24,7 +24,7 @@ object DatabaseModule {
             AppDatabase::class.java,
             "tecnologia_chat_db" // 資料庫檔案名稱
         )
-            // .fallbackToDestructiveMigration() // 💡 提示：未來如果修改 Entity 欄位導致崩潰，可以先取消這行註解來清除舊資料庫
+            .fallbackToDestructiveMigration()
             .build()
     }
 

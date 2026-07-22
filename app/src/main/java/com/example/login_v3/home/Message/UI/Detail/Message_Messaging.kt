@@ -72,7 +72,7 @@ import com.example.login_v3.home.Message.UI.Detail.Message_Component.ReactionRow
 import com.example.login_v3.home.Message.UI.Detail.Message_Component.UserAvatar
 import com.example.login_v3.home.Message.ViewModel.Detail.ChatViewModel
 import com.example.login_v3.home.Message.ViewModel.Detail.DeleteMessageState
-import com.example.login_v3.home.Message.ViewModel.Detail.MessageStatus
+import com.example.login_v3.data.local.entities.MessageStatus
 import com.example.login_v3.home.Message.ViewModel.Detail.MessagesUiState
 import com.example.login_v3.home.Message.ViewModel.Detail.SendMessageState
 import com.example.login_v3.navigation.BottomBarViewModel

@@ -17,9 +17,9 @@ import com.example.login_v3.data.api.api_class.SendMessageRequest
 import com.example.login_v3.data.api.api_class.WebSocketEventResponse
 import com.example.login_v3.data.di.ChatWebSocketManager
 import com.example.login_v3.data.repository.basic.TokenManager
-import com.example.login_v3.home.Message.ViewModel.Detail.MessageDao
-import com.example.login_v3.home.Message.ViewModel.Detail.MessageEntity
-import com.example.login_v3.home.Message.ViewModel.Detail.MessageStatus
+import com.example.login_v3.data.local.dao.MessageDao
+import com.example.login_v3.data.local.entities.MessageEntity
+import com.example.login_v3.data.local.entities.MessageStatus
 import com.squareup.moshi.Json
 import com.squareup.moshi.JsonClass
 import com.squareup.moshi.Moshi

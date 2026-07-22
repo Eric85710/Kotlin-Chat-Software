@@ -21,6 +21,26 @@ class UserPreferencesRepository(private val dataStore: DataStore<Preferences>) {
         val THEME_MODE = stringPreferencesKey("theme_mode")
         // 新增：儲存自訂壁紙檔案路徑的 Key
         val CUSTOM_WALLPAPER_PATH = stringPreferencesKey("custom_wallpaper_path")
+        val SYNC_SINCE = androidx.datastore.preferences.core.longPreferencesKey("sync_since")
+    }
+
+    // 讀取同步時間
+    val syncSinceFlow: Flow<Long> = dataStore.data
+        .catch { exception ->
+            if (exception is IOException) {
+                emit(emptyPreferences())
+            } else {
+                throw exception
+            }
+        }
+        .map { preferences ->
+            preferences[PreferencesKeys.SYNC_SINCE] ?: 0L
+        }
+
+    suspend fun saveSyncSince(since: Long) {
+        dataStore.edit { preferences ->
+            preferences[PreferencesKeys.SYNC_SINCE] = since
+        }
     }
 
     // 讀取設定：直接在宣告時賦值，簡潔又安全

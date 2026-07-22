@@ -30,6 +30,10 @@ data class RefreshResponse(
 
 interface TecnologiaApi {
 
+    //sync dm data
+    @GET("api/sync")
+    suspend fun sync(@Query("since") since: Long): Response<SyncResponse>
+
     @GET("api/health")
     suspend fun checkHealth(): Response<Unit>
 

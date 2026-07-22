@@ -1,7 +1,7 @@
 package com.example.login_v3.data.api.api_class
 
 import com.example.login_v3.R
-import com.example.login_v3.home.Message.ViewModel.Detail.MessageStatus
+import com.example.login_v3.data.local.entities.MessageStatus
 import com.squareup.moshi.Json
 import com.squareup.moshi.JsonClass
 import com.squareup.moshi.Moshi
@@ -162,7 +162,52 @@ data class MessageReactionUsersResponse(
 
 
 
-//voice call
+// --- Delta-Sync 相關 ---
+@JsonClass(generateAdapter = true)
+data class SyncResponse(
+    @Json(name = "blocks") val blocks: List<SyncBlock>,
+    @Json(name = "friends") val friends: List<SyncFriend>,
+    @Json(name = "full_snapshot") val fullSnapshot: Boolean,
+    @Json(name = "next_since") val nextSince: Long,
+    @Json(name = "rooms") val rooms: List<SyncRoom>
+)
+
+@JsonClass(generateAdapter = true)
+data class SyncBlock(
+    @Json(name = "avatar_url") val avatarUrl: String?,
+    @Json(name = "blocked_at") val blockedAt: String,
+    @Json(name = "display_name") val displayName: String,
+    @Json(name = "removed") val removed: Boolean = false,
+    @Json(name = "user_id") val userId: String,
+    @Json(name = "username") val username: String
+)
+
+@JsonClass(generateAdapter = true)
+data class SyncFriend(
+    @Json(name = "avatar_url") val avatarUrl: String?,
+    @Json(name = "display_name") val displayName: String,
+    @Json(name = "presence_status") val presenceStatus: String,
+    @Json(name = "removed") val removed: Boolean = false,
+    @Json(name = "status") val status: String,
+    @Json(name = "user_id") val userId: String,
+    @Json(name = "username") val username: String
+)
+
+@JsonClass(generateAdapter = true)
+data class SyncRoom(
+    @Json(name = "is_hidden") val isHidden: Boolean,
+    @Json(name = "is_muted") val isMuted: Boolean,
+    @Json(name = "is_pinned") val isPinned: Boolean,
+    @Json(name = "last_message") val lastMessage: LastMessage?,
+    @Json(name = "mention_count") val mentionCount: Int,
+    @Json(name = "nickname") val nickname: String?,
+    @Json(name = "partner") val partner: Partner?,
+    @Json(name = "removed") val removed: Boolean = false,
+    @Json(name = "room_id") val roomId: String,
+    @Json(name = "unread_count") val unreadCount: Int
+)
+
+// --- Voice Call 相關 ---
 @JsonClass(generateAdapter = true)
 data class CallLogInfo(
     @Json(name = "type") val type: String, // 例如: call_missed, call_rejected
