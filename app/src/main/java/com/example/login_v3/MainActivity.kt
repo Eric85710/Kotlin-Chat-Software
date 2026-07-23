@@ -9,6 +9,8 @@ import androidx.compose.runtime.collectAsState
 import androidx.core.splashscreen.SplashScreen.Companion.installSplashScreen
 import com.example.login_v3.auth.HealthCheckScreen
 import com.example.login_v3.home.setting.setting_detail_page.viewmodel.Theme_ViewModel
+import com.example.login_v3.navigation.AppViewModel
+import com.example.login_v3.navigation.AppScreen
 import com.example.login_v3.ui.theme.AppTheme
 import com.example.login_v3.ui.theme.Login_V3Theme
 import androidx.compose.runtime.getValue
@@ -21,6 +23,7 @@ import dagger.hilt.android.AndroidEntryPoint
 class MainActivity : ComponentActivity() {
 
     private val themeViewModel: Theme_ViewModel by viewModels()
+    private val appViewModel: AppViewModel by viewModels()
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -30,7 +33,11 @@ class MainActivity : ComponentActivity() {
         EmojiCompat.init(config)
         enableEdgeToEdge()
 
-        installSplashScreen()
+        val splashScreen = installSplashScreen()
+        splashScreen.setKeepOnScreenCondition {
+            appViewModel.currentScreen.value == AppScreen.Loading
+        }
+
         setContent {
 
             //theme mode data

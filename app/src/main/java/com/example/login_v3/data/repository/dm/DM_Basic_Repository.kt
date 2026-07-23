@@ -63,20 +63,26 @@ class ChatRoomsRepository @Inject constructor(
 
     // 🌟 核心：監聽本地資料庫的聊天室列表 Flow
     val chatRoomsFlow: Flow<List<ChatRoom>> = roomLocalDao.getAllRoomsFlow().map { entities ->
-        entities.map { entity ->
-            ChatRoom(
-                roomId = entity.roomId,
-                roomName = entity.nickname, // 或者 entity.partner?.displayName ? 根據 DTO 結構映射
-                roomType = null, // Entity 暫時沒存，可視需求補上
-                roomIconUrl = null, // Entity 暫時沒存，可視需求補上
-                isMuted = entity.isMuted,
-                isPinned = entity.isPinned,
-                unreadCount = entity.unreadCount,
-                mentionCount = entity.mentionCount,
-                partner = entity.partner,
-                lastMessage = entity.lastMessage
-            )
-        }
+        entities.map { it.toDomain() }
+    }
+
+    fun getChatRoomFlow(roomId: String): Flow<ChatRoom?> {
+        return roomLocalDao.getRoomFlow(roomId).map { it?.toDomain() }
+    }
+
+    private fun RoomLocalEntity.toDomain(): ChatRoom {
+        return ChatRoom(
+            roomId = this.roomId,
+            roomName = this.nickname,
+            roomType = null,
+            roomIconUrl = null,
+            isMuted = this.isMuted,
+            isPinned = this.isPinned,
+            unreadCount = this.unreadCount,
+            mentionCount = this.mentionCount,
+            partner = this.partner,
+            lastMessage = this.lastMessage
+        )
     }
 
     // 建立一個跟著 Repository 生命週期走的 Scope

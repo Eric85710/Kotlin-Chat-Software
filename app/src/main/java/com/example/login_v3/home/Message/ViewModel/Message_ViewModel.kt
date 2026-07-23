@@ -11,9 +11,9 @@ import com.example.login_v3.data.api.api_class.Message
 import com.example.login_v3.data.repository.dm.ChatRoomsRepository
 import com.example.login_v3.data.repository.basic.SyncRepository
 import dagger.hilt.android.lifecycle.HiltViewModel
-import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
-import kotlinx.coroutines.flow.collectLatest
+import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 import javax.inject.Inject
 
@@ -23,20 +23,18 @@ class ChatRoomsViewModel @Inject constructor(
     private val syncRepository: SyncRepository
 ) : ViewModel() {
 
-    private val _roomsState = MutableStateFlow<List<ChatRoom>>(emptyList())
-    val roomsState: StateFlow<List<ChatRoom>> = _roomsState
+    // 🌟 核心優化：直接將 Repository 的 Flow 轉換為 StateFlow
+    // SharingStarted.Eagerly 確保 ViewModel 一建立就開始讀取資料庫
+    val roomsState: StateFlow<List<ChatRoom>?> = repository.chatRoomsFlow
+        .stateIn(
+            scope = viewModelScope,
+            started = SharingStarted.Eagerly,
+            initialValue = null
+        )
 
     init {
-        observeRooms()
+        // App 啟動時或進入頁面時默默同步一次
         loadRooms()
-    }
-
-    private fun observeRooms() {
-        viewModelScope.launch {
-            repository.chatRoomsFlow.collectLatest { rooms ->
-                _roomsState.value = rooms
-            }
-        }
     }
 
     fun loadRooms() {

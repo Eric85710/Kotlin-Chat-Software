@@ -88,12 +88,6 @@ fun Loaded_Tg_Message(
     // 觀察 ViewModel 的 StateFlow
     val rooms by viewModel.roomsState.collectAsState()
 
-    // 進入頁面時主動讀取一次
-    LaunchedEffect(Unit) {
-        viewModel.loadRooms()
-    }
-
-
     Scaffold(
         containerColor = Color.Transparent,
         modifier = Modifier
@@ -176,8 +170,11 @@ fun Loaded_Tg_Message(
         ) {
             Spacer(modifier = Modifier.height(10.dp))
 
-            if (rooms.isEmpty()) {
-                // 顯示空狀態或 Loading (這部分可根據需求擴充)
+            val currentRooms = rooms
+            if (currentRooms == null) {
+                // 正在從資料庫讀取，不顯示「目前沒有聊天室」，保持空白更平滑
+                Box(modifier = Modifier.fillMaxSize())
+            } else if (currentRooms.isEmpty()) {
                 Box(
                     modifier = Modifier.fillMaxSize().padding(innerPadding),
                     contentAlignment = Alignment.Center
@@ -187,7 +184,7 @@ fun Loaded_Tg_Message(
             } else {
                 LazyColumn(modifier = Modifier.padding(innerPadding)) {
                     items(
-                        items = rooms,
+                        items = currentRooms,
                         key = { it.roomId }
                     ) { room ->
                         RoomItem(

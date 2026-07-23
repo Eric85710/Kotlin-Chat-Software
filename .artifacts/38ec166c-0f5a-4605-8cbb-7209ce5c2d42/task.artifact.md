@@ -1,0 +1,21 @@
+# Task: Instant & Smooth Chat
+
+- `[x]` Optimize Startup Flow
+    - `[x]` Update `MainActivity.kt` with `setKeepOnScreenCondition`
+    - `[x]` Clean up `nav_controller.kt` (remove Loading state)
+- `[x]` Optimize Message List (Rooms)
+    - `[x]` Refactor `ChatRoomsViewModel` for eager loading
+    - `[x]` Update `Message_list.kt` UI
+- `[x]` Optimize Chat Room (Messages)
+    - `[x]` Refactor `ChatViewModel` for reactive state & eager loading
+    - `[x]` Update `Message_Messaging.kt` UI
+- `[/]` Optimize Media Loading
+    - `[ ]` Global Coil Configuration in `MyApplication.kt`
+    - `[ ]` Pre-calculate Media URLs in `Message` class
+    - `[ ]` Implement Pre-fetching in `ChatViewModel`
+    - `[ ]` Refactor `Message_Messaging.kt` UI components
+- `[ ]` Verification
+    - `[ ]` Verify startup transition
+    - `[ ]` Verify room list loading
+    - `[ ]` Verify chat room transition & message loading
+    - `[ ]` Verify instant media display

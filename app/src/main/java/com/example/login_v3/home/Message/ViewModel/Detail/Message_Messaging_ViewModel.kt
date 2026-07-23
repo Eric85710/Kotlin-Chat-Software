@@ -5,6 +5,7 @@ import android.app.Application
 import android.net.Uri
 import android.util.Log
 import androidx.compose.runtime.mutableStateMapOf
+import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import androidx.media3.common.MediaItem
@@ -23,9 +24,15 @@ import com.example.login_v3.home.Message.ViewModel.UserStatus
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.combine
+import kotlinx.coroutines.flow.filterNotNull
 import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.flow.flatMapLatest
+import kotlinx.coroutines.flow.flowOf
+import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.isActive
 
 //emoji reaction state
@@ -87,11 +94,39 @@ sealed interface DownloadStatus {
 class ChatViewModel @Inject constructor(
     private val repository: ChatRoomsRepository,
     private val tokenManager: TokenManager,
-    private val application: Application
+    private val application: Application,
+    savedStateHandle: SavedStateHandle
 ) : ViewModel() {
 
-    // --- 訊息長按動作選單與回覆狀態 (保持原樣) ---
-    // 💡 補上這兩行宣告
+    // 從導航參數自動獲取 roomId
+    val roomId: String = savedStateHandle.get<String>("roomId").orEmpty()
+
+    // --- 核心狀態管理 (改為完全響應式) ---
+    @OptIn(kotlinx.coroutines.ExperimentalCoroutinesApi::class)
+    val uiState: StateFlow<MessagesUiState> = combine(
+        repository.getChatMessagesFlow(roomId),
+        tokenManager.currentUserId,
+        repository.getChatRoomFlow(roomId)
+    ) { messages, userId, room ->
+        if (userId == null) {
+            MessagesUiState.Loading
+        } else {
+            val title = room?.partner?.displayName ?: room?.partner?.username ?: "聊天室"
+            val userStatus = UserStatus.fromString(room?.partner?.status)
+            val avatar = room?.partner?.fullContactAvatarUrl ?: R.drawable.avatar_v1
+            
+            MessagesUiState.Success(
+                roomTitle = title,
+                partnerStatus = userStatus,
+                partnerAvatarUrl = avatar,
+                messages = messages,
+                currentUserId = userId
+            )
+        }
+    }.stateIn(viewModelScope, SharingStarted.Eagerly, MessagesUiState.Loading)
+
+
+    // --- 其餘狀態 (保持原樣) ---
     private val _deleteMessageState = MutableStateFlow<DeleteMessageState>(DeleteMessageState.Idle)
     val deleteMessageState: StateFlow<DeleteMessageState> = _deleteMessageState.asStateFlow()
     private val _actionMessage = MutableStateFlow<Message?>(null)
@@ -104,87 +139,37 @@ class ChatViewModel @Inject constructor(
     val replyingMessage: StateFlow<Message?> = _replyingMessage.asStateFlow()
     fun setReplyingMessage(message: Message?) { _replyingMessage.value = message }
 
-    // --- 核心狀態管理 ---
-    private val _uiState = MutableStateFlow<MessagesUiState>(MessagesUiState.Loading)
-    val uiState: StateFlow<MessagesUiState> = _uiState.asStateFlow()
-
-    // 💡 提示：在做法 A 下，_sendMessageState 通常只用來控制輸入框的「Loading」轉圈圈或置灰，真正的訊息成功/失敗已經內嵌在 Message 本身的 status 裡了。
     private val _sendMessageState = MutableStateFlow<SendMessageState>(SendMessageState.Idle)
     val sendMessageState: StateFlow<SendMessageState> = _sendMessageState
-
-    // 用來管理監聽 Room Flow 的 Job，避免重複綁定
-    private var messageListenerJob: Job? = null
 
     // --- 分頁加載狀態控制 ---
     private var nextCursor: String? = null
     private var hasMore: Boolean = true
     private var isLoadingMore = false // 防止重複戳 API
 
-    // =====================================================================
-    // 💡 核心改造一：持續監聽本地資料庫的 Flow (時序修正版)
-    // =====================================================================
-    fun loadMessages(roomId: String) {
-        messageListenerJob?.cancel()
+    init {
+        if (roomId.isNotEmpty()) {
+            initChat(roomId)
+        }
+    }
 
-        // 重置分頁狀態，避免切換聊天室時帶到舊的資料
-        nextCursor = null
-        hasMore = true
-        isLoadingMore = false
+    private fun initChat(roomId: String) {
+        viewModelScope.launch {
+            // 啟動 Session
+            try { repository.startChatSession(roomId) } catch (e: Exception) { Log.e("ChatViewModel", "WS Error", e) }
 
-        messageListenerJob = viewModelScope.launch {
-            try {
-                repository.startChatSession(roomId)
-            } catch (e: Exception) {
-                Log.e("ChatViewModel", "WebSocket 啟動失敗", e)
-            }
-
-            if (_uiState.value !is MessagesUiState.Success) {
-                _uiState.value = MessagesUiState.Loading
-            }
-
-            val currentLoggedInUserId = tokenManager.currentUserId.first() ?: ""
-            val roomResult = repository.getChatRoom(roomId)
-
-            val room = roomResult.getOrNull()
-            val (title, status, avatarUrl: Any?) = if (room != null) {
-                val name = room.partner?.displayName ?: room.partner?.username ?: "未知用戶"
-                val userStatus = UserStatus.fromString(room.partner?.status)
-                val avatar = room.partner?.fullContactAvatarUrl
-                Triple(name, userStatus, avatar)
-            } else {
-                Triple("聊天室", UserStatus.UNKNOWN, R.drawable.avatar_v1)
-            }
-
-            // 🎯 【關鍵優化】：先啟動資料庫 Flow 的監聽，確保任何寫入都不漏接
-            launch {
-                repository.getChatMessagesFlow(roomId).collect { localMessages ->
-                    _uiState.value = MessagesUiState.Success(
-                        roomTitle = title,
-                        partnerStatus = status,
-                        partnerAvatarUrl = avatarUrl,
-                        messages = localMessages,
-                        currentUserId = currentLoggedInUserId
-                    )
-                }
-            }
-
-            // 🎯 【關鍵優化】：確定開始監聽本地了，這時候才發起網路「首刷同步」
-            // 💡 加上 limit = 20 控制每頁數量
+            // 背景同步
             repository.refreshChatMessages(roomId, cursor = null, limit = 20)
                 .onSuccess { response ->
-                    this@ChatViewModel.nextCursor = response.nextCursor
-                    this@ChatViewModel.hasMore = response.hasMore
-                    Log.d("ChatViewModel", "首刷成功，拿到第一頁 cursor: $nextCursor, hasMore: $hasMore")
-
-                    repository.markAsRead(roomId).onFailure { error ->
-                        Log.e("ChatViewModel", "標記已讀失敗: ${error.message}")
-                    }
-                }
-                .onFailure { error ->
-                    Log.e("ChatViewModel", "首刷訊息失敗: ${error.message}")
+                    nextCursor = response.nextCursor
+                    hasMore = response.hasMore
+                    repository.markAsRead(roomId)
                 }
         }
     }
+
+    // 相容性方法
+    fun loadMessages(roomId: String) { }
 
     // =====================================================================
     // 💡 核心新增：往上滑載入更多老訊息 (補上 limit)

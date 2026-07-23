@@ -29,6 +29,9 @@ interface RoomLocalDao {
     @Query("SELECT * FROM rooms ORDER BY isPinned DESC")
     fun getAllRoomsFlow(): Flow<List<RoomLocalEntity>>
 
+    @Query("SELECT * FROM rooms WHERE roomId = :roomId")
+    fun getRoomFlow(roomId: String): Flow<RoomLocalEntity?>
+
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     suspend fun insertOrUpdate(rooms: List<RoomLocalEntity>)
 

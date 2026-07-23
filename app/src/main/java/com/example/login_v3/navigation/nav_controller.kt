@@ -33,10 +33,8 @@ fun AppNavGraph(
     when (currentScreen) {
 
         AppScreen.Loading -> {
-            // 顯示一個簡單的載入圈圈
-            Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-                CircularProgressIndicator()
-            }
+            // 現在改用 Splash Screen 處理 Loading 階段，這裡回傳空 Box 即可
+            Box(modifier = Modifier.fillMaxSize())
         }
 
         AppScreen.PreReg -> Login_or_Reg_page(
