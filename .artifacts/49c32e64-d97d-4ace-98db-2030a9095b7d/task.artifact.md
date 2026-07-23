@@ -2,3 +2,6 @@
 - [x] Add `aspectRatio` property to `MessageUiModel`
 - [x] Update `Message_Messaging.kt` to use `SubcomposeAsyncImage` with shimmer placeholders
 - [x] Optimize `ChatViewModel` prefetching to synchronize with UI image requests
+- [x] Add `visible` parameter to `shimmer` modifier
+- [x] Stabilize click callbacks in `MessageMessaging` using `remember`
+- [x] Switch from `SubcomposeAsyncImage` to `AsyncImage` with background shimmer

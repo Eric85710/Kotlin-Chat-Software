@@ -523,21 +523,16 @@ fun MessageMessaging(
                         if (state.messages.isEmpty()) {
                             Text("目前沒有新訊息")
                         } else {
-                            MessageList(
-                                roomId = roomId,
-                                currentUserId = state.currentUserId,
-                                messages = state.messages,
-                                partnerAvatarUrl = state.partnerAvatarUrl,
-                                partnerDisplayName = state.roomTitle,
-                                activeEmojiMessageId = emojiTargetMessage?.id,   // ✨ 新增短按目標 ID
-                                activeActionMessageId = actionMessage?.id,
-                                viewModel = viewModel,
-                                onReplyClick = { message ->
+                            // 🚀 核心優化：使用 remember 穩定回調函數，避免因為 UI 狀態改變導致整個列表重繪
+                            val onReplyClickStable = remember(viewModel) {
+                                { message: MessageUiModel ->
                                     emojiTargetMessage = null
                                     viewModel.setActionMessage(message)
-                                },
-                                // 💡 單擊事件：開啟 Emoji 選單，同時清空長按選單
-                                onRowClick = { message ->
+                                }
+                            }
+
+                            val onRowClickStable = remember(viewModel) {
+                                { message: MessageUiModel ->
                                     //is image
                                     val isImage = message.isImage
                                     //is video
@@ -562,17 +557,32 @@ fun MessageMessaging(
                                         viewModel.clearActionMessage()
                                         emojiTargetMessage = message
                                     }
-                                },
-                                onReactionClick = { message, emoji ->
-                                    // 這是訊息氣泡下方既有 Reaction 小標籤的點擊事件，保持原樣即可
-                                    val targetReaction =
-                                        message.reactions.find { it.emoji == emoji }
+                                }
+                            }
+
+                            val onReactionClickStable = remember(viewModel, roomId) {
+                                { message: MessageUiModel, emoji: String ->
+                                    val targetReaction = message.reactions.find { it.emoji == emoji }
                                     if (targetReaction?.meReacted == true) {
                                         viewModel.removeMessageReaction(roomId, message.id, emoji)
                                     } else {
                                         viewModel.addMessageReaction(roomId, message.id, emoji)
                                     }
                                 }
+                            }
+
+                            MessageList(
+                                roomId = roomId,
+                                currentUserId = state.currentUserId,
+                                messages = state.messages,
+                                partnerAvatarUrl = state.partnerAvatarUrl,
+                                partnerDisplayName = state.roomTitle,
+                                activeEmojiMessageId = emojiTargetMessage?.id,   // ✨ 新增短按目標 ID
+                                activeActionMessageId = actionMessage?.id,
+                                viewModel = viewModel,
+                                onReplyClick = onReplyClickStable,
+                                onRowClick = onRowClickStable,
+                                onReactionClick = onReactionClickStable
                             )
                         }
                     }
@@ -835,17 +845,9 @@ private fun ImageMessageContent(
             RepliedMessagePreview(replied, isMe, partnerDisplayName, currentUserId)
         }
 
-        SubcomposeAsyncImage(
-            model = message.mediaUrl,
-            contentDescription = if (message.isGif) "動態 GIF" else "聊天圖片",
-            contentScale = ContentScale.Fit,
-            loading = {
-                Box(
-                    modifier = Modifier
-                        .fillMaxSize()
-                        .shimmer()
-                )
-            },
+        var isImageLoading by remember { mutableStateOf(true) }
+
+        Box(
             modifier = Modifier
                 .padding(top = 4.dp)
                 .widthIn(max = 240.dp)
@@ -853,20 +855,26 @@ private fun ImageMessageContent(
                     if (message.aspectRatio != null) {
                         Modifier.aspectRatio(message.aspectRatio)
                     } else {
-                        Modifier.height(180.dp) // Default height if no aspect ratio
+                        Modifier.height(180.dp)
                     }
                 )
                 .clip(RoundedCornerShape(12.dp))
-                .border(
-                    width = 0.5.dp,
-                    color = Color.LightGray.copy(alpha = 0.4f),
-                    shape = RoundedCornerShape(12.dp)
-                )
-                .background(Color(0xFFF5F5F5)),
-            onError = { errorState ->
-                Log.e("ChatImageError", "原因: ${errorState.result.throwable}")
-            }
-        )
+                .background(Color(0xFFF5F5F5))
+                .shimmer(visible = isImageLoading)
+        ) {
+            AsyncImage(
+                model = message.mediaUrl,
+                contentDescription = if (message.isGif) "動態 GIF" else "聊天圖片",
+                contentScale = ContentScale.Fit,
+                onLoading = { isImageLoading = true },
+                onSuccess = { isImageLoading = false },
+                onError = { errorState ->
+                    isImageLoading = false
+                    Log.e("ChatImageError", "原因: ${errorState.result.throwable}")
+                },
+                modifier = Modifier.fillMaxSize()
+            )
+        }
     }
 }
 
@@ -892,6 +900,8 @@ private fun VideoMessageContent(
             RepliedMessagePreview(replied, isMe, partnerDisplayName, currentUserId)
         }
 
+        var isVideoThumbLoading by remember { mutableStateOf(true) }
+
         // 影片佈局
         Box(
             modifier = Modifier
@@ -910,39 +920,38 @@ private fun VideoMessageContent(
                     width = 0.5.dp,
                     color = Color.LightGray.copy(alpha = 0.4f),
                     shape = RoundedCornerShape(12.dp)
-                ),
+                )
+                .shimmer(visible = isVideoThumbLoading),
             contentAlignment = Alignment.Center
         ) {
-            SubcomposeAsyncImage(
+            AsyncImage(
                 model = message.mediaUrl,
                 contentDescription = "影片預覽",
                 contentScale = ContentScale.Crop,
-                loading = {
-                    Box(
-                        modifier = Modifier
-                            .fillMaxSize()
-                            .shimmer()
-                    )
+                onLoading = { isVideoThumbLoading = true },
+                onSuccess = { isVideoThumbLoading = false },
+                onError = { errorState ->
+                    isVideoThumbLoading = false
+                    Log.e("ChatVideoThumbError", "原因: ${errorState.result.throwable}")
                 },
                 modifier = Modifier.fillMaxSize(),
-                alpha = 0.8f,
-                onError = { errorState ->
-                    Log.e("ChatVideoThumbError", "原因: ${errorState.result.throwable}")
-                }
+                alpha = 0.8f
             )
 
-            Box(
-                modifier = Modifier
-                    .size(48.dp)
-                    .background(Color.Black.copy(alpha = 0.5f), CircleShape),
-                contentAlignment = Alignment.Center
-            ) {
-                Icon(
-                    imageVector = Icons.Default.PlayArrow,
-                    contentDescription = "播放影片",
-                    tint = Color.White,
-                    modifier = Modifier.size(28.dp)
-                )
+            if (!isVideoThumbLoading) {
+                Box(
+                    modifier = Modifier
+                        .size(48.dp)
+                        .background(Color.Black.copy(alpha = 0.5f), CircleShape),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Icon(
+                        imageVector = Icons.Default.PlayArrow,
+                        contentDescription = "播放影片",
+                        tint = Color.White,
+                        modifier = Modifier.size(28.dp)
+                    )
+                }
             }
         }
     }
