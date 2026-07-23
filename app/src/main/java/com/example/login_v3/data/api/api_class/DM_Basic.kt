@@ -117,10 +117,43 @@ data class Message(
     @kotlin.jvm.Transient
     var callLogInfo: CallLogInfo? = null
 
-){
+) {
     init {
         if (type == "system" || type.startsWith("call")) {
             callLogInfo = CallLogInfo.parseContent(content)
+        }
+    }
+
+    // --- 🚀 新增：全域媒體屬性，讓 UI 秒讀不塞車 ---
+
+    val isImage: Boolean get() = type == "image" || attachment?.mimeType?.startsWith("image/") == true ||
+            content.lowercase().let { it.endsWith(".jpg") || it.endsWith(".jpeg") || it.endsWith(".png") || it.endsWith(".webp") || it.endsWith(".heic") || it.endsWith(".heif") || it.endsWith(".gif") }
+
+    val isGif: Boolean get() = attachment?.mimeType == "image/gif" || content.lowercase().endsWith(".gif")
+
+    val isVideo: Boolean get() = type == "video" || attachment?.mimeType?.startsWith("video/") == true ||
+            content.lowercase().let { it.endsWith(".mp4") || it.endsWith(".mov") || it.endsWith(".mkv") || it.endsWith(".avi") || it.endsWith(".3gp") || it.endsWith(".webm") }
+
+    val isAudio: Boolean get() = type == "audio" || attachment?.mimeType?.startsWith("audio/") == true ||
+            content.lowercase().let { it.endsWith(".mp3") || it.endsWith(".wav") || it.endsWith(".m4a") || it.endsWith(".aac") || it.endsWith(".ogg") || it.endsWith(".opus") || it.endsWith(".amr") }
+
+    val isFile: Boolean get() = attachment?.mimeType?.startsWith("application/") == true || attachment?.mimeType == "text/plain" ||
+            content.lowercase().let { it.endsWith(".zip") || it.endsWith(".rar") || it.endsWith(".7z") || it.endsWith(".pdf") || it.endsWith(".doc") || it.endsWith(".docx") || it.endsWith(".xls") || it.endsWith(".xlsx") || it.endsWith(".ppt") || it.endsWith(".pptx") || it.endsWith(".txt") }
+
+    val mediaUrl: String get() {
+        val rawPath = attachment?.filename ?: content
+        val baseUrl = "https://tg.technologia-tw.com"
+        return when {
+            rawPath.isBlank() -> ""
+            rawPath.startsWith("http") -> rawPath
+            else -> {
+                val cleanPath = rawPath.removePrefix("/").removePrefix("uploads/")
+                if (cleanPath.startsWith("attachment/")) {
+                    "$baseUrl/uploads/$cleanPath"
+                } else {
+                    "$baseUrl/uploads/attachment/$cleanPath"
+                }
+            }
         }
     }
 }

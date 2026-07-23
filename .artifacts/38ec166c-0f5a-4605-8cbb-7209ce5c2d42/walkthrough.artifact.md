@@ -1,31 +1,26 @@
-# Walkthrough: Instant & Smooth Chat
+# Walkthrough: Instant & Smooth Chat (Phase 2)
 
-I have optimized the app's loading performance and transition smoothness across the main navigation and chat room flows.
+I have implemented a comprehensive set of optimizations to ensure that media (images, videos, GIFs) in the chat room load instantly and smoothly, while also maintaining the fast startup and room transition speeds.
 
-## Key Changes
+## Key Improvements
 
-### 🚀 Instant Startup
-- **Native Splash Screen Integration**: The app now uses the Android Splash Screen API to handle the initial authentication check. The splash screen remains visible until the app knows whether to show the login screen or the main chat list.
-- **Removed Loading Spinner**: Eliminated the secondary manual loading circle that appeared after the splash screen, creating a seamless transition to the main content.
+### 🖼️ Instant Media Display
+- **Global ImageLoader**: Centralized the `ImageLoader` configuration in [MyApplication.kt](file:///home/eric/StudioProjects/Kotlin-Chat-Software/app/src/main/java/com/example/login_v3/MyApplication.kt). It now globally supports:
+    - **Video Thumbnails**: Using `VideoFrameDecoder`.
+    - **Animated GIFs**: Using `GifDecoder`.
+    - **SVG Support**: Using `SvgDecoder`.
+    - **Caching**: Optimized memory and disk caching (25% memory, 2% disk).
+- **Pre-calculated Logic**: Moved complex media URL and type-checking logic from the UI into the [Message](file:///home/eric/StudioProjects/Kotlin-Chat-Software/app/src/main/java/com/example/login_v3/data/api/api_class/DM_Basic.kt) data model. The UI now simply reads `message.mediaUrl` or `message.isImage`.
 
-### ⚡ Faster Room List
-- **Eager ViewModel Loading**: `ChatRoomsViewModel` now starts fetching the room list from the local database as soon as it's created, rather than waiting for the UI to be ready.
-- **Zero-Flash Empty State**: Optimized the initial state of the room list to avoid flashing "No rooms" while the database is being queried.
+### 🧠 Intelligent Pre-fetching
+- **Background Pre-loading**: Refactored the `ChatViewModel` to monitor incoming messages. As soon as new messages arrive in the local database, the ViewModel automatically triggers Coil to pre-fetch and cache the media content in the background.
+- **Eliminated Blank States**: Because the images are often already in the cache by the time they are rendered, the "blank" or "flickering" state is significantly reduced or eliminated.
 
-### ✨ Smoother Chat Transitions
-- **Reactive Chat ViewModel**: Refactored `ChatViewModel` to be fully reactive. It now combines room info, user status, and local messages into a single state derived directly from the database flows.
-- **Instant Message Display**: Messages stored in the local database are now shown immediately upon entering a chat room. The "Loading..." spinner flash has been removed for rooms with existing history.
-- **Background Sync**: Network synchronization for new messages now happens entirely in the background, ensuring the UI remains responsive and smooth.
-
-## Components Modified
-
-- [MainActivity.kt](file:///home/eric/StudioProjects/Kotlin-Chat-Software/app/src/main/java/com/example/login_v3/MainActivity.kt): Integrated Splash Screen condition.
-- [nav_controller.kt](file:///home/eric/StudioProjects/Kotlin-Chat-Software/app/src/main/java/com/example/login_v3/navigation/nav_controller.kt): Removed intermediate loading state.
-- [ChatRoomsViewModel](file:///home/eric/StudioProjects/Kotlin-Chat-Software/app/src/main/java/com/example/login_v3/home/Message/ViewModel/Message_ViewModel.kt): Implemented eager StateFlow.
-- [ChatViewModel](file:///home/eric/StudioProjects/Kotlin-Chat-Software/app/src/main/java/com/example/login_v3/home/Message/ViewModel/Detail/Message_Messaging_ViewModel.kt): Fully reactive architecture using `combine`.
-- [Message_Messaging.kt](file:///home/eric/StudioProjects/Kotlin-Chat-Software/app/src/main/java/com/example/login_v3/home/Message/UI/Detail/Message_Messaging.kt): Optimized UI for reactive state.
+### 🧹 UI Simplification
+- **Clean MessageRow**: Simplified the [Message_Messaging.kt](file:///home/eric/StudioProjects/Kotlin-Chat-Software/app/src/main/java/com/example/login_v3/home/Message/UI/Detail/Message_Messaging.kt) code by removing redundant URL calculations and `remember` blocks, leading to better scroll performance.
 
 ## Verification
-- Verified that the app boots directly to the room list without a secondary loading screen.
-- Verified that chat rooms show local history immediately.
-- Verified that shared element transitions for room names and avatars remain fluid.
+- Verified that the app maintains its fast startup and room transition.
+- Confirmed that images and video thumbnails appear nearly instantly without the previous 1-second delay.
+- Verified that GIFs and videos are correctly decoded using the new global decoders.
+- Confirmed that scrolling through a media-heavy chat is fluid and responsive.

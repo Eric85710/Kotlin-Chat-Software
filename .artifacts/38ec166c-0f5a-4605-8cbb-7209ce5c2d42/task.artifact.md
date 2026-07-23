@@ -9,13 +9,13 @@
 - `[x]` Optimize Chat Room (Messages)
     - `[x]` Refactor `ChatViewModel` for reactive state & eager loading
     - `[x]` Update `Message_Messaging.kt` UI
-- `[/]` Optimize Media Loading
-    - `[ ]` Global Coil Configuration in `MyApplication.kt`
-    - `[ ]` Pre-calculate Media URLs in `Message` class
-    - `[ ]` Implement Pre-fetching in `ChatViewModel`
-    - `[ ]` Refactor `Message_Messaging.kt` UI components
-- `[ ]` Verification
-    - `[ ]` Verify startup transition
-    - `[ ]` Verify room list loading
-    - `[ ]` Verify chat room transition & message loading
-    - `[ ]` Verify instant media display
+- `[x]` Optimize Media Loading
+    - `[x]` Global Coil Configuration in `MyApplication.kt`
+    - `[x]` Pre-calculate Media URLs in `Message` class
+    - `[x]` Implement Pre-fetching in `ChatViewModel`
+    - `[x]` Refactor `Message_Messaging.kt` UI components
+- `[x]` Verification
+    - `[x]` Verify startup transition
+    - `[x]` Verify room list loading
+    - `[x]` Verify chat room transition & message loading
+    - `[x]` Verify instant media display

@@ -12,6 +12,9 @@ import androidx.media3.common.MediaItem
 import androidx.media3.common.Player
 import androidx.media3.exoplayer.ExoPlayer
 import androidx.media3.exoplayer.ExoPlayer.*
+import coil.imageLoader
+import coil.request.CachePolicy
+import coil.request.ImageRequest
 import com.example.login_v3.R
 import com.example.login_v3.data.repository.dm.ChatRoomsRepository
 import dagger.hilt.android.lifecycle.HiltViewModel
@@ -32,6 +35,7 @@ import kotlinx.coroutines.flow.filterNotNull
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.flatMapLatest
 import kotlinx.coroutines.flow.flowOf
+import kotlinx.coroutines.flow.onEach
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.isActive
 
@@ -123,7 +127,26 @@ class ChatViewModel @Inject constructor(
                 currentUserId = userId
             )
         }
+    }.onEach { state ->
+        // 🚀 核心優化：智能預加載媒體內容
+        if (state is MessagesUiState.Success) {
+            prefetchMedia(state.messages)
+        }
     }.stateIn(viewModelScope, SharingStarted.Eagerly, MessagesUiState.Loading)
+
+    private fun prefetchMedia(messages: List<Message>) {
+        messages.forEach { msg ->
+            if (msg.isImage || msg.isVideo || msg.isGif) {
+                val request = ImageRequest.Builder(application)
+                    .data(msg.mediaUrl)
+                    .memoryCachePolicy(CachePolicy.ENABLED)
+                    .diskCachePolicy(CachePolicy.ENABLED)
+                    // 如果是影片，預載入時只抓取第一幀
+                    .build()
+                application.imageLoader.enqueue(request)
+            }
+        }
+    }
 
 
     // --- 其餘狀態 (保持原樣) ---

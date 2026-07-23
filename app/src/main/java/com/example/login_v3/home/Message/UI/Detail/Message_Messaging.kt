@@ -709,82 +709,12 @@ fun MessageRow(
     onReactionClick: (Message, String) -> Unit,
     onRowClick: (Message) -> Unit,
 ) {
-    //圖片判斷
-    val isAttachmentImage = message.attachment?.mimeType?.startsWith("image/") == true
-    val contentLowerCase = (message.content ?: "").lowercase()
-    val imageExtensions = listOf(".jpg", ".jpeg", ".png", ".webp", ".heic", ".heif", ".gif")
+    val finalMediaUrl = message.mediaUrl
 
-    val isLegacyImage = imageExtensions.any { contentLowerCase.contains(it) }
-    val isImage = isAttachmentImage || isLegacyImage
-    val rawContent = message.content ?: ""
-
-// 🌟 新增一個專門用來判斷是否為 GIF 的布林值，UI 載入時會用到
-    val isGif = message.attachment?.mimeType == "image/gif" || contentLowerCase.endsWith(".gif")
-
-    // 🌟 2. 影片判斷
-    val isAttachmentVideo = message.attachment?.mimeType?.startsWith("video/") == true
-    val videoExtensions = listOf(".mp4", ".mov", ".mkv", ".avi", ".3gp", ".webm")
-    val isLegacyVideo = videoExtensions.any { contentLowerCase.contains(it) }
-    val isVideo = isAttachmentVideo || isLegacyVideo
-
-    //音訊判斷
-    val isTypeAudio = message.type == "audio"
-    val isAttachmentAudio = message.attachment?.mimeType?.startsWith("audio/") == true
-    val audioExtensions = listOf(".mp3", ".wav", ".m4a", ".aac", ".ogg", ".opus", ".amr")
-    val isLegacyAudio = audioExtensions.any { contentLowerCase.contains(it) }
-    val isAudio = isTypeAudio || isAttachmentAudio || isLegacyAudio
-
-    // 🌟 新增：檔案判斷 (包含 zip、rar、pdf、doc 等常規檔案)
-    val isAttachmentFile = message.attachment?.mimeType?.startsWith("application/") == true ||
-            message.attachment?.mimeType == "text/plain"
-    val fileExtensions = listOf(".zip", ".rar", ".7z", ".pdf", ".doc", ".docx", ".xls", ".xlsx", ".ppt", ".pptx", ".txt")
-    val isLegacyFile = fileExtensions.any { contentLowerCase.contains(it) }
-    val isFile = isAttachmentFile || isLegacyFile
-
-    val callLog = message.callLogInfo
-
-    // 計算媒體 URL
-    val finalMediaUrl = remember(message, isImage, isVideo, isAudio, isFile) {
-        val rawPath = when {
-            isAttachmentImage && !message.attachment?.filename.isNullOrBlank() -> message.attachment!!.filename
-            isAttachmentVideo && !message.attachment?.filename.isNullOrBlank() -> message.attachment!!.filename
-            isAttachmentAudio && !message.attachment?.filename.isNullOrBlank() -> message.attachment!!.filename
-            // 🌟 新增：檔案附件路徑抓取
-            isFile && message.attachment?.filename?.isNotBlank() == true -> message.attachment!!.filename
-            else -> message.content ?: ""
-        }
-
-        val baseUrl = "https://tg.technologia-tw.com"
-
-        when {
-            rawPath.isBlank() -> ""
-            rawPath.startsWith("http") -> rawPath
-            else -> {
-                val cleanPath = rawPath.removePrefix("/").removePrefix("uploads/")
-                if (cleanPath.startsWith("attachment/")) {
-                    "$baseUrl/uploads/$cleanPath"
-                } else {
-                    "$baseUrl/uploads/attachment/$cleanPath"
-                }
-            }
-        }
-    }
-
-    // 取得檔案的顯示名稱（如果是 zip 這種長檔名，可以從 URL 或 attachment 抓取）
-    val displayFileName = remember(message, finalMediaUrl) {
-        if (!message.attachment?.filename.isNullOrBlank()) {
-            // 如果後端有給原始檔名（例如：資料.zip），優先顯示
-            message.attachment.filename.substringAfterLast("/")
-        } else {
-            // 如果只有 URL，抓出最後一段當作檔名
-            finalMediaUrl.substringAfterLast("/")
-        }
-    }
-
-    val finalBubbleColor = remember(message.status, isHighlight, callLog) {
+    val finalBubbleColor = remember(message.status, isHighlight, message.callLogInfo) {
         val baseColor = when {
-            callLog != null -> {
-                if (callLog.type == "call_missed") Color(0xFFFCE8E6) else Color(0xFFF1F3F4)
+            message.callLogInfo != null -> {
+                if (message.callLogInfo!!.type == "call_missed") Color(0xFFFCE8E6) else Color(0xFFF1F3F4)
             }
             isMe && isHighlight -> Color(0xFFB4E197)
             isMe -> Color(0xFFDCF8C6)
@@ -831,7 +761,7 @@ fun MessageRow(
                 ) {
                     when {
                         // 核心分流 1：圖片處理
-                        isImage -> {
+                        message.isImage -> {
                             Column(
                                 modifier = Modifier
                                     .widthIn(max = 240.dp)
@@ -845,29 +775,9 @@ fun MessageRow(
                                     RepliedMessagePreview(replied, isMe, partnerDisplayName, currentUserId)
                                 }
 
-                                // 🌟 根據是否為 GIF，動態配置 ImageLoader
-                                val context = LocalContext.current
-                                val gifImageLoader = remember(isGif) {
-                                    if (isGif) {
-                                        ImageLoader.Builder(context)
-                                            .components {
-                                                // 依據 Android 版本自動選擇最佳的 GIF 解碼器
-                                                if (android.os.Build.VERSION.SDK_INT >= 28) {
-                                                    add(ImageDecoderDecoder.Factory())
-                                                } else {
-                                                    add(GifDecoder.Factory())
-                                                }
-                                            }
-                                            .build()
-                                    } else {
-                                        null // 普通圖片用系統預設的即可，省記憶體
-                                    }
-                                }
-
                                 AsyncImage(
                                     model = finalMediaUrl,
-                                    contentDescription = if (isGif) "動態 GIF" else "聊天圖片",
-                                    imageLoader = gifImageLoader ?: LocalImageLoader.current, // 🎯 如果是 GIF 就用專屬解碼器
+                                    contentDescription = if (message.isGif) "動態 GIF" else "聊天圖片",
                                     contentScale = ContentScale.Fit,
                                     modifier = Modifier
                                         .padding(top = 4.dp)
@@ -886,14 +796,14 @@ fun MessageRow(
                             }
                         }
 
-                        // 🌟 核心分流 2：影片處理 (新增)
-                        isVideo -> {
+                        // 🌟 核心分流 2：影片處理
+                        message.isVideo -> {
                             Column(
                                 modifier = Modifier
                                     .widthIn(max = 240.dp)
                                     .combinedClickable(
                                         onLongClick = { onReplyClick(message) },
-                                        onClick = { onRowClick(message) } // 點擊時可以在此觸發開啟影片播放器
+                                        onClick = { onRowClick(message) } 
                                     ),
                                 horizontalAlignment = if (isMe) Alignment.End else Alignment.Start
                             ) {
@@ -901,13 +811,13 @@ fun MessageRow(
                                     RepliedMessagePreview(replied, isMe, partnerDisplayName, currentUserId)
                                 }
 
-                                // 影片佈局：使用 Box 將「播放圖示」疊加在預覽圖（或黑色背景）上方
+                                // 影片佈局
                                 Box(
                                     modifier = Modifier
                                         .padding(top = 4.dp)
-                                        .size(width = 240.dp, height = 160.dp) // 給予影片固定的預覽比例
+                                        .size(width = 240.dp, height = 160.dp)
                                         .clip(RoundedCornerShape(12.dp))
-                                        .background(Color.Black) // 預防沒載入圖時顯示黑色底
+                                        .background(Color.Black)
                                         .border(
                                             width = 0.5.dp,
                                             color = Color.LightGray.copy(alpha = 0.4f),
@@ -915,18 +825,9 @@ fun MessageRow(
                                         ),
                                     contentAlignment = Alignment.Center
                                 ) {
-                                    // 💡 注意：這裡 model 給 finalMediaUrl。
-                                    // 如果後端支援，通常會另外傳一個 video_thumbnail_url；
-                                    // 如果直接給影片 URL，部分圖片載入庫（如 Coil 搭配 VideoFrameDecoder）可以直接擷取第一幀。
                                     AsyncImage(
                                         model = finalMediaUrl,
                                         contentDescription = "影片預覽",
-                                        // 🌟 注入一個支援影片解碼的 ImageLoader
-                                        imageLoader = ImageLoader.Builder(LocalContext.current)
-                                            .components {
-                                                add(VideoFrameDecoder.Factory())
-                                            }
-                                            .build(),
                                         contentScale = ContentScale.Crop,
                                         modifier = Modifier.fillMaxSize(),
                                         alpha = 0.8f,
@@ -935,7 +836,6 @@ fun MessageRow(
                                         }
                                     )
 
-                                    // 播放圖示容器
                                     Box(
                                         modifier = Modifier
                                             .size(48.dp)
@@ -954,22 +854,20 @@ fun MessageRow(
                         }
 
                         //isAudio
-                        isAudio -> {
+                        message.isAudio -> {
                             Column(
                                 modifier = Modifier
-                                    .widthIn(max = 250.dp) // 音訊氣泡設定稍窄，更像一般通訊軟體
+                                    .widthIn(max = 250.dp)
                                     .combinedClickable(
                                         onLongClick = { onReplyClick(message) },
                                         onClick = { /* 整塊氣泡點擊邏輯，可留空 */ }
                                     ),
                                 horizontalAlignment = if (isMe) Alignment.End else Alignment.Start
                             ) {
-                                // 如果有回覆別人的訊息，一樣顯示回覆預覽
                                 message.repliedMessage?.let { replied ->
                                     RepliedMessagePreview(replied, isMe, partnerDisplayName, currentUserId)
                                 }
 
-                                // 呼叫你的音訊播放器元件
                                 AudioMessageBubble(
                                     message = message,
                                     audioUrl = finalMediaUrl,
@@ -981,9 +879,9 @@ fun MessageRow(
                         }
 
                         //file message
-                        isFile -> {
-                            // 1. 🎯 從 ViewModel 取得當前訊息的下載狀態
+                        message.isFile -> {
                             val downloadStatus = viewModel.getDownloadStatus(message.id)
+                            val displayFileName = message.attachment?.filename?.substringAfterLast("/") ?: finalMediaUrl.substringAfterLast("/")
 
                             Box(
                                 modifier = Modifier
@@ -998,11 +896,9 @@ fun MessageRow(
                                     .combinedClickable(
                                         onLongClick = { onReplyClick(message) },
                                         onClick = {
-                                            // 點擊整個氣泡：如果是已完成就直接開啟，否則可維持你原本的行為
                                             if (downloadStatus is DownloadStatus.Completed) {
                                                 onRowClick(message)
                                             } else {
-                                                // 也可以在這裡同樣觸發下載
                                                 viewModel.downloadFile(message, displayFileName)
                                             }
                                         }
@@ -1015,34 +911,28 @@ fun MessageRow(
                                         RepliedMessagePreview(replied, isMe, partnerDisplayName, currentUserId)
                                     }
 
-                                    // 檔案的 UI 佈局 (左邊按鈕，右邊文字)
                                     Row(
                                         verticalAlignment = Alignment.CenterVertically,
                                         horizontalArrangement = Arrangement.spacedBy(10.dp)
                                     ) {
-                                        // 檔案下載按鈕 / 進度顯示
                                         Box(
                                             modifier = Modifier
                                                 .size(40.dp)
                                                 .background(Color.White.copy(alpha = 0.6f), CircleShape)
                                                 .clip(CircleShape)
                                                 .clickable {
-                                                    // 2. 🎯 點擊按鈕觸發下載或開啟邏輯
                                                     when (downloadStatus) {
                                                         is DownloadStatus.NotStarted, is DownloadStatus.Error -> {
                                                             viewModel.downloadFile(message, displayFileName)
                                                         }
                                                         is DownloadStatus.Completed -> {
-                                                            onRowClick(message) // 觸發下載完成後的開啟檔案
+                                                            onRowClick(message)
                                                         }
-                                                        is DownloadStatus.Downloading -> {
-                                                            // 下載中可以留空，或者未來實作取消下載
-                                                        }
+                                                        is DownloadStatus.Downloading -> {}
                                                     }
                                                 },
                                             contentAlignment = Alignment.Center
                                         ) {
-                                            // 3. 🎯 根據密封介面 (Sealed Interface) 狀態切換 Icon 與進度條
                                             when (downloadStatus) {
                                                 is DownloadStatus.NotStarted -> {
                                                     Icon(
@@ -1053,9 +943,7 @@ fun MessageRow(
                                                     )
                                                 }
                                                 is DownloadStatus.Downloading -> {
-                                                    // 💡 這裡的 progress 是從 downloadStatus.progress 拿出來的
                                                     val progress = downloadStatus.progress
-
                                                     if (progress >= 0f) {
                                                         CircularProgressIndicator(
                                                             progress = progress,
@@ -1064,7 +952,6 @@ fun MessageRow(
                                                             strokeWidth = 3.dp
                                                         )
                                                     } else {
-                                                        // 如果後端沒給 Content-Length (progress = -1f)，改跑無限轉圈
                                                         CircularProgressIndicator(
                                                             modifier = Modifier.fillMaxSize().padding(2.dp),
                                                             color = MaterialTheme.colorScheme.primary,
@@ -1088,8 +975,8 @@ fun MessageRow(
                                                 }
                                                 is DownloadStatus.Error -> {
                                                     Icon(
-                                                        imageVector = androidx.compose.material.icons.Icons.Default.Warning, // 或者是 Refresh 圖示
-                                                        contentDescription = "下載失敗，點擊重試",
+                                                        imageVector = androidx.compose.material.icons.Icons.Default.Warning,
+                                                        contentDescription = "下載失敗",
                                                         tint = Color.Red,
                                                         modifier = Modifier.size(24.dp)
                                                     )
@@ -1097,7 +984,6 @@ fun MessageRow(
                                             }
                                         }
 
-                                        // 右側檔名與資訊
                                         Column(modifier = Modifier.weight(1f)) {
                                             Text(
                                                 text = displayFileName,
@@ -1112,7 +998,7 @@ fun MessageRow(
                                                         if (progress >= 0f) "下載中... ${(progress * 100).toInt()}%" else "下載中..."
                                                     }
                                                     is DownloadStatus.Completed -> "已下載"
-                                                    is DownloadStatus.Error -> "下載失敗，點擊重試"
+                                                    is DownloadStatus.Error -> "下載失敗"
                                                     else -> "檔案"
                                                 },
                                                 style = MaterialTheme.typography.bodySmall.copy(fontSize = 11.sp, color = Color.Gray)
@@ -1124,7 +1010,7 @@ fun MessageRow(
                         }
 
                         // 核心分流 3：通話紀錄
-                        callLog != null -> {
+                        message.callLogInfo != null -> {
                             Box(
                                 modifier = Modifier
                                     .widthIn(max = 280.dp)
@@ -1134,7 +1020,7 @@ fun MessageRow(
                                     )
                             ) {
                                 CallLogBubble(
-                                    callLog = callLog,
+                                    callLog = message.callLogInfo!!,
                                     isMe = isMe,
                                     currentUserId = currentUserId,
                                     partnerDisplayName = partnerDisplayName
@@ -1167,7 +1053,7 @@ fun MessageRow(
                                     }
 
                                     Text(
-                                        text = rawContent,
+                                        text = message.content,
                                         style = MaterialTheme.typography.bodyMedium.copy(fontSize = 16.sp)
                                     )
                                 }
