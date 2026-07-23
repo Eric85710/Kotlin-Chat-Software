@@ -55,6 +55,8 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.layout.ContentScale.Companion.Fit
+import androidx.compose.foundation.layout.aspectRatio
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
@@ -64,6 +66,8 @@ import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.navigation.NavController
 import coil.compose.AsyncImage
+import coil.compose.SubcomposeAsyncImage
+import com.example.login_v3.home.Message.UI.Detail.Message_Component.shimmer
 import com.example.login_v3.home.Message.UI.Detail.Message_Component.MessageActionMenuRow
 import com.example.login_v3.home.Message.UI.Detail.Message_Component.MessageEmojiBar
 import com.example.login_v3.home.Message.UI.Detail.Message_Component.MessageInputBar
@@ -831,13 +835,27 @@ private fun ImageMessageContent(
             RepliedMessagePreview(replied, isMe, partnerDisplayName, currentUserId)
         }
 
-        AsyncImage(
+        SubcomposeAsyncImage(
             model = message.mediaUrl,
             contentDescription = if (message.isGif) "動態 GIF" else "聊天圖片",
             contentScale = ContentScale.Fit,
+            loading = {
+                Box(
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .shimmer()
+                )
+            },
             modifier = Modifier
                 .padding(top = 4.dp)
-                .sizeIn(maxWidth = 240.dp, maxHeight = 300.dp)
+                .widthIn(max = 240.dp)
+                .then(
+                    if (message.aspectRatio != null) {
+                        Modifier.aspectRatio(message.aspectRatio)
+                    } else {
+                        Modifier.height(180.dp) // Default height if no aspect ratio
+                    }
+                )
                 .clip(RoundedCornerShape(12.dp))
                 .border(
                     width = 0.5.dp,
@@ -846,7 +864,7 @@ private fun ImageMessageContent(
                 )
                 .background(Color(0xFFF5F5F5)),
             onError = { errorState ->
-                android.util.Log.e("ChatImageError", "原因: ${errorState.result.throwable}")
+                Log.e("ChatImageError", "原因: ${errorState.result.throwable}")
             }
         )
     }
@@ -874,10 +892,18 @@ private fun VideoMessageContent(
             RepliedMessagePreview(replied, isMe, partnerDisplayName, currentUserId)
         }
 
+        // 影片佈局
         Box(
             modifier = Modifier
                 .padding(top = 4.dp)
-                .size(width = 240.dp, height = 160.dp)
+                .width(240.dp)
+                .then(
+                    if (message.aspectRatio != null) {
+                        Modifier.aspectRatio(message.aspectRatio)
+                    } else {
+                        Modifier.height(160.dp)
+                    }
+                )
                 .clip(RoundedCornerShape(12.dp))
                 .background(Color.Black)
                 .border(
@@ -887,14 +913,21 @@ private fun VideoMessageContent(
                 ),
             contentAlignment = Alignment.Center
         ) {
-            AsyncImage(
+            SubcomposeAsyncImage(
                 model = message.mediaUrl,
                 contentDescription = "影片預覽",
                 contentScale = ContentScale.Crop,
+                loading = {
+                    Box(
+                        modifier = Modifier
+                            .fillMaxSize()
+                            .shimmer()
+                    )
+                },
                 modifier = Modifier.fillMaxSize(),
                 alpha = 0.8f,
                 onError = { errorState ->
-                    android.util.Log.e("ChatVideoThumbError", "原因: ${errorState.result.throwable}")
+                    Log.e("ChatVideoThumbError", "原因: ${errorState.result.throwable}")
                 }
             )
 

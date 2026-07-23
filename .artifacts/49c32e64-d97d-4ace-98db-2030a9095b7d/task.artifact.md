@@ -1,7 +1,4 @@
-- [x] Create `MessageUiModel` and mapping logic
-- [x] Update `MessagesUiState` to use `MessageUiModel`
-- [x] Update `ChatViewModel` to map `Message` to `MessageUiModel`
-- [x] Update `MessageMessaging` and components to use `MessageUiModel`
-- [x] Split `MessageRow` into specialized components (Text, Image, Video, Audio, File, Call)
-- [x] Optimize `LazyColumn` with `contentType`
-- [x] Optimize `prefetchMedia` in `ChatViewModel`
+- [x] Create `ShimmerModifier.kt` for animated loading effects
+- [x] Add `aspectRatio` property to `MessageUiModel`
+- [x] Update `Message_Messaging.kt` to use `SubcomposeAsyncImage` with shimmer placeholders
+- [x] Optimize `ChatViewModel` prefetching to synchronize with UI image requests

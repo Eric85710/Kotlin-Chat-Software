@@ -27,7 +27,8 @@ data class MessageUiModel(
     val isVideo: Boolean,
     val isAudio: Boolean,
     val isFile: Boolean,
-    val mediaUrl: String
+    val mediaUrl: String,
+    val aspectRatio: Float? = null
 )
 
 fun Message.toUiModel(): MessageUiModel {
@@ -50,6 +51,7 @@ fun Message.toUiModel(): MessageUiModel {
         isVideo = isVideo,
         isAudio = isAudio,
         isFile = isFile,
-        mediaUrl = mediaUrl
+        mediaUrl = mediaUrl,
+        aspectRatio = null // Future: parse from metadata if available
     )
 }

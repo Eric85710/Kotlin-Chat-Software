@@ -139,14 +139,15 @@ class ChatViewModel @Inject constructor(
     }.stateIn(viewModelScope, SharingStarted.Eagerly, MessagesUiState.Loading)
 
     private fun prefetchMedia(messages: List<MessageUiModel>) {
-        messages.forEach { msg ->
+        // 🚀 核心優化：優先預載最近的 10 則訊息
+        messages.take(10).forEach { msg ->
             if ((msg.isImage || msg.isVideo || msg.isGif) && !prefetchedUrls.contains(msg.mediaUrl)) {
                 prefetchedUrls.add(msg.mediaUrl)
                 val request = ImageRequest.Builder(application)
                     .data(msg.mediaUrl)
+                    .crossfade(true)
                     .memoryCachePolicy(CachePolicy.ENABLED)
                     .diskCachePolicy(CachePolicy.ENABLED)
-                    // 如果是影片，預載入時只抓取第一幀
                     .build()
                 application.imageLoader.enqueue(request)
             }
