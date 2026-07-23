@@ -38,12 +38,12 @@ import androidx.compose.ui.draw.blur
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
-import com.example.login_v3.data.api.api_class.Message
+import com.example.login_v3.home.Message.UI.Detail.MessageUiModel
 
 @Composable
 fun MessageInputBar(
     isLoading: Boolean,
-    replyingMessage: Message?,
+    replyingMessage: MessageUiModel?,
     onCancelReply: () -> Unit,
     onSendClick: (String) -> Unit,
     onAttachmentClick: () -> Unit

@@ -64,7 +64,6 @@ import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.navigation.NavController
 import coil.compose.AsyncImage
-import com.example.login_v3.data.api.api_class.Message
 import com.example.login_v3.home.Message.UI.Detail.Message_Component.MessageActionMenuRow
 import com.example.login_v3.home.Message.UI.Detail.Message_Component.MessageEmojiBar
 import com.example.login_v3.home.Message.UI.Detail.Message_Component.MessageInputBar
@@ -110,8 +109,8 @@ import com.example.login_v3.home.Message.ViewModel.Detail.DownloadStatus
 //bottom bar state
 sealed interface BottomBarState {
     object Input : BottomBarState                                // 預設：輸入框
-    data class ActionMenu(val message: Message) : BottomBarState // 長按：動作選單
-    data class EmojiMenu(val message: Message) : BottomBarState  // 單擊：Emoji 工具列
+    data class ActionMenu(val message: MessageUiModel) : BottomBarState // 長按：動作選單
+    data class EmojiMenu(val message: MessageUiModel) : BottomBarState  // 單擊：Emoji 工具列
     object AttachmentMenu : BottomBarState                       // 🎯 新增：附件選單
 }
 
@@ -138,7 +137,7 @@ fun MessageMessaging(
     //message that selected
     val actionMessage by viewModel.actionMessage.collectAsStateWithLifecycle()
 
-    var emojiTargetMessage by remember { mutableStateOf<Message?>(null) }
+    var emojiTargetMessage by remember { mutableStateOf<MessageUiModel?>(null) }
 
     //inspect image
     var lightboxImageUrl by remember { mutableStateOf<String?>(null) }
@@ -466,7 +465,7 @@ fun MessageMessaging(
                             MessageEmojiBar(
                                 // 🌟 移除了 commonEmojis 參數，變得非常清爽！
                                 onEmojiClick = { emoji ->
-                                    val targetReaction = currentEmojiMessage.reactions?.find { it.emoji == emoji }
+                                    val targetReaction = currentEmojiMessage.reactions.find { it.emoji == emoji }
                                     if (targetReaction?.meReacted == true) {
                                         viewModel.removeMessageReaction(roomId, currentEmojiMessage.id, emoji)
                                     } else {
@@ -535,38 +534,14 @@ fun MessageMessaging(
                                 },
                                 // 💡 單擊事件：開啟 Emoji 選單，同時清空長按選單
                                 onRowClick = { message ->
-                                    val contentLowerCase = (message.content ?: "").lowercase()
-
                                     //is image
-                                    val isAttachmentImage = message.attachment?.mimeType?.startsWith("image/") == true
-                                    val imageExtensions = listOf(".jpg", ".jpeg", ".png", ".webp", ".heic", ".heif")
-                                    val isImage = isAttachmentImage || imageExtensions.any { contentLowerCase.contains(it) }
-
+                                    val isImage = message.isImage
                                     //is video
-                                    val isAttachmentVideo = message.attachment?.mimeType?.startsWith("video/") == true
-                                    val videoExtensions = listOf(".mp4", ".mov", ".mkv", ".avi", ".3gp", ".webm")
-                                    val isVideo = isAttachmentVideo || videoExtensions.any { contentLowerCase.contains(it) }
+                                    val isVideo = message.isVideo
 
                                     if (isImage || isVideo) {
                                         // 計算乾淨的 URL 網址
-                                        val rawPath = when {
-                                            isAttachmentImage && !message.attachment?.filename.isNullOrBlank() -> message.attachment!!.filename
-                                            isAttachmentVideo && !message.attachment?.filename.isNullOrBlank() -> message.attachment!!.filename
-                                            else -> message.content ?: ""
-                                        }
-                                        val baseUrl = "https://tg.technologia-tw.com"
-                                        val finalUrl = when {
-                                            rawPath.isBlank() -> ""
-                                            rawPath.startsWith("http") -> rawPath
-                                            else -> {
-                                                val cleanPath = rawPath.removePrefix("/").removePrefix("uploads/")
-                                                if (cleanPath.startsWith("attachment/")) {
-                                                    "$baseUrl/uploads/$cleanPath"
-                                                } else {
-                                                    "$baseUrl/uploads/attachment/$cleanPath"
-                                                }
-                                            }
-                                        }
+                                        val finalUrl = message.mediaUrl
 
                                         // 關閉所有底部的 Emoji 或動作選單
                                         viewModel.clearActionMessage()
@@ -587,7 +562,7 @@ fun MessageMessaging(
                                 onReactionClick = { message, emoji ->
                                     // 這是訊息氣泡下方既有 Reaction 小標籤的點擊事件，保持原樣即可
                                     val targetReaction =
-                                        message.reactions?.find { it.emoji == emoji }
+                                        message.reactions.find { it.emoji == emoji }
                                     if (targetReaction?.meReacted == true) {
                                         viewModel.removeMessageReaction(roomId, message.id, emoji)
                                     } else {
@@ -632,13 +607,13 @@ fun MessageList(
     currentUserId: String,
     partnerAvatarUrl: Any?,
     partnerDisplayName: String,
-    messages: List<Message>,
+    messages: List<MessageUiModel>,
     activeEmojiMessageId: String?,
     activeActionMessageId: String?,
     viewModel: ChatViewModel,
-    onReplyClick: (Message) -> Unit,
-    onReactionClick: (Message, String) -> Unit,
-    onRowClick: (Message) -> Unit,
+    onReplyClick: (MessageUiModel) -> Unit,
+    onReactionClick: (MessageUiModel, String) -> Unit,
+    onRowClick: (MessageUiModel) -> Unit,
     modifier: Modifier = Modifier
 ) {
     // 1. 建立 LazyColumn 的滾動狀態監聽
@@ -676,7 +651,17 @@ fun MessageList(
     ) {
         items(
             items = visibleMessages,
-            key = { it.id } // 💡 加上 key 可以大幅提升 LazyColumn 刷新時的效能與動畫平滑度
+            key = { it.id }, // 💡 加上 key 可以大幅提升 LazyColumn 刷新時的效能與動畫平滑度
+            contentType = { message ->
+                when {
+                    message.isImage -> "image"
+                    message.isVideo -> "video"
+                    message.isAudio -> "audio"
+                    message.isFile -> "file"
+                    message.callLogInfo != null -> "call"
+                    else -> "text"
+                }
+            }
         ) { message ->
             val isMe = message.senderId == currentUserId
             MessageRow(
@@ -698,23 +683,21 @@ fun MessageList(
 private fun String?.isNullTabOrBlank(): Boolean = this == null || this.trim().isBlank()
 @Composable
 fun MessageRow(
-    message: Message,
+    message: MessageUiModel,
     isMe: Boolean,
     partnerAvatarUrl: Any?,
     partnerDisplayName: String,
     isHighlight: Boolean,
     currentUserId: String,
     viewModel: ChatViewModel,
-    onReplyClick: (Message) -> Unit,
-    onReactionClick: (Message, String) -> Unit,
-    onRowClick: (Message) -> Unit,
+    onReplyClick: (MessageUiModel) -> Unit,
+    onReactionClick: (MessageUiModel, String) -> Unit,
+    onRowClick: (MessageUiModel) -> Unit,
 ) {
-    val finalMediaUrl = message.mediaUrl
-
     val finalBubbleColor = remember(message.status, isHighlight, message.callLogInfo) {
         val baseColor = when {
             message.callLogInfo != null -> {
-                if (message.callLogInfo!!.type == "call_missed") Color(0xFFFCE8E6) else Color(0xFFF1F3F4)
+                if (message.callLogInfo.type == "call_missed") Color(0xFFFCE8E6) else Color(0xFFF1F3F4)
             }
             isMe && isHighlight -> Color(0xFFB4E197)
             isMe -> Color(0xFFDCF8C6)
@@ -748,7 +731,7 @@ fun MessageRow(
             ) {
                 if (isMe && message.status == MessageStatus.FAILED) {
                     Icon(
-                        imageVector = androidx.compose.material.icons.Icons.Default.Warning,
+                        imageVector = Icons.Default.Warning,
                         contentDescription = "發送失敗",
                         tint = Color.Red,
                         modifier = Modifier.size(20.dp).clickable { /* 重發邏輯 */ }
@@ -760,309 +743,28 @@ fun MessageRow(
                     horizontalAlignment = if (isMe) Alignment.End else Alignment.Start
                 ) {
                     when {
-                        // 核心分流 1：圖片處理
                         message.isImage -> {
-                            Column(
-                                modifier = Modifier
-                                    .widthIn(max = 240.dp)
-                                    .combinedClickable(
-                                        onLongClick = { onReplyClick(message) },
-                                        onClick = { onRowClick(message) }
-                                    ),
-                                horizontalAlignment = if (isMe) Alignment.End else Alignment.Start
-                            ) {
-                                message.repliedMessage?.let { replied ->
-                                    RepliedMessagePreview(replied, isMe, partnerDisplayName, currentUserId)
-                                }
-
-                                AsyncImage(
-                                    model = finalMediaUrl,
-                                    contentDescription = if (message.isGif) "動態 GIF" else "聊天圖片",
-                                    contentScale = ContentScale.Fit,
-                                    modifier = Modifier
-                                        .padding(top = 4.dp)
-                                        .sizeIn(maxWidth = 240.dp, maxHeight = 300.dp)
-                                        .clip(RoundedCornerShape(12.dp))
-                                        .border(
-                                            width = 0.5.dp,
-                                            color = Color.LightGray.copy(alpha = 0.4f),
-                                            shape = RoundedCornerShape(12.dp)
-                                        )
-                                        .background(Color(0xFFF5F5F5)),
-                                    onError = { errorState ->
-                                        android.util.Log.e("ChatImageError", "原因: ${errorState.result.throwable}")
-                                    }
-                                )
-                            }
+                            ImageMessageContent(message, isMe, partnerDisplayName, currentUserId, onReplyClick, onRowClick)
                         }
-
-                        // 🌟 核心分流 2：影片處理
                         message.isVideo -> {
-                            Column(
-                                modifier = Modifier
-                                    .widthIn(max = 240.dp)
-                                    .combinedClickable(
-                                        onLongClick = { onReplyClick(message) },
-                                        onClick = { onRowClick(message) } 
-                                    ),
-                                horizontalAlignment = if (isMe) Alignment.End else Alignment.Start
-                            ) {
-                                message.repliedMessage?.let { replied ->
-                                    RepliedMessagePreview(replied, isMe, partnerDisplayName, currentUserId)
-                                }
-
-                                // 影片佈局
-                                Box(
-                                    modifier = Modifier
-                                        .padding(top = 4.dp)
-                                        .size(width = 240.dp, height = 160.dp)
-                                        .clip(RoundedCornerShape(12.dp))
-                                        .background(Color.Black)
-                                        .border(
-                                            width = 0.5.dp,
-                                            color = Color.LightGray.copy(alpha = 0.4f),
-                                            shape = RoundedCornerShape(12.dp)
-                                        ),
-                                    contentAlignment = Alignment.Center
-                                ) {
-                                    AsyncImage(
-                                        model = finalMediaUrl,
-                                        contentDescription = "影片預覽",
-                                        contentScale = ContentScale.Crop,
-                                        modifier = Modifier.fillMaxSize(),
-                                        alpha = 0.8f,
-                                        onError = { errorState ->
-                                            android.util.Log.e("ChatVideoThumbError", "原因: ${errorState.result.throwable}")
-                                        }
-                                    )
-
-                                    Box(
-                                        modifier = Modifier
-                                            .size(48.dp)
-                                            .background(Color.Black.copy(alpha = 0.5f), CircleShape),
-                                        contentAlignment = Alignment.Center
-                                    ) {
-                                        Icon(
-                                            imageVector = androidx.compose.material.icons.Icons.Default.PlayArrow,
-                                            contentDescription = "播放影片",
-                                            tint = Color.White,
-                                            modifier = Modifier.size(28.dp)
-                                        )
-                                    }
-                                }
-                            }
+                            VideoMessageContent(message, isMe, partnerDisplayName, currentUserId, onReplyClick, onRowClick)
                         }
-
-                        //isAudio
                         message.isAudio -> {
-                            Column(
-                                modifier = Modifier
-                                    .widthIn(max = 250.dp)
-                                    .combinedClickable(
-                                        onLongClick = { onReplyClick(message) },
-                                        onClick = { /* 整塊氣泡點擊邏輯，可留空 */ }
-                                    ),
-                                horizontalAlignment = if (isMe) Alignment.End else Alignment.Start
-                            ) {
-                                message.repliedMessage?.let { replied ->
-                                    RepliedMessagePreview(replied, isMe, partnerDisplayName, currentUserId)
-                                }
-
-                                AudioMessageBubble(
-                                    message = message,
-                                    audioUrl = finalMediaUrl,
-                                    isMe = isMe,
-                                    bubbleColor = finalBubbleColor,
-                                    viewModel = viewModel
-                                )
-                            }
+                            AudioMessageContent(message, isMe, partnerDisplayName, currentUserId, finalBubbleColor, viewModel, onReplyClick)
                         }
-
-                        //file message
                         message.isFile -> {
-                            val downloadStatus = viewModel.getDownloadStatus(message.id)
-                            val displayFileName = message.attachment?.filename?.substringAfterLast("/") ?: finalMediaUrl.substringAfterLast("/")
-
-                            Box(
-                                modifier = Modifier
-                                    .widthIn(max = 260.dp)
-                                    .clip(
-                                        RoundedCornerShape(
-                                            topStart = 12.dp, topEnd = 12.dp,
-                                            bottomStart = if (isMe) 12.dp else 0.dp,
-                                            bottomEnd = if (isMe) 0.dp else 12.dp
-                                        )
-                                    )
-                                    .combinedClickable(
-                                        onLongClick = { onReplyClick(message) },
-                                        onClick = {
-                                            if (downloadStatus is DownloadStatus.Completed) {
-                                                onRowClick(message)
-                                            } else {
-                                                viewModel.downloadFile(message, displayFileName)
-                                            }
-                                        }
-                                    )
-                                    .background(color = finalBubbleColor)
-                                    .padding(horizontal = 12.dp, vertical = 10.dp)
-                            ) {
-                                Column {
-                                    message.repliedMessage?.let { replied ->
-                                        RepliedMessagePreview(replied, isMe, partnerDisplayName, currentUserId)
-                                    }
-
-                                    Row(
-                                        verticalAlignment = Alignment.CenterVertically,
-                                        horizontalArrangement = Arrangement.spacedBy(10.dp)
-                                    ) {
-                                        Box(
-                                            modifier = Modifier
-                                                .size(40.dp)
-                                                .background(Color.White.copy(alpha = 0.6f), CircleShape)
-                                                .clip(CircleShape)
-                                                .clickable {
-                                                    when (downloadStatus) {
-                                                        is DownloadStatus.NotStarted, is DownloadStatus.Error -> {
-                                                            viewModel.downloadFile(message, displayFileName)
-                                                        }
-                                                        is DownloadStatus.Completed -> {
-                                                            onRowClick(message)
-                                                        }
-                                                        is DownloadStatus.Downloading -> {}
-                                                    }
-                                                },
-                                            contentAlignment = Alignment.Center
-                                        ) {
-                                            when (downloadStatus) {
-                                                is DownloadStatus.NotStarted -> {
-                                                    Icon(
-                                                        imageVector = androidx.compose.material.icons.Icons.Default.ArrowDownward,
-                                                        contentDescription = "下載檔案",
-                                                        tint = Color.Gray,
-                                                        modifier = Modifier.size(24.dp)
-                                                    )
-                                                }
-                                                is DownloadStatus.Downloading -> {
-                                                    val progress = downloadStatus.progress
-                                                    if (progress >= 0f) {
-                                                        CircularProgressIndicator(
-                                                            progress = progress,
-                                                            modifier = Modifier.fillMaxSize().padding(2.dp),
-                                                            color = MaterialTheme.colorScheme.primary,
-                                                            strokeWidth = 3.dp
-                                                        )
-                                                    } else {
-                                                        CircularProgressIndicator(
-                                                            modifier = Modifier.fillMaxSize().padding(2.dp),
-                                                            color = MaterialTheme.colorScheme.primary,
-                                                            strokeWidth = 3.dp
-                                                        )
-                                                    }
-                                                    Icon(
-                                                        imageVector = androidx.compose.material.icons.Icons.Default.Close,
-                                                        contentDescription = "下載中",
-                                                        tint = Color.Gray.copy(alpha = 0.7f),
-                                                        modifier = Modifier.size(16.dp)
-                                                    )
-                                                }
-                                                is DownloadStatus.Completed -> {
-                                                    Icon(
-                                                        imageVector = androidx.compose.material.icons.Icons.Default.Check,
-                                                        contentDescription = "下載完成",
-                                                        tint = Color.Green,
-                                                        modifier = Modifier.size(24.dp)
-                                                    )
-                                                }
-                                                is DownloadStatus.Error -> {
-                                                    Icon(
-                                                        imageVector = androidx.compose.material.icons.Icons.Default.Warning,
-                                                        contentDescription = "下載失敗",
-                                                        tint = Color.Red,
-                                                        modifier = Modifier.size(24.dp)
-                                                    )
-                                                }
-                                            }
-                                        }
-
-                                        Column(modifier = Modifier.weight(1f)) {
-                                            Text(
-                                                text = displayFileName,
-                                                style = MaterialTheme.typography.bodyMedium.copy(fontSize = 15.sp),
-                                                maxLines = 2,
-                                                overflow = TextOverflow.Ellipsis
-                                            )
-                                            Text(
-                                                text = when (downloadStatus) {
-                                                    is DownloadStatus.Downloading -> {
-                                                        val progress = downloadStatus.progress
-                                                        if (progress >= 0f) "下載中... ${(progress * 100).toInt()}%" else "下載中..."
-                                                    }
-                                                    is DownloadStatus.Completed -> "已下載"
-                                                    is DownloadStatus.Error -> "下載失敗"
-                                                    else -> "檔案"
-                                                },
-                                                style = MaterialTheme.typography.bodySmall.copy(fontSize = 11.sp, color = Color.Gray)
-                                            )
-                                        }
-                                    }
-                                }
-                            }
+                            FileMessageContent(message, isMe, partnerDisplayName, currentUserId, finalBubbleColor, viewModel, onReplyClick, onRowClick)
                         }
-
-                        // 核心分流 3：通話紀錄
                         message.callLogInfo != null -> {
-                            Box(
-                                modifier = Modifier
-                                    .widthIn(max = 280.dp)
-                                    .combinedClickable(
-                                        onLongClick = { onReplyClick(message) },
-                                        onClick = { onRowClick(message) }
-                                    )
-                            ) {
-                                CallLogBubble(
-                                    callLog = message.callLogInfo!!,
-                                    isMe = isMe,
-                                    currentUserId = currentUserId,
-                                    partnerDisplayName = partnerDisplayName
-                                )
-                            }
+                            CallLogMessageContent(message, isMe, partnerDisplayName, currentUserId, onReplyClick, onRowClick)
                         }
-
-                        // 核心分流 4：純文字訊息
                         else -> {
-                            Box(
-                                modifier = Modifier
-                                    .widthIn(max = 280.dp)
-                                    .clip(
-                                        RoundedCornerShape(
-                                            topStart = 12.dp, topEnd = 12.dp,
-                                            bottomStart = if (isMe) 12.dp else 0.dp,
-                                            bottomEnd = if (isMe) 0.dp else 12.dp
-                                        )
-                                    )
-                                    .combinedClickable(
-                                        onLongClick = { onReplyClick(message) },
-                                        onClick = { onRowClick(message) }
-                                    )
-                                    .background(color = finalBubbleColor)
-                                    .padding(horizontal = 12.dp, vertical = 8.dp)
-                            ) {
-                                Column {
-                                    message.repliedMessage?.let { replied ->
-                                        RepliedMessagePreview(replied, isMe, partnerDisplayName, currentUserId)
-                                    }
-
-                                    Text(
-                                        text = message.content,
-                                        style = MaterialTheme.typography.bodyMedium.copy(fontSize = 16.sp)
-                                    )
-                                }
-                            }
+                            TextMessageContent(message, isMe, partnerDisplayName, currentUserId, finalBubbleColor, onReplyClick, onRowClick)
                         }
                     }
 
                     // 3. 按讚/反應功能
-                    if (!message.reactions.isNullOrEmpty()) {
+                    if (message.reactions.isNotEmpty()) {
                         ReactionRow(
                             reactions = message.reactions,
                             onReactionClick = { emoji -> onReactionClick(message, emoji) }
@@ -1077,7 +779,7 @@ fun MessageRow(
 // 💡 提取出的「被回覆訊息預覽」組件，避免重複代碼並維持排版乾淨
 @Composable
 private fun RepliedMessagePreview(
-    replied: Message,
+    replied: MessageUiModel,
     isMe: Boolean,
     partnerDisplayName: String,
     currentUserId: String
@@ -1104,5 +806,350 @@ private fun RepliedMessagePreview(
                 overflow = TextOverflow.Ellipsis
             )
         }
+    }
+}
+
+@Composable
+private fun ImageMessageContent(
+    message: MessageUiModel,
+    isMe: Boolean,
+    partnerDisplayName: String,
+    currentUserId: String,
+    onReplyClick: (MessageUiModel) -> Unit,
+    onRowClick: (MessageUiModel) -> Unit
+) {
+    Column(
+        modifier = Modifier
+            .widthIn(max = 240.dp)
+            .combinedClickable(
+                onLongClick = { onReplyClick(message) },
+                onClick = { onRowClick(message) }
+            ),
+        horizontalAlignment = if (isMe) Alignment.End else Alignment.Start
+    ) {
+        message.repliedMessage?.let { replied ->
+            RepliedMessagePreview(replied, isMe, partnerDisplayName, currentUserId)
+        }
+
+        AsyncImage(
+            model = message.mediaUrl,
+            contentDescription = if (message.isGif) "動態 GIF" else "聊天圖片",
+            contentScale = ContentScale.Fit,
+            modifier = Modifier
+                .padding(top = 4.dp)
+                .sizeIn(maxWidth = 240.dp, maxHeight = 300.dp)
+                .clip(RoundedCornerShape(12.dp))
+                .border(
+                    width = 0.5.dp,
+                    color = Color.LightGray.copy(alpha = 0.4f),
+                    shape = RoundedCornerShape(12.dp)
+                )
+                .background(Color(0xFFF5F5F5)),
+            onError = { errorState ->
+                android.util.Log.e("ChatImageError", "原因: ${errorState.result.throwable}")
+            }
+        )
+    }
+}
+
+@Composable
+private fun VideoMessageContent(
+    message: MessageUiModel,
+    isMe: Boolean,
+    partnerDisplayName: String,
+    currentUserId: String,
+    onReplyClick: (MessageUiModel) -> Unit,
+    onRowClick: (MessageUiModel) -> Unit
+) {
+    Column(
+        modifier = Modifier
+            .widthIn(max = 240.dp)
+            .combinedClickable(
+                onLongClick = { onReplyClick(message) },
+                onClick = { onRowClick(message) }
+            ),
+        horizontalAlignment = if (isMe) Alignment.End else Alignment.Start
+    ) {
+        message.repliedMessage?.let { replied ->
+            RepliedMessagePreview(replied, isMe, partnerDisplayName, currentUserId)
+        }
+
+        Box(
+            modifier = Modifier
+                .padding(top = 4.dp)
+                .size(width = 240.dp, height = 160.dp)
+                .clip(RoundedCornerShape(12.dp))
+                .background(Color.Black)
+                .border(
+                    width = 0.5.dp,
+                    color = Color.LightGray.copy(alpha = 0.4f),
+                    shape = RoundedCornerShape(12.dp)
+                ),
+            contentAlignment = Alignment.Center
+        ) {
+            AsyncImage(
+                model = message.mediaUrl,
+                contentDescription = "影片預覽",
+                contentScale = ContentScale.Crop,
+                modifier = Modifier.fillMaxSize(),
+                alpha = 0.8f,
+                onError = { errorState ->
+                    android.util.Log.e("ChatVideoThumbError", "原因: ${errorState.result.throwable}")
+                }
+            )
+
+            Box(
+                modifier = Modifier
+                    .size(48.dp)
+                    .background(Color.Black.copy(alpha = 0.5f), CircleShape),
+                contentAlignment = Alignment.Center
+            ) {
+                Icon(
+                    imageVector = Icons.Default.PlayArrow,
+                    contentDescription = "播放影片",
+                    tint = Color.White,
+                    modifier = Modifier.size(28.dp)
+                )
+            }
+        }
+    }
+}
+
+@Composable
+private fun AudioMessageContent(
+    message: MessageUiModel,
+    isMe: Boolean,
+    partnerDisplayName: String,
+    currentUserId: String,
+    bubbleColor: Color,
+    viewModel: ChatViewModel,
+    onReplyClick: (MessageUiModel) -> Unit
+) {
+    Column(
+        modifier = Modifier
+            .widthIn(max = 250.dp)
+            .combinedClickable(
+                onLongClick = { onReplyClick(message) },
+                onClick = { /* 整塊氣泡點擊邏輯，可留空 */ }
+            ),
+        horizontalAlignment = if (isMe) Alignment.End else Alignment.Start
+    ) {
+        message.repliedMessage?.let { replied ->
+            RepliedMessagePreview(replied, isMe, partnerDisplayName, currentUserId)
+        }
+
+        AudioMessageBubble(
+            message = message,
+            audioUrl = message.mediaUrl,
+            isMe = isMe,
+            bubbleColor = bubbleColor,
+            viewModel = viewModel
+        )
+    }
+}
+
+@Composable
+private fun FileMessageContent(
+    message: MessageUiModel,
+    isMe: Boolean,
+    partnerDisplayName: String,
+    currentUserId: String,
+    bubbleColor: Color,
+    viewModel: ChatViewModel,
+    onReplyClick: (MessageUiModel) -> Unit,
+    onRowClick: (MessageUiModel) -> Unit
+) {
+    val downloadStatus = viewModel.getDownloadStatus(message.id)
+    val displayFileName = message.attachment?.filename?.substringAfterLast("/") ?: message.mediaUrl.substringAfterLast("/")
+
+    Box(
+        modifier = Modifier
+            .widthIn(max = 260.dp)
+            .clip(
+                RoundedCornerShape(
+                    topStart = 12.dp, topEnd = 12.dp,
+                    bottomStart = if (isMe) 12.dp else 0.dp,
+                    bottomEnd = if (isMe) 0.dp else 12.dp
+                )
+            )
+            .combinedClickable(
+                onLongClick = { onReplyClick(message) },
+                onClick = {
+                    if (downloadStatus is DownloadStatus.Completed) {
+                        onRowClick(message)
+                    } else {
+                        viewModel.downloadFile(message, displayFileName)
+                    }
+                }
+            )
+            .background(color = bubbleColor)
+            .padding(horizontal = 12.dp, vertical = 10.dp)
+    ) {
+        Column {
+            message.repliedMessage?.let { replied ->
+                RepliedMessagePreview(replied, isMe, partnerDisplayName, currentUserId)
+            }
+
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(10.dp)
+            ) {
+                Box(
+                    modifier = Modifier
+                        .size(40.dp)
+                        .background(Color.White.copy(alpha = 0.6f), CircleShape)
+                        .clip(CircleShape)
+                        .clickable {
+                            when (downloadStatus) {
+                                is DownloadStatus.NotStarted, is DownloadStatus.Error -> {
+                                    viewModel.downloadFile(message, displayFileName)
+                                }
+                                is DownloadStatus.Completed -> {
+                                    onRowClick(message)
+                                }
+                                is DownloadStatus.Downloading -> {}
+                            }
+                        },
+                    contentAlignment = Alignment.Center
+                ) {
+                    when (downloadStatus) {
+                        is DownloadStatus.NotStarted -> {
+                            Icon(
+                                imageVector = Icons.Default.ArrowDownward,
+                                contentDescription = "下載檔案",
+                                tint = Color.Gray,
+                                modifier = Modifier.size(24.dp)
+                            )
+                        }
+                        is DownloadStatus.Downloading -> {
+                            val progress = downloadStatus.progress
+                            if (progress >= 0f) {
+                                CircularProgressIndicator(
+                                    progress = { progress },
+                                    modifier = Modifier.fillMaxSize().padding(2.dp),
+                                    color = MaterialTheme.colorScheme.primary,
+                                    strokeWidth = 3.dp
+                                )
+                            } else {
+                                CircularProgressIndicator(
+                                    modifier = Modifier.fillMaxSize().padding(2.dp),
+                                    color = MaterialTheme.colorScheme.primary,
+                                    strokeWidth = 3.dp
+                                )
+                            }
+                            Icon(
+                                imageVector = Icons.Default.Close,
+                                contentDescription = "下載中",
+                                tint = Color.Gray.copy(alpha = 0.7f),
+                                modifier = Modifier.size(16.dp)
+                            )
+                        }
+                        is DownloadStatus.Completed -> {
+                            Icon(
+                                imageVector = Icons.Default.Check,
+                                contentDescription = "下載完成",
+                                tint = Color.Green,
+                                modifier = Modifier.size(24.dp)
+                            )
+                        }
+                        is DownloadStatus.Error -> {
+                            Icon(
+                                imageVector = Icons.Default.Warning,
+                                contentDescription = "下載失敗",
+                                tint = Color.Red,
+                                modifier = Modifier.size(24.dp)
+                            )
+                        }
+                    }
+                }
+
+                Column(modifier = Modifier.weight(1f)) {
+                    Text(
+                        text = displayFileName,
+                        style = MaterialTheme.typography.bodyMedium.copy(fontSize = 15.sp),
+                        maxLines = 2,
+                        overflow = TextOverflow.Ellipsis
+                    )
+                    Text(
+                        text = when (downloadStatus) {
+                            is DownloadStatus.Downloading -> {
+                                val progress = downloadStatus.progress
+                                if (progress >= 0f) "下載中... ${(progress * 100).toInt()}%" else "下載中..."
+                            }
+                            is DownloadStatus.Completed -> "已下載"
+                            is DownloadStatus.Error -> "下載失敗"
+                            else -> "檔案"
+                        },
+                        style = MaterialTheme.typography.bodySmall.copy(fontSize = 11.sp, color = Color.Gray)
+                    )
+                }
+            }
+        }
+    }
+}
+
+@Composable
+private fun TextMessageContent(
+    message: MessageUiModel,
+    isMe: Boolean,
+    partnerDisplayName: String,
+    currentUserId: String,
+    bubbleColor: Color,
+    onReplyClick: (MessageUiModel) -> Unit,
+    onRowClick: (MessageUiModel) -> Unit
+) {
+    Box(
+        modifier = Modifier
+            .widthIn(max = 280.dp)
+            .clip(
+                RoundedCornerShape(
+                    topStart = 12.dp, topEnd = 12.dp,
+                    bottomStart = if (isMe) 12.dp else 0.dp,
+                    bottomEnd = if (isMe) 0.dp else 12.dp
+                )
+            )
+            .combinedClickable(
+                onLongClick = { onReplyClick(message) },
+                onClick = { onRowClick(message) }
+            )
+            .background(color = bubbleColor)
+            .padding(horizontal = 12.dp, vertical = 8.dp)
+    ) {
+        Column {
+            message.repliedMessage?.let { replied ->
+                RepliedMessagePreview(replied, isMe, partnerDisplayName, currentUserId)
+            }
+
+            Text(
+                text = message.content,
+                style = MaterialTheme.typography.bodyMedium.copy(fontSize = 16.sp)
+            )
+        }
+    }
+}
+
+@Composable
+private fun CallLogMessageContent(
+    message: MessageUiModel,
+    isMe: Boolean,
+    partnerDisplayName: String,
+    currentUserId: String,
+    onReplyClick: (MessageUiModel) -> Unit,
+    onRowClick: (MessageUiModel) -> Unit
+) {
+    Box(
+        modifier = Modifier
+            .widthIn(max = 280.dp)
+            .combinedClickable(
+                onLongClick = { onReplyClick(message) },
+                onClick = { onRowClick(message) }
+            )
+    ) {
+        CallLogBubble(
+            callLog = message.callLogInfo!!,
+            isMe = isMe,
+            currentUserId = currentUserId,
+            partnerDisplayName = partnerDisplayName
+        )
     }
 }

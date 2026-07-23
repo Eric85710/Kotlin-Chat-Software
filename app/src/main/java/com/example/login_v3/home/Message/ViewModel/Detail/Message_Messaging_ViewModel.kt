@@ -20,7 +20,8 @@ import com.example.login_v3.data.repository.dm.ChatRoomsRepository
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.launch
 import javax.inject.Inject
-import com.example.login_v3.data.api.api_class.Message
+import com.example.login_v3.home.Message.UI.Detail.MessageUiModel
+import com.example.login_v3.home.Message.UI.Detail.toUiModel
 import com.example.login_v3.data.api.api_class.fullContactAvatarUrl
 import com.example.login_v3.data.repository.basic.TokenManager
 import com.example.login_v3.home.Message.ViewModel.UserStatus
@@ -70,7 +71,7 @@ sealed interface MessagesUiState {
         val roomTitle: String,
         val partnerStatus: UserStatus,
         val partnerAvatarUrl: Any?,
-        val messages: List<Message>,
+        val messages: List<MessageUiModel>,
         val currentUserId: String
     ) : MessagesUiState
 
@@ -102,6 +103,9 @@ class ChatViewModel @Inject constructor(
     savedStateHandle: SavedStateHandle
 ) : ViewModel() {
 
+    // 🚀 核心優化：避免重複預載相同的 URL
+    private val prefetchedUrls = mutableSetOf<String>()
+
     // 從導航參數自動獲取 roomId
     val roomId: String = savedStateHandle.get<String>("roomId").orEmpty()
 
@@ -123,7 +127,7 @@ class ChatViewModel @Inject constructor(
                 roomTitle = title,
                 partnerStatus = userStatus,
                 partnerAvatarUrl = avatar,
-                messages = messages,
+                messages = messages.map { it.toUiModel() },
                 currentUserId = userId
             )
         }
@@ -134,9 +138,10 @@ class ChatViewModel @Inject constructor(
         }
     }.stateIn(viewModelScope, SharingStarted.Eagerly, MessagesUiState.Loading)
 
-    private fun prefetchMedia(messages: List<Message>) {
+    private fun prefetchMedia(messages: List<MessageUiModel>) {
         messages.forEach { msg ->
-            if (msg.isImage || msg.isVideo || msg.isGif) {
+            if ((msg.isImage || msg.isVideo || msg.isGif) && !prefetchedUrls.contains(msg.mediaUrl)) {
+                prefetchedUrls.add(msg.mediaUrl)
                 val request = ImageRequest.Builder(application)
                     .data(msg.mediaUrl)
                     .memoryCachePolicy(CachePolicy.ENABLED)
@@ -152,15 +157,15 @@ class ChatViewModel @Inject constructor(
     // --- 其餘狀態 (保持原樣) ---
     private val _deleteMessageState = MutableStateFlow<DeleteMessageState>(DeleteMessageState.Idle)
     val deleteMessageState: StateFlow<DeleteMessageState> = _deleteMessageState.asStateFlow()
-    private val _actionMessage = MutableStateFlow<Message?>(null)
-    val actionMessage: StateFlow<Message?> = _actionMessage.asStateFlow()
+    private val _actionMessage = MutableStateFlow<MessageUiModel?>(null)
+    val actionMessage: StateFlow<MessageUiModel?> = _actionMessage.asStateFlow()
 
-    fun setActionMessage(message: Message?) { _actionMessage.value = message }
+    fun setActionMessage(message: MessageUiModel?) { _actionMessage.value = message }
     fun clearActionMessage() { _actionMessage.value = null }
 
-    private val _replyingMessage = MutableStateFlow<Message?>(null)
-    val replyingMessage: StateFlow<Message?> = _replyingMessage.asStateFlow()
-    fun setReplyingMessage(message: Message?) { _replyingMessage.value = message }
+    private val _replyingMessage = MutableStateFlow<MessageUiModel?>(null)
+    val replyingMessage: StateFlow<MessageUiModel?> = _replyingMessage.asStateFlow()
+    fun setReplyingMessage(message: MessageUiModel?) { _replyingMessage.value = message }
 
     private val _sendMessageState = MutableStateFlow<SendMessageState>(SendMessageState.Idle)
     val sendMessageState: StateFlow<SendMessageState> = _sendMessageState
@@ -474,7 +479,7 @@ class ChatViewModel @Inject constructor(
     fun getDownloadStatus(messageId: String): DownloadStatus {
         return fileDownloadStates[messageId] ?: DownloadStatus.NotStarted
     }
-    fun downloadFile(message: Message, displayFileName: String) {
+    fun downloadFile(message: MessageUiModel, displayFileName: String) {
         val messageId = message.id
 
         // 🎯 取得後端給的直接 URL。請根據你實際的 Message 資料結構調整欄位名稱

@@ -1,0 +1,7 @@
+- [x] Create `MessageUiModel` and mapping logic
+- [x] Update `MessagesUiState` to use `MessageUiModel`
+- [x] Update `ChatViewModel` to map `Message` to `MessageUiModel`
+- [x] Update `MessageMessaging` and components to use `MessageUiModel`
+- [x] Split `MessageRow` into specialized components (Text, Image, Video, Audio, File, Call)
+- [x] Optimize `LazyColumn` with `contentType`
+- [x] Optimize `prefetchMedia` in `ChatViewModel`

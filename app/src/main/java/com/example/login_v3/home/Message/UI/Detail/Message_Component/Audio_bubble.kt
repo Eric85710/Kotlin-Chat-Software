@@ -25,13 +25,13 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import com.example.login_v3.data.api.api_class.Message
+import com.example.login_v3.home.Message.UI.Detail.MessageUiModel
 import com.example.login_v3.home.Message.ViewModel.Detail.ChatViewModel
 import okhttp3.internal.concurrent.formatDuration
 
 @Composable
 fun AudioMessageBubble(
-    message: Message,
+    message: MessageUiModel,
     audioUrl: String,
     isMe: Boolean,
     bubbleColor: Color,

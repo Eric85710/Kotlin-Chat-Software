@@ -33,14 +33,14 @@ import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.LocalClipboardManager
 import androidx.compose.ui.text.AnnotatedString
 import androidx.compose.ui.unit.dp
-import com.example.login_v3.data.api.api_class.Message
+import com.example.login_v3.home.Message.UI.Detail.MessageUiModel
 
 @Composable
 fun MessageActionMenuRow(
-    message: Message,
+    message: MessageUiModel,
     onCancel: () -> Unit,
-    onReplyClick: (Message) -> Unit, // 👈 修正：這裡只需要定義型態
-    onDeleteClick: (Message) -> Unit,
+    onReplyClick: (MessageUiModel) -> Unit, // 👈 修正：這裡只需要定義型態
+    onDeleteClick: (MessageUiModel) -> Unit,
     isOwnMessage: Boolean,
     modifier: Modifier = Modifier
 ) {
@@ -104,15 +104,14 @@ fun MessageActionMenuRow(
                 )
 
                 // 2. 複製文字
-                val isImage = message.content?.startsWith("http") == true || message.attachment != null
+                val isImage = message.isImage
                 ChatMenuButton(
                     imageVector = Icons.Default.ContentCopy,
                     label = "複製",
                     enabled = !isImage,
                     onClick = {
-                        message.content?.let { text ->
-                            clipboardManager.setText(AnnotatedString(text))
-                        }
+                        val text = message.content
+                        clipboardManager.setText(AnnotatedString(text))
                         onCancel()
                     }
                 )
