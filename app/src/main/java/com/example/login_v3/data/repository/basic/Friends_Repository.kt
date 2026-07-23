@@ -7,12 +7,30 @@ import com.example.login_v3.data.api.api_class.Friend
 import com.example.login_v3.data.api.api_class.PendingFriendApiModel
 import com.example.login_v3.data.api.api_class.UserDetail
 import com.example.login_v3.data.api.api_class.UserSearchResponse
+import com.example.login_v3.data.local.dao.FriendDao
+import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.map
 import retrofit2.Response
 import javax.inject.Inject
 
 class FriendsRepository @Inject constructor(
-    private val apiService: TecnologiaApi
+    private val apiService: TecnologiaApi,
+    private val friendDao: FriendDao
 ) {
+
+    // 🌟 核心：監聽本地資料庫的好友列表 Flow
+    val friendsFlow: Flow<List<Friend>> = friendDao.getAllFriendsFlow().map { entities ->
+        entities.map { entity ->
+            Friend(
+                friendId = entity.userId,
+                username = entity.username,
+                displayName = entity.displayName,
+                avatarUrl = entity.avatarUrl,
+                status = entity.status,
+                acceptedAt = null // Sync API 目前沒給這個，先設為 null
+            )
+        }
+    }
 
     suspend fun getFriendList(): Result<List<Friend>> {
         return try {

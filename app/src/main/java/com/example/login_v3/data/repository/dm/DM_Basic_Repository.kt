@@ -18,8 +18,10 @@ import com.example.login_v3.data.api.api_class.WebSocketEventResponse
 import com.example.login_v3.data.di.ChatWebSocketManager
 import com.example.login_v3.data.repository.basic.TokenManager
 import com.example.login_v3.data.local.dao.MessageDao
+import com.example.login_v3.data.local.dao.RoomLocalDao
 import com.example.login_v3.data.local.entities.MessageEntity
 import com.example.login_v3.data.local.entities.MessageStatus
+import com.example.login_v3.data.local.entities.RoomLocalEntity
 import com.squareup.moshi.Json
 import com.squareup.moshi.JsonClass
 import com.squareup.moshi.Moshi
@@ -52,11 +54,30 @@ import kotlin.jvm.java
 class ChatRoomsRepository @Inject constructor(
     private val api: TecnologiaApi,
     private val messageDao: MessageDao,
+    private val roomLocalDao: RoomLocalDao, // 👈 新增：注入房間 DAO
     private val webSocketManager: ChatWebSocketManager, // 👈 1. 注入 Socket 管理器
     private val moshi: Moshi, // 👈 用於解析 Socket 傳來的 JSON
     private val tokenManager: TokenManager,
     @ApplicationContext private val context: Context // 注入 ApplicationContext 用於處理 Uri 檔案
 ) {
+
+    // 🌟 核心：監聽本地資料庫的聊天室列表 Flow
+    val chatRoomsFlow: Flow<List<ChatRoom>> = roomLocalDao.getAllRoomsFlow().map { entities ->
+        entities.map { entity ->
+            ChatRoom(
+                roomId = entity.roomId,
+                roomName = entity.nickname, // 或者 entity.partner?.displayName ? 根據 DTO 結構映射
+                roomType = null, // Entity 暫時沒存，可視需求補上
+                roomIconUrl = null, // Entity 暫時沒存，可視需求補上
+                isMuted = entity.isMuted,
+                isPinned = entity.isPinned,
+                unreadCount = entity.unreadCount,
+                mentionCount = entity.mentionCount,
+                partner = entity.partner,
+                lastMessage = entity.lastMessage
+            )
+        }
+    }
 
     // 建立一個跟著 Repository 生命週期走的 Scope
     private val repositoryScope = CoroutineScope(SupervisorJob() + Dispatchers.IO)

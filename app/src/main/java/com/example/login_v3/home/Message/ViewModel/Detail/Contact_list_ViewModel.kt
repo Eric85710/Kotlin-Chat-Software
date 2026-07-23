@@ -7,6 +7,7 @@ import com.example.login_v3.data.api.api_class.Friend
 import com.example.login_v3.data.api.api_class.PendingFriendApiModel
 import com.example.login_v3.data.api.api_class.UserDetail
 import com.example.login_v3.data.repository.basic.FriendsRepository
+import com.example.login_v3.data.repository.basic.SyncRepository
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
@@ -31,32 +32,42 @@ data class ContactUiState(
 )
 @HiltViewModel
 class ContactListViewModel @Inject constructor(
-    private val repository: FriendsRepository
+    private val repository: FriendsRepository,
+    private val syncRepository: SyncRepository
 ) : ViewModel() {
 
     private val _uiState = MutableStateFlow(ContactUiState())
     val uiState: StateFlow<ContactUiState> = _uiState.asStateFlow()
 
     init {
+        // 1. 監聽本地好友 Flow，一旦資料庫變動，UI 自動刷新
+        observeFriends()
+        // 2. 啟動時跑一次同步
         refreshAll()
+    }
+
+    private fun observeFriends() {
+        viewModelScope.launch {
+            repository.friendsFlow.collect { friends ->
+                _uiState.update { it.copy(friends = friends) }
+            }
+        }
     }
 
     fun refreshAll() {
         viewModelScope.launch {
-            // 1. 開始 Loading 並清除舊錯誤
             _uiState.update { it.copy(isLoading = true, error = null) }
 
-            // 2. 使用 zip 或單獨 fetch，這裡示範簡單的循序或並行處理
-            val friendsResult = repository.getFriendList()
+            // 🎯 同步核心：跑 Delta-Sync
+            val syncResult = syncRepository.performSync()
+            // 同時還是要抓一下 Pending Request (目前 Sync API 沒給這塊)
             val pendingResult = repository.getPendingRequests()
 
-            // 3. 統一處理結果
             _uiState.update { state ->
                 state.copy(
                     isLoading = false,
-                    friends = friendsResult.getOrDefault(state.friends),
                     pendingRequests = pendingResult.getOrDefault(state.pendingRequests),
-                    error = (friendsResult.exceptionOrNull() ?: pendingResult.exceptionOrNull())?.message
+                    error = (syncResult.exceptionOrNull() ?: pendingResult.exceptionOrNull())?.message
                 )
             }
         }

@@ -2,7 +2,10 @@ package com.example.login_v3.data.di
 
 import android.content.Context
 import androidx.room.Room
+import com.example.login_v3.data.local.dao.BlockedUserDao
+import com.example.login_v3.data.local.dao.FriendDao
 import com.example.login_v3.data.local.dao.MessageDao
+import com.example.login_v3.data.local.dao.RoomLocalDao
 import dagger.Module
 import dagger.Provides
 import dagger.hilt.InstallIn
@@ -31,7 +34,24 @@ object DatabaseModule {
     @Provides
     @Singleton
     fun provideMessageDao(database: AppDatabase): MessageDao {
-        // 💡 告訴 Hilt：當有人要 MessageDao 時，就從 database 裡面把 messageDao() 拿出來提供給他！
         return database.messageDao()
+    }
+
+    @Provides
+    @Singleton
+    fun provideFriendDao(database: AppDatabase): FriendDao {
+        return database.friendDao()
+    }
+
+    @Provides
+    @Singleton
+    fun provideRoomLocalDao(database: AppDatabase): RoomLocalDao {
+        return database.roomLocalDao()
+    }
+
+    @Provides
+    @Singleton
+    fun provideBlockedUserDao(database: AppDatabase): BlockedUserDao {
+        return database.blockedUserDao()
     }
 }
