@@ -1,45 +1,38 @@
-# Instant Media Loading Implementation Plan
+# Implementation Plan - Optimize ImageLoader Usage
 
-Optimize the loading of images and video thumbnails in the chat room to ensure they appear instantly without "blank" moments.
+Ensure all components, specifically `Loaded_setting_profile_page`, use the optimized global `ImageLoader` provided by `MyApplication` to prevent resource waste and improve performance.
 
 ## User Review Required
 
 > [!IMPORTANT]
-> I will be configuring a global `ImageLoader` for the entire app. This centralizes the logic for decoding videos, GIFs, and SVGs, which improves performance and reduces memory usage.
+> I will be removing local `ImageLoader` initializations in `Login_Page.kt` and potentially other files. These components will now rely on the singleton `ImageLoader` configured in `MyApplication.kt`.
 
 ## Proposed Changes
 
-### [Core Framework]
+### [Component Name] Global Image Loader Optimization
 
 #### [MODIFY] [MyApplication.kt](file:///home/eric/StudioProjects/Kotlin-Chat-Software/app/src/main/java/com/example/login_v3/MyApplication.kt)
-- Implement `ImageLoaderFactory` to provide a singleton `ImageLoader`.
-- Configure the `ImageLoader` with specialized decoders:
-    - `VideoFrameDecoder`: For video thumbnails.
-    - `GifDecoder` / `ImageDecoderDecoder`: For GIF support.
-    - `SvgDecoder`: For SVG support.
-- Set up optimized memory and disk caching.
+- Ensure the `ImageLoader` is correctly configured and accessible. (Already looks good, but will double-check).
 
-### [Data Model]
+#### [MODIFY] [Technologia.kt](file:///home/eric/StudioProjects/Kotlin-Chat-Software/app/src/main/java/com/example/login_v3/Technologia.kt)
+- Wrap the root composable with `CompositionLocalProvider(LocalImageLoader provides LocalContext.current.imageLoader)` to ensure all `AsyncImage` calls use the global singleton.
 
-#### [MODIFY] [DM_Basic.kt](file:///home/eric/StudioProjects/Kotlin-Chat-Software/app/src/main/java/com/example/login_v3/data/api/api_class/DM_Basic.kt)
-- Add extension properties to the `Message` class:
-    - `mediaUrl`: Centralized logic for calculating the full URL for attachments.
-    - `isImage`, `isVideo`, `isAudio`, `isGif`, `isFile`: Boolean helpers to simplify UI logic.
+#### [MODIFY] [Login_Page.kt](file:///home/eric/StudioProjects/Kotlin-Chat-Software/app/src/main/java/com/example/login_v3/auth/login/Login_Page.kt)
+- Refactor `SvgImage` to use `AsyncImage` with the global loader.
+- Remove redundant local `ImageLoader` builder.
 
-### [Chat Feature]
+#### [MODIFY] [setting_Profile_Page.kt](file:///home/eric/StudioProjects/Kotlin-Chat-Software/app/src/main/java/com/example/login_v3/home/setting/setting_detail_page/detail_UI/setting_Profile_Page.kt)
+- Ensure `AsyncImage` calls in `Loaded_setting_profile_page` are optimized.
+- (Optional) Use `LocalImageLoader.current` if we decide to provide it via `CompositionLocalProvider` for better control, though `MyApplication`'s factory is usually sufficient.
 
-#### [MODIFY] [Message_Messaging_ViewModel.kt](file:///home/eric/StudioProjects/Kotlin-Chat-Software/app/src/main/java/com/example/login_v3/home/Message/ViewModel/Detail/Message_Messaging_ViewModel.kt)
-- Implement a pre-fetching mechanism. When messages are loaded into the `uiState`, the ViewModel will trigger Coil to pre-download and cache the media URLs.
-
-#### [MODIFY] [Message_Messaging.kt](file:///home/eric/StudioProjects/Kotlin-Chat-Software/app/src/main/java/com/example/login_v3/home/Message/UI/Detail/Message_Messaging.kt)
-- Simplify `MessageRow` by using the new properties from the `Message` class.
-- Remove redundant local `ImageLoader` initializations.
-- Ensure `AsyncImage` uses the optimized global `ImageLoader`.
+#### [MODIFY] [Add_Account_Page.kt](file:///home/eric/StudioProjects/Kotlin-Chat-Software/app/src/main/java/com/example/login_v3/auth/SwitchAccount/Add_Account_Page.kt)
+- Remove unused `ImageLoader` and `SvgDecoder` imports.
 
 ## Verification Plan
 
+### Automated Tests
+- Build the project to ensure no compilation errors after removing redundant imports and loaders.
+
 ### Manual Verification
-- **Entering Room:** Enter a chat room with images/videos and verify they appear nearly instantly.
-- **Scrolling:** Scroll through long history and verify that media items are pre-loaded and don't show "blank" placeholders.
-- **Media Types:** Verify that GIFs play correctly, video thumbnails show up, and SVGs (if any) are rendered.
-- **Network Resilience:** Ensure the app handles slow network gracefully with placeholders (if pre-fetching is still in progress).
+- Verify that SVGs and GIFs still load correctly in the Login and Profile pages.
+- Monitor logcat for any `ImageLoader` initialization logs to ensure only one instance is created.
