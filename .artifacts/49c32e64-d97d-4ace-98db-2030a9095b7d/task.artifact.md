@@ -5,3 +5,5 @@
 - [x] Add `visible` parameter to `shimmer` modifier
 - [x] Stabilize click callbacks in `MessageMessaging` using `remember`
 - [x] Switch from `SubcomposeAsyncImage` to `AsyncImage` with background shimmer
+- [x] Implement smart caching for `MessageUiModel` in `ChatViewModel`
+- [x] Clean up redundant `Message` data class usage in `Message_Messaging.kt`

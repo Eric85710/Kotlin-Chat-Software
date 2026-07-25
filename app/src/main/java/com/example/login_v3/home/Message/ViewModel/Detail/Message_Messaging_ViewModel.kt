@@ -20,6 +20,7 @@ import com.example.login_v3.data.repository.dm.ChatRoomsRepository
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.launch
 import javax.inject.Inject
+import com.example.login_v3.data.api.api_class.Message
 import com.example.login_v3.home.Message.UI.Detail.MessageUiModel
 import com.example.login_v3.home.Message.UI.Detail.toUiModel
 import com.example.login_v3.data.api.api_class.fullContactAvatarUrl
@@ -103,6 +104,9 @@ class ChatViewModel @Inject constructor(
     savedStateHandle: SavedStateHandle
 ) : ViewModel() {
 
+    // 🚀 核心優化：穩定 UI Model 實例，避免無意義的重繪
+    private val uiModelCache = mutableMapOf<String, Pair<Message, MessageUiModel>>()
+
     // 🚀 核心優化：避免重複預載相同的 URL
     private val prefetchedUrls = mutableSetOf<String>()
 
@@ -127,7 +131,17 @@ class ChatViewModel @Inject constructor(
                 roomTitle = title,
                 partnerStatus = userStatus,
                 partnerAvatarUrl = avatar,
-                messages = messages.map { it.toUiModel() },
+                messages = messages.map { rawMessage ->
+                    // 🚀 核心：如果 raw 數據沒變，就沿用同一個 UI Model 實例
+                    val cached = uiModelCache[rawMessage.id]
+                    if (cached != null && cached.first == rawMessage) {
+                        cached.second
+                    } else {
+                        val uiModel = rawMessage.toUiModel()
+                        uiModelCache[rawMessage.id] = rawMessage to uiModel
+                        uiModel
+                    }
+                },
                 currentUserId = userId
             )
         }
@@ -469,6 +483,8 @@ class ChatViewModel @Inject constructor(
         stopProgressTracker()
         exoPlayer?.release()
         exoPlayer = null
+        uiModelCache.clear()
+        prefetchedUrls.clear()
     }
     // =====================================================================
 

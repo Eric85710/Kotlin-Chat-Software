@@ -55,7 +55,6 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
-import androidx.compose.ui.layout.ContentScale.Companion.Fit
 import androidx.compose.foundation.layout.aspectRatio
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
@@ -694,7 +693,6 @@ fun MessageList(
     }
 }
 
-private fun String?.isNullTabOrBlank(): Boolean = this == null || this.trim().isBlank()
 @Composable
 fun MessageRow(
     message: MessageUiModel,
