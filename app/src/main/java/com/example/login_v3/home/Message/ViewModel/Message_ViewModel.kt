@@ -49,9 +49,10 @@ class ChatRoomsViewModel @Inject constructor(
 }
 
 enum class UserStatus(val color: Color) {
-    ONLINE(Color.Green),
-    OFFLINE(Color.Gray),
-    UNKNOWN(Color.Transparent); // 或者是你原本設定的顏色
+    ONLINE(Color(0xFF4CAF50)),
+    BUSY(Color(0xFFF44336)),
+    OFFLINE(Color(0xFF9E9E9E)),
+    UNKNOWN(Color.Transparent); 
 
     companion object {
         fun fromString(status: String?): UserStatus {
@@ -60,9 +61,15 @@ enum class UserStatus(val color: Color) {
             // 使用 try-catch 或者是 safe valueOf 確保絕對不閃退
             return try {
                 // uppercase() 預防後端一下給大寫一下給小寫 (例如 "online" vs "ONLINE")
-                valueOf(status.uppercase())
-            } catch (e: IllegalArgumentException) {
-                UNKNOWN // 找不到對應的狀態就安全地回傳 UNKNOWN
+                val normalizedStatus = status.uppercase()
+                when (normalizedStatus) {
+                    "ONLINE" -> ONLINE
+                    "BUSY" -> BUSY
+                    "OFFLINE" -> OFFLINE
+                    else -> OFFLINE // 如果是其他自定義狀態，統一顯示為離線 (灰色)
+                }
+            } catch (e: Exception) {
+                OFFLINE
             }
         }
     }

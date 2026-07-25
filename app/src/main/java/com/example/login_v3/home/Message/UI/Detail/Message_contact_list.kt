@@ -88,6 +88,8 @@ import com.example.login_v3.home.Message.ViewModel.Detail.ContactListViewModel
 import com.example.login_v3.navigation.BottomBarViewModel
 import androidx.compose.ui.text.input.ImeAction
 import com.example.login_v3.data.api.api_class.fullSearchedAvatarUrl
+import com.example.login_v3.home.Message.UI.Detail.Message_Component.UserStatusDot
+import com.example.login_v3.home.Message.ViewModel.UserStatus
 
 
 @Composable
@@ -225,13 +227,6 @@ fun FriendRow(
     // 1. 定義展開狀態
     var isExpanded by remember { mutableStateOf(false) }
 
-    // 定義狀態顏色
-    val statusColor = when (friend.status?.lowercase()) {
-        "online" -> Color(0xFF4CAF50) // 鮮豔的綠色
-        "busy" -> Color(0xFFF44336)   // 紅色
-        else -> Color(0xFF9E9E9E)     // 灰色 (offline/away)
-    }
-
     Card(
         modifier = Modifier
             .fillMaxWidth()
@@ -308,20 +303,8 @@ fun FriendRow(
                     )
                 }
 
-                val isOnline = friend.status?.lowercase() == "online"
-                // 定義圓點顏色
-                val dotColor = if (isOnline) {
-                    Color(0xFF4CAF50) // 綠色 (Online)
-                } else {
-                    Color(0xFF9E9E9E) // 灰色 (Offline)
-                }
-
-                // 實作圓點
-                Box(
-                    modifier = Modifier
-                        .size(10.dp) // 圓點大小
-                        .clip(CircleShape)
-                        .background(dotColor)
+                UserStatusDot(
+                    status = UserStatus.fromString(friend.status)
                 )
 
                 Spacer(modifier = Modifier.width(10.dp))

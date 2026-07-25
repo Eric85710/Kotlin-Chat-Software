@@ -18,7 +18,7 @@ data class Friend(
 
     val username: String?, // 建議 username 也改可空
 
-    @Json(name = "display_name") // 移除 field: 試試看
+    @Json(name = "display_name")
     val displayName: String?,
 
     @Json(name = "avatar_url")
@@ -35,7 +35,7 @@ val Friend.fullFriendsAvatarUrl: Any
         return when {
             url.isBlank() -> R.drawable.avatar_v1
             url.startsWith("http") -> url
-            else -> "http://192.168.0.217$url"
+            else -> "https://tg.technologia-tw.com$url"
         }
     }
 

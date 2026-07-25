@@ -26,7 +26,7 @@ class FriendsRepository @Inject constructor(
                 username = entity.username,
                 displayName = entity.displayName,
                 avatarUrl = entity.avatarUrl,
-                status = entity.status,
+                status = entity.presenceStatus,
                 acceptedAt = null // Sync API 目前沒給這個，先設為 null
             )
         }
