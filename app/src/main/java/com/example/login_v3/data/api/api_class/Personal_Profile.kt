@@ -35,7 +35,7 @@ val UserProfile.fullAvatarUrl: Any
     } else if (avatar_url.startsWith("http")) {
         avatar_url // 已經是完整網址就直接用
     } else {
-        "http://192.168.0.217$avatar_url" // 否則補上 Base URL
+        "https://tg.technologia-tw.com$avatar_url" // 否則補上 Base URL
     }
 
 val UserProfile.fullBannerUrl: Any
@@ -44,5 +44,5 @@ val UserProfile.fullBannerUrl: Any
     } else if (banner_url.startsWith("http")) {
         banner_url // 已經是完整網址就直接用
     } else {
-        "http://192.168.0.217$banner_url" // 否則補上 Base URL
+        "https://tg.technologia-tw.com$banner_url" // 否則補上 Base URL
     }
