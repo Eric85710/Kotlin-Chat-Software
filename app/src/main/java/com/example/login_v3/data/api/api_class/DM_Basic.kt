@@ -121,8 +121,10 @@ data class Message(
     val status: MessageStatus = MessageStatus.SUCCESS,
 
     @kotlin.jvm.Transient
-    var callLogInfo: CallLogInfo? = null
+    var aspectRatio: Float? = null,
 
+    @kotlin.jvm.Transient
+    var callLogInfo: CallLogInfo? = null
 ) {
     init {
         if (type == "system" || type.startsWith("call")) {
@@ -182,7 +184,8 @@ data class WebSocketMessagePayload(
     @Json(name = "is_edited") val isEdited: Boolean,
     @Json(name = "is_deleted") val isDeleted: Boolean,
     @Json(name = "reply_to_id") val replyToId: String? = null,
-    @Json(name = "reactions") val reactions: List<Reaction>? = emptyList()
+    @Json(name = "reactions") val reactions: List<Reaction>? = emptyList(),
+    @Json(name = "attachment") val attachment: Attachment? = null
 )
 
 //send message

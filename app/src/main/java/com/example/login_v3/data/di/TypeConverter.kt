@@ -7,6 +7,7 @@ import com.squareup.moshi.kotlin.reflect.KotlinJsonAdapterFactory // 👈 確保
 import com.example.login_v3.data.api.api_class.LastMessage
 import com.example.login_v3.data.api.api_class.Partner
 import com.example.login_v3.data.api.api_class.Reaction
+import com.example.login_v3.data.api.api_class.Attachment
 
 class RoomConverters {
     private val moshi = Moshi.Builder()
@@ -17,6 +18,7 @@ class RoomConverters {
     private val reactionAdapter = moshi.adapter<List<Reaction>>(reactionListType)
     private val partnerAdapter = moshi.adapter(Partner::class.java)
     private val lastMessageAdapter = moshi.adapter(LastMessage::class.java)
+    private val attachmentAdapter = moshi.adapter(Attachment::class.java)
 
     @TypeConverter
     fun fromReactionList(reactions: List<Reaction>?): String? {
@@ -58,6 +60,21 @@ class RoomConverters {
         if (json.isNullOrBlank()) return null
         return try {
             lastMessageAdapter.fromJson(json)
+        } catch (e: Exception) {
+            null
+        }
+    }
+
+    @TypeConverter
+    fun fromAttachment(attachment: Attachment?): String? {
+        return attachmentAdapter.toJson(attachment)
+    }
+
+    @TypeConverter
+    fun toAttachment(json: String?): Attachment? {
+        if (json.isNullOrBlank()) return null
+        return try {
+            attachmentAdapter.fromJson(json)
         } catch (e: Exception) {
             null
         }

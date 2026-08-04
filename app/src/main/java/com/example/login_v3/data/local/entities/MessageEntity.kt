@@ -3,6 +3,7 @@ package com.example.login_v3.data.local.entities
 import androidx.room.Entity
 import androidx.room.PrimaryKey
 import com.example.login_v3.data.api.api_class.Reaction
+import com.example.login_v3.data.api.api_class.Attachment
 
 enum class MessageStatus { SENDING, SUCCESS, FAILED }
 
@@ -18,5 +19,7 @@ data class MessageEntity(
     val isDeleted: Boolean,
     val replyToId: String?,
     val status: MessageStatus,
-    val reactions: List<Reaction>?
+    val reactions: List<Reaction>?,
+    val attachment: Attachment? = null,
+    val aspectRatio: Float? = null
 )

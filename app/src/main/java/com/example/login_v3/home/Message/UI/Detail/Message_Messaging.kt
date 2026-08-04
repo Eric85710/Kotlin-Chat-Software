@@ -107,6 +107,9 @@ import com.example.login_v3.home.Message.UI.Detail.Message_Component.MessageAtta
 import com.example.login_v3.home.Message.UI.Detail.Message_Component.UserStatusDot
 import com.example.login_v3.home.Message.UI.Detail.Message_Component.VideoLightbox
 import com.example.login_v3.home.Message.ViewModel.Detail.DownloadStatus
+import com.example.login_v3.utils.BlurHashDecoder
+import androidx.compose.ui.graphics.asImageBitmap
+import androidx.compose.ui.graphics.painter.BitmapPainter
 
 
 //bottom bar state
@@ -810,12 +813,23 @@ private fun RepliedMessagePreview(
                 .height(22.dp)
                 .background(if (isMe) Color(0xFF4CAF50) else Color(0xFF78909C))
         )
-        Column(modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp)) {
+        Column(modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp).weight(1f)) {
             Text(
-                text = if (replied.attachment?.mimeType?.startsWith("image/") == true) "[圖片]" else replied.content ?: "",
+                text = if (replied.isImage) "[圖片]" else if (replied.isVideo) "[影片]" else replied.content ?: "",
                 style = MaterialTheme.typography.bodySmall.copy(fontSize = 14.sp),
                 maxLines = 1,
                 overflow = TextOverflow.Ellipsis
+            )
+        }
+
+        if (replied.isImage || replied.isVideo) {
+            AsyncImage(
+                model = replied.thumbnailUrl ?: replied.mediaUrl,
+                contentDescription = null,
+                contentScale = ContentScale.Crop,
+                modifier = Modifier
+                    .size(32.dp)
+                    .clip(RoundedCornerShape(4.dp))
             )
         }
     }
@@ -845,27 +859,45 @@ private fun ImageMessageContent(
 
         var isImageLoading by remember { mutableStateOf(true) }
 
+        // BlurHash Placeholder
+        val blurhashPainter = remember(message.attachment?.blurhash) {
+            message.attachment?.blurhash?.let { hash ->
+                BlurHashDecoder.decode(hash, 32, 32)?.let { bitmap ->
+                    BitmapPainter(bitmap.asImageBitmap())
+                }
+            }
+        }
+
         Box(
             modifier = Modifier
                 .padding(top = 4.dp)
-                .widthIn(max = 240.dp)
+                .sizeIn(maxWidth = 240.dp, maxHeight = 320.dp) // 🎯 限制最大尺寸
                 .then(
                     if (message.aspectRatio != null) {
                         Modifier.aspectRatio(message.aspectRatio)
                     } else {
-                        Modifier.height(180.dp)
+                        Modifier.height(180.dp).width(240.dp)
                     }
                 )
                 .clip(RoundedCornerShape(12.dp))
                 .background(Color(0xFFF5F5F5))
-                .shimmer(visible = isImageLoading)
+                .shimmer(visible = isImageLoading && blurhashPainter == null)
         ) {
+            // 如果有 BlurHash，先顯示它
+            blurhashPainter?.let {
+                androidx.compose.foundation.Image(
+                    painter = it,
+                    contentDescription = null,
+                    contentScale = ContentScale.Crop,
+                    modifier = Modifier.fillMaxSize()
+                )
+            }
+
             AsyncImage(
-                model = message.mediaUrl,
+                model = message.thumbnailUrl ?: message.mediaUrl,
                 contentDescription = if (message.isGif) "動態 GIF" else "聊天圖片",
-                contentScale = ContentScale.Fit,
+                contentScale = ContentScale.Crop, // 🎯 改為 Crop 確保填滿
                 onLoading = { isImageLoading = true },
-                onSuccess = { isImageLoading = false },
                 onError = { errorState ->
                     isImageLoading = false
                     Log.e("ChatImageError", "原因: ${errorState.result.throwable}")
@@ -900,16 +932,25 @@ private fun VideoMessageContent(
 
         var isVideoThumbLoading by remember { mutableStateOf(true) }
 
+        // BlurHash Placeholder
+        val blurhashPainter = remember(message.attachment?.blurhash) {
+            message.attachment?.blurhash?.let { hash ->
+                BlurHashDecoder.decode(hash, 32, 32)?.let { bitmap ->
+                    BitmapPainter(bitmap.asImageBitmap())
+                }
+            }
+        }
+
         // 影片佈局
         Box(
             modifier = Modifier
                 .padding(top = 4.dp)
-                .width(240.dp)
+                .sizeIn(maxWidth = 240.dp, maxHeight = 320.dp) // 🎯 限制最大尺寸
                 .then(
                     if (message.aspectRatio != null) {
                         Modifier.aspectRatio(message.aspectRatio)
                     } else {
-                        Modifier.height(160.dp)
+                        Modifier.height(160.dp).width(240.dp)
                     }
                 )
                 .clip(RoundedCornerShape(12.dp))
@@ -919,11 +960,21 @@ private fun VideoMessageContent(
                     color = Color.LightGray.copy(alpha = 0.4f),
                     shape = RoundedCornerShape(12.dp)
                 )
-                .shimmer(visible = isVideoThumbLoading),
+                .shimmer(visible = isVideoThumbLoading && blurhashPainter == null),
             contentAlignment = Alignment.Center
         ) {
+            // 如果有 BlurHash，先顯示它
+            blurhashPainter?.let {
+                androidx.compose.foundation.Image(
+                    painter = it,
+                    contentDescription = null,
+                    contentScale = ContentScale.Crop,
+                    modifier = Modifier.fillMaxSize()
+                )
+            }
+
             AsyncImage(
-                model = message.mediaUrl,
+                model = message.thumbnailUrl ?: message.mediaUrl,
                 contentDescription = "影片預覽",
                 contentScale = ContentScale.Crop,
                 onLoading = { isVideoThumbLoading = true },

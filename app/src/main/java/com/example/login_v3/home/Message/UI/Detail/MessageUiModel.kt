@@ -28,10 +28,21 @@ data class MessageUiModel(
     val isAudio: Boolean,
     val isFile: Boolean,
     val mediaUrl: String,
+    val thumbnailUrl: String? = null,
     val aspectRatio: Float? = null
 )
 
 fun Message.toUiModel(): MessageUiModel {
+    val finalAspectRatio = aspectRatio ?: attachment?.let {
+        if (it.width > 0 && it.height > 0) it.width.toFloat() / it.height.toFloat() else null
+    }
+
+    val baseUrl = "https://tg.technologia-tw.com"
+    val finalThumbnailUrl = attachment?.thumbnailUrl?.let { raw ->
+        if (raw.startsWith("http")) raw
+        else "$baseUrl${if (raw.startsWith("/")) "" else "/"}$raw"
+    }
+
     return MessageUiModel(
         id = id,
         senderId = senderId,
@@ -52,6 +63,7 @@ fun Message.toUiModel(): MessageUiModel {
         isAudio = isAudio,
         isFile = isFile,
         mediaUrl = mediaUrl,
-        aspectRatio = null // Future: parse from metadata if available
+        thumbnailUrl = finalThumbnailUrl,
+        aspectRatio = finalAspectRatio
     )
 }

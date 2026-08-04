@@ -115,7 +115,9 @@ class ChatRoomsRepository @Inject constructor(
                             isDeleted = payload.isDeleted,
                             replyToId = payload.replyToId,
                             status = MessageStatus.SUCCESS,
-                            reactions = payload.reactions
+                            reactions = payload.reactions,
+                            attachment = payload.attachment,
+                            aspectRatio = payload.attachment?.let { if (it.width > 0 && it.height > 0) it.width.toFloat() / it.height.toFloat() else null }
                         )
 
                         // 3. 寫入本地資料庫
@@ -185,8 +187,11 @@ class ChatRoomsRepository @Inject constructor(
                     isDeleted = entity.isDeleted,
                     replyToId = entity.replyToId,
                     status = entity.status,          // 👈 把 Room 儲存的狀態倒出來給 UI
-                    reactions = entity.reactions
-                )
+                    reactions = entity.reactions,
+                    attachment = entity.attachment
+                ).apply {
+                    aspectRatio = entity.aspectRatio
+                }
             }
 
             // 你原本的處理回覆邏輯
@@ -232,7 +237,9 @@ class ChatRoomsRepository @Inject constructor(
                             isDeleted = networkMessage.isDeleted,
                             replyToId = networkMessage.replyToId,
                             status = MessageStatus.SUCCESS,
-                            reactions = networkMessage.reactions
+                            reactions = networkMessage.reactions,
+                            attachment = networkMessage.attachment,
+                            aspectRatio = networkMessage.attachment?.let { if (it.width > 0 && it.height > 0) it.width.toFloat() / it.height.toFloat() else null }
                         )
                     }
 
@@ -300,7 +307,9 @@ class ChatRoomsRepository @Inject constructor(
                         isDeleted = body.isDeleted,
                         replyToId = body.replyToId,
                         status = MessageStatus.SUCCESS, // 👈 狀態轉為成功
-                        reactions = body.reactions
+                        reactions = body.reactions,
+                        attachment = body.attachment,
+                        aspectRatio = body.attachment?.let { if (it.width > 0 && it.height > 0) it.width.toFloat() / it.height.toFloat() else null }
                     )
 
                     // 🎯 2. 【關鍵大優化】利用剛寫好的 Transaction 一口氣替換！
