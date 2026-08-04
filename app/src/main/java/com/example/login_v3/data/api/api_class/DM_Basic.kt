@@ -71,7 +71,13 @@ val Partner.fullContactAvatarUrl: Any
 data class Attachment(
     @Json(name = "filename") val filename: String,
     @Json(name = "mime_type") val mimeType: String,
-    @Json(name = "size") val size: Long
+    @Json(name = "size") val size: Long,
+    @Json(name = "blurhash") val blurhash: String? = null,
+    @Json(name = "has_thumbnail") val hasThumbnail: Boolean = false,
+    @Json(name = "width") val width: Int = 0,
+    @Json(name = "height") val height: Int = 0,
+    @Json(name = "thumbnail_url") val thumbnailUrl: String? = null,
+    @Json(name = "thumbnail_ext") val thumbnailExt: String? = null
 )
 
 @JsonClass(generateAdapter = true)
