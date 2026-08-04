@@ -535,6 +535,15 @@ fun MessageMessaging(
 
                             val onRowClickStable = remember(viewModel) {
                                 { message: MessageUiModel ->
+                                    // Debug Logs
+                                    Log.d("ChatDebug", "--- Clicked Message Content ---")
+                                    Log.d("ChatDebug", "Message ID: ${message.id}")
+                                    Log.d("ChatDebug", "Type: ${message.type}")
+                                    Log.d("ChatDebug", "Raw Content: ${message.content}")
+                                    Log.d("ChatDebug", "Attachment Filename: ${message.attachment?.filename}")
+                                    Log.d("ChatDebug", "Thumbnail URL: ${message.thumbnailUrl}")
+                                    Log.d("ChatDebug", "Final Media URL (OG): ${message.mediaUrl}")
+
                                     //is image
                                     val isImage = message.isImage
                                     //is video

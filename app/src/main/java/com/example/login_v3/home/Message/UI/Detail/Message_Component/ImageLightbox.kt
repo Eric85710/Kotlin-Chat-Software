@@ -64,11 +64,16 @@ fun ImageLightbox(
                 .clickable(enabled = scale == 1f) { onDismiss() },
             contentAlignment = Alignment.Center
         ) {
-            // 1. 底層：大圖檢視元件（保持不變）
             AsyncImage(
                 model = imageUrl,
                 contentDescription = "放大檢視圖片",
                 contentScale = ContentScale.Fit,
+                onLoading = { android.util.Log.d("LightboxDebug", "Loading original image: $imageUrl") },
+                onSuccess = { android.util.Log.d("LightboxDebug", "Successfully loaded original image") },
+                onError = { error ->
+                    android.util.Log.e("LightboxDebug", "Failed to load original image: ${error.result.throwable.message}")
+                    error.result.throwable.printStackTrace()
+                },
                 modifier = Modifier
                     .fillMaxWidth()
                     .fillMaxHeight(0.85f)
