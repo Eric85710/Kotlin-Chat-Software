@@ -85,6 +85,12 @@ data class AudioItem(
     val duration: Long
 )
 
+// 影片資料結構
+data class VideoItem(
+    val uri: Uri,
+    val duration: Long
+)
+
 data class AttachmentOption(
     val title: String,
     val icon: ImageVector,
@@ -108,7 +114,7 @@ fun MessageAttachmentBar(
 
     // 資料狀態
     val localImages = remember { mutableStateListOf<Uri>() }
-    val localVideos = remember { mutableStateListOf<Uri>() }
+    val localVideos = remember { mutableStateListOf<VideoItem>() }
     val localAudios = remember { mutableStateListOf<AudioItem>() }
 
     var refreshTrigger by remember { mutableStateOf(0) }
@@ -167,21 +173,28 @@ fun MessageAttachmentBar(
 
     // 🎯 新增：讀取影片的 Effect
     LaunchedEffect(refreshTrigger) {
-        val videoUris = mutableListOf<Uri>()
-        val projection = arrayOf(MediaStore.Video.Media._ID, MediaStore.Video.Media.DATE_TAKEN)
+        val videoItems = mutableListOf<VideoItem>()
+        val projection = arrayOf(
+            MediaStore.Video.Media._ID,
+            MediaStore.Video.Media.DATE_TAKEN,
+            MediaStore.Video.Media.DURATION
+        )
         val sortOrder = "${MediaStore.Video.Media.DATE_TAKEN} DESC"
         try {
             context.contentResolver.query(MediaStore.Video.Media.EXTERNAL_CONTENT_URI, projection, null, null, sortOrder)?.use { cursor ->
                 val idColumn = cursor.getColumnIndexOrThrow(MediaStore.Video.Media._ID)
+                val durationColumn = cursor.getColumnIndexOrThrow(MediaStore.Video.Media.DURATION)
                 var count = 0
                 while (cursor.moveToNext() && count < 24) {
                     val id = cursor.getLong(idColumn)
-                    videoUris.add(ContentUris.withAppendedId(MediaStore.Video.Media.EXTERNAL_CONTENT_URI, id))
+                    val duration = cursor.getLong(durationColumn)
+                    val uri = ContentUris.withAppendedId(MediaStore.Video.Media.EXTERNAL_CONTENT_URI, id)
+                    videoItems.add(VideoItem(uri, duration))
                     count++
                 }
             }
             localVideos.clear()
-            localVideos.addAll(videoUris)
+            localVideos.addAll(videoItems)
         } catch (e: SecurityException) {
             localVideos.clear()
         }
@@ -358,15 +371,15 @@ fun MessageAttachmentBar(
                                         }
                                     }
 
-                                    items(localVideos) { uri ->
+                                    items(localVideos) { video ->
                                         Box(
                                             modifier = Modifier
                                                 .aspectRatio(1f)
                                                 .clip(RoundedCornerShape(12.dp))
-                                                .clickable { onVideoSelected(uri) }
+                                                .clickable { onVideoSelected(video.uri) }
                                         ) {
                                             AsyncImage(
-                                                model = uri,
+                                                model = video.uri,
                                                 contentDescription = "影片預覽",
                                                 modifier = Modifier.fillMaxSize(),
                                                 contentScale = androidx.compose.ui.layout.ContentScale.Crop
@@ -380,6 +393,21 @@ fun MessageAttachmentBar(
                                                     .size(32.dp)
                                                     .align(Alignment.Center)
                                             )
+
+                                            // 🎯 新增：顯示影片時長
+                                            Box(
+                                                modifier = Modifier
+                                                    .align(Alignment.BottomEnd)
+                                                    .padding(4.dp)
+                                                    .background(Color.Black.copy(alpha = 0.6f), RoundedCornerShape(4.dp))
+                                                    .padding(horizontal = 4.dp, vertical = 2.dp)
+                                            ) {
+                                                Text(
+                                                    text = formatDuration(video.duration),
+                                                    color = Color.White,
+                                                    style = MaterialTheme.typography.labelSmall
+                                                )
+                                            }
                                         }
                                     }
                                 }
