@@ -56,6 +56,8 @@ import androidx.compose.material.icons.filled.ContactPage
 import androidx.compose.material.icons.filled.Description
 import androidx.compose.material.icons.filled.Image
 import androidx.compose.material.icons.filled.LocationOn
+import androidx.compose.material.icons.filled.PlayArrow
+import androidx.compose.material.icons.filled.VideoCall
 import androidx.compose.material3.Divider
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.mutableStateListOf
@@ -69,6 +71,7 @@ import androidx.compose.ui.text.style.TextOverflow
 // 1. 定義目前支援的選單類型
 enum class AttachmentType(val title: String) {
     MEDIA("Media"),
+    VIDEO("Video"),
     AUDIO("Audio"),
     DOCUMENT("Document"),
     LOCATION("Location"),
@@ -91,6 +94,7 @@ data class AttachmentOption(
 @Composable
 fun MessageAttachmentBar(
     onImageSelected: (Uri) -> Unit,
+    onVideoSelected: (Uri) -> Unit,
     onAudioSelected: (Uri) -> Unit, // 🎯 新增：音訊選取回呼
     onCancel: () -> Unit,
     onDocumentClick: () -> Unit = {},
@@ -104,6 +108,7 @@ fun MessageAttachmentBar(
 
     // 資料狀態
     val localImages = remember { mutableStateListOf<Uri>() }
+    val localVideos = remember { mutableStateListOf<Uri>() }
     val localAudios = remember { mutableStateListOf<AudioItem>() }
 
     var refreshTrigger by remember { mutableStateOf(0) }
@@ -112,6 +117,7 @@ fun MessageAttachmentBar(
     val attachmentOptions = remember {
         listOf(
             AttachmentOption("圖片", Icons.Default.Image, { currentType = AttachmentType.MEDIA }),
+            AttachmentOption("影片", Icons.Default.VideoCall, { currentType = AttachmentType.VIDEO }),
             AttachmentOption("音訊", Icons.Default.Audiotrack, { currentType = AttachmentType.AUDIO }),
             AttachmentOption("文件", Icons.Default.Description, { currentType = AttachmentType.DOCUMENT; onDocumentClick() }),
             AttachmentOption("位置", Icons.Default.LocationOn, { currentType = AttachmentType.LOCATION; onLocationClick() }),
@@ -119,12 +125,14 @@ fun MessageAttachmentBar(
         )
     }
 
-    // Android 14+ 圖片部分權限檢查
+    // Android 14+ 媒體部分權限檢查
     val isPartialAccess by remember(refreshTrigger) {
         derivedStateOf {
             if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.UPSIDE_DOWN_CAKE) {
-                ContextCompat.checkSelfPermission(context, Manifest.permission.READ_MEDIA_VISUAL_USER_SELECTED) == PackageManager.PERMISSION_GRANTED &&
-                        ContextCompat.checkSelfPermission(context, Manifest.permission.READ_MEDIA_IMAGES) != PackageManager.PERMISSION_GRANTED
+                val partial = ContextCompat.checkSelfPermission(context, Manifest.permission.READ_MEDIA_VISUAL_USER_SELECTED) == PackageManager.PERMISSION_GRANTED
+                val imageFull = ContextCompat.checkSelfPermission(context, Manifest.permission.READ_MEDIA_IMAGES) == PackageManager.PERMISSION_GRANTED
+                val videoFull = ContextCompat.checkSelfPermission(context, Manifest.permission.READ_MEDIA_VIDEO) == PackageManager.PERMISSION_GRANTED
+                partial && (!imageFull || !videoFull)
             } else {
                 false
             }
@@ -154,6 +162,28 @@ fun MessageAttachmentBar(
             localImages.addAll(imageUris)
         } catch (e: SecurityException) {
             localImages.clear()
+        }
+    }
+
+    // 🎯 新增：讀取影片的 Effect
+    LaunchedEffect(refreshTrigger) {
+        val videoUris = mutableListOf<Uri>()
+        val projection = arrayOf(MediaStore.Video.Media._ID, MediaStore.Video.Media.DATE_TAKEN)
+        val sortOrder = "${MediaStore.Video.Media.DATE_TAKEN} DESC"
+        try {
+            context.contentResolver.query(MediaStore.Video.Media.EXTERNAL_CONTENT_URI, projection, null, null, sortOrder)?.use { cursor ->
+                val idColumn = cursor.getColumnIndexOrThrow(MediaStore.Video.Media._ID)
+                var count = 0
+                while (cursor.moveToNext() && count < 24) {
+                    val id = cursor.getLong(idColumn)
+                    videoUris.add(ContentUris.withAppendedId(MediaStore.Video.Media.EXTERNAL_CONTENT_URI, id))
+                    count++
+                }
+            }
+            localVideos.clear()
+            localVideos.addAll(videoUris)
+        } catch (e: SecurityException) {
+            localVideos.clear()
         }
     }
 
@@ -295,6 +325,67 @@ fun MessageAttachmentBar(
                             }
                         }
 
+                        AttachmentType.VIDEO -> {
+                            // 影片網格邏輯
+                            if (localVideos.isEmpty() && !isPartialAccess) {
+                                EmptyStateView("無最近影片檔案")
+                            } else {
+                                LazyVerticalGrid(
+                                    columns = GridCells.Fixed(3),
+                                    modifier = Modifier.fillMaxSize(),
+                                    horizontalArrangement = Arrangement.spacedBy(8.dp),
+                                    verticalArrangement = Arrangement.spacedBy(8.dp)
+                                ) {
+                                    if (isPartialAccess) {
+                                        item {
+                                            Box(
+                                                modifier = Modifier
+                                                    .aspectRatio(1f)
+                                                    .clip(RoundedCornerShape(12.dp))
+                                                    .background(Color.White.copy(alpha = 0.1f))
+                                                    .clickable {
+                                                        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.UPSIDE_DOWN_CAKE) {
+                                                            permissionLauncher.launch(Manifest.permission.READ_MEDIA_VIDEO)
+                                                        }
+                                                    },
+                                                contentAlignment = Alignment.Center
+                                            ) {
+                                                Column(horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                                                    Icon(imageVector = Icons.Default.Add, contentDescription = "管理影片", tint = Color.White)
+                                                    Text("管理檔案", color = Color.White, style = MaterialTheme.typography.labelSmall)
+                                                }
+                                            }
+                                        }
+                                    }
+
+                                    items(localVideos) { uri ->
+                                        Box(
+                                            modifier = Modifier
+                                                .aspectRatio(1f)
+                                                .clip(RoundedCornerShape(12.dp))
+                                                .clickable { onVideoSelected(uri) }
+                                        ) {
+                                            AsyncImage(
+                                                model = uri,
+                                                contentDescription = "影片預覽",
+                                                modifier = Modifier.fillMaxSize(),
+                                                contentScale = androidx.compose.ui.layout.ContentScale.Crop
+                                            )
+                                            // 影片圖示疊加
+                                            Icon(
+                                                imageVector = Icons.Default.PlayArrow,
+                                                contentDescription = null,
+                                                tint = Color.White.copy(alpha = 0.8f),
+                                                modifier = Modifier
+                                                    .size(32.dp)
+                                                    .align(Alignment.Center)
+                                            )
+                                        }
+                                    }
+                                }
+                            }
+                        }
+
                         AttachmentType.AUDIO -> {
                             // 🎯 5. 新增：音訊渲染 UI (音訊檔名較長，改用垂直捲動清單比網格好看)
                             if (localAudios.isEmpty()) {
@@ -360,6 +451,7 @@ fun MessageAttachmentBar(
                     // 🎯 6. 稍微優化：如果選中當前項目，給予特別的高亮白底
                     val isSelected = option.title == when(currentType) {
                         AttachmentType.MEDIA -> "圖片"
+                        AttachmentType.VIDEO -> "影片"
                         AttachmentType.AUDIO -> "音訊"
                         AttachmentType.DOCUMENT -> "文件"
                         AttachmentType.LOCATION -> "位置"

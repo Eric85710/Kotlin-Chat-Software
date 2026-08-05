@@ -195,6 +195,7 @@ fun MessageMessaging(
     val requiredPermissions = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
         arrayOf(
             Manifest.permission.READ_MEDIA_IMAGES,
+            Manifest.permission.READ_MEDIA_VIDEO,
             Manifest.permission.READ_MEDIA_AUDIO
         )
     } else {
@@ -207,11 +208,12 @@ fun MessageMessaging(
             // 【Android 14+】
             // 音訊必須要過
             val audioGranted = ContextCompat.checkSelfPermission(context, Manifest.permission.READ_MEDIA_AUDIO) == PackageManager.PERMISSION_GRANTED
-            // 圖片不管是「全過(READ_MEDIA_IMAGES)」還是「部分過(READ_MEDIA_VISUAL_USER_SELECTED)」都可以算過！
+            // 圖片/影片不管是「全過」還是「部分過」都可以算過！
             val imageGranted = ContextCompat.checkSelfPermission(context, Manifest.permission.READ_MEDIA_IMAGES) == PackageManager.PERMISSION_GRANTED
-            val partialImageGranted = ContextCompat.checkSelfPermission(context, Manifest.permission.READ_MEDIA_VISUAL_USER_SELECTED) == PackageManager.PERMISSION_GRANTED
+            val videoGranted = ContextCompat.checkSelfPermission(context, Manifest.permission.READ_MEDIA_VIDEO) == PackageManager.PERMISSION_GRANTED
+            val partialVisualGranted = ContextCompat.checkSelfPermission(context, Manifest.permission.READ_MEDIA_VISUAL_USER_SELECTED) == PackageManager.PERMISSION_GRANTED
 
-            audioGranted && (imageGranted || partialImageGranted)
+            audioGranted && (imageGranted || videoGranted || partialVisualGranted)
         } else {
             // 【Android 13 及以下】
             requiredPermissions.all { ContextCompat.checkSelfPermission(context, it) == PackageManager.PERMISSION_GRANTED }
@@ -491,6 +493,11 @@ fun MessageMessaging(
                                     // 🎯 使用者在預覽列中點選了某張圖片，直接觸發上傳
                                     viewModel.uploadAttachment(roomId, uri)
                                     // 上傳後自動退回輸入框
+                                    localBottomBarState = null
+                                },
+                                onVideoSelected = { uri ->
+                                    // 🎯 使用者選取了影片，觸發上傳
+                                    viewModel.uploadAttachment(roomId, uri)
                                     localBottomBarState = null
                                 },
                                 onAudioSelected = { uri ->
