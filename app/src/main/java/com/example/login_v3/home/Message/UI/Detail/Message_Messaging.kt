@@ -255,12 +255,7 @@ fun MessageMessaging(
             modifier = Modifier
                 .fillMaxSize()
                 .background(
-                    brush = Brush.verticalGradient(
-                        colors = listOf
-                            (Color(0xFFDA7029),
-                            Color(0xFF777777),
-                            Color(0xFFB34800))
-                    )
+                    color = MaterialTheme.colorScheme.background
                 ),
             containerColor = Color.Transparent,
             topBar = {
@@ -290,11 +285,6 @@ fun MessageMessaging(
                                 .clip(topBarShape)
                                 .background(
                                     color = MaterialTheme.colorScheme.primary,
-                                    shape = topBarShape
-                                )
-                                .border(
-                                    width = 0.5.dp,
-                                    color = Color.White.copy(alpha = 0.4f),
                                     shape = topBarShape
                                 )
                         ) {
@@ -351,11 +341,6 @@ fun MessageMessaging(
                                     color = MaterialTheme.colorScheme.primary,
                                     shape = topBarShape
                                 )
-                                .border(
-                                    width = 0.5.dp,
-                                    color = Color.White.copy(alpha = 0.4f),
-                                    shape = topBarShape
-                                )
                         ) {
                             IconButton(
                                 onClick = {
@@ -383,11 +368,6 @@ fun MessageMessaging(
                                 .height(58.dp)
                                 .background(
                                     color = MaterialTheme.colorScheme.primary,
-                                    shape = topBarShape
-                                )
-                                .border(
-                                    width = 0.5.dp,
-                                    color = Color.White.copy(alpha = 0.4f),
                                     shape = topBarShape
                                 )
                         ) {

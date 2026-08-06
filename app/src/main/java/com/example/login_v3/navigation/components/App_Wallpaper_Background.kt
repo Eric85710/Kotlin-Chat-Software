@@ -3,6 +3,7 @@ package com.example.login_v3.navigation.components
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
@@ -41,15 +42,7 @@ fun AppWallpaperBackground(
             Box(
                 modifier = Modifier
                     .fillMaxSize()
-                    .background(
-                        brush = Brush.verticalGradient(
-                            colors = listOf(
-                                Color(0xFFDA7029),
-                                Color(0xFF777777),
-                                Color(0xFFB34800)
-                            )
-                        )
-                    )
+                    .background(color = MaterialTheme.colorScheme.background)
             )
         }
 

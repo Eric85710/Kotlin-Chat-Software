@@ -228,28 +228,14 @@ fun RoomItem(
                     rememberSharedContentState(key = "container_${room.roomId}"),
                     animatedVisibilityScope = animatedVisibilityScope
                 )
+                //card color
+                .background(
+                    color = MaterialTheme.colorScheme.primary,
+                    RoundedCornerShape(16.dp)
+                )
                 // 2. 再綁定點擊事件
                 .clickable { onClick(room.roomId, room.displayTitle) }
         ){
-            //glass effect
-            Box(
-                modifier = Modifier
-                    .matchParentSize()
-                    .blur(10.dp)
-            )
-            Box(
-                modifier = Modifier
-                    .matchParentSize()
-                    .background(
-                        color = MaterialTheme.colorScheme.primary,
-                        RoundedCornerShape(16.dp)
-                    )
-                    .border(
-                        1.dp,
-                        Color.White.copy(alpha = 0.3f),
-                        RoundedCornerShape(16.dp)
-                    )
-            )
 
 
             Row(
