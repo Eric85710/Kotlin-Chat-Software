@@ -54,6 +54,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.SolidColor
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.foundation.layout.aspectRatio
 import androidx.compose.ui.platform.LocalContext
@@ -705,17 +706,23 @@ fun MessageRow(
     onReactionClick: (MessageUiModel, String) -> Unit,
     onRowClick: (MessageUiModel) -> Unit,
 ) {
-    val finalBubbleColor = remember(message.status, isHighlight, message.callLogInfo) {
-        val baseColor = when {
+    val (bubbleBrush, bubbleAlpha) = remember(message.status, isHighlight, message.callLogInfo, isMe) {
+        val alpha = if (message.status == MessageStatus.SENDING) 0.75f else 1.0f
+        val brush = when {
             message.callLogInfo != null -> {
-                if (message.callLogInfo.type == "call_missed") Color(0xFFFCE8E6) else Color(0xFFF1F3F4)
+                SolidColor(if (message.callLogInfo.type == "call_missed") Color(0xFFFCE8E6) else Color(0xFFF1F3F4))
             }
-            isMe && isHighlight -> Color(0xFFB4E197)
-            isMe -> Color(0xFFDCF8C6)
-            !isMe && isHighlight -> Color(0xFFCFD8DC)
-            else -> Color(0xFFECEFF1)
+            isMe -> {
+                if (isHighlight) {
+                    Brush.linearGradient(listOf(Color(0xFFFF8F00), Color(0xFFFFA000)))
+                } else {
+                    Brush.linearGradient(listOf(Color(0xFFFF8F00), Color(0xFFFFA000)))
+                }
+            }
+            !isMe && isHighlight -> SolidColor(Color(0xFFCFD8DC))
+            else -> SolidColor(Color(0xFFECEFF1))
         }
-        if (message.status == MessageStatus.SENDING) baseColor.copy(alpha = 0.75f) else baseColor
+        brush to alpha
     }
 
     Row(
@@ -761,16 +768,16 @@ fun MessageRow(
                             VideoMessageContent(message, isMe, partnerDisplayName, currentUserId, onReplyClick, onRowClick)
                         }
                         message.isAudio -> {
-                            AudioMessageContent(message, isMe, partnerDisplayName, currentUserId, finalBubbleColor, viewModel, onReplyClick)
+                            AudioMessageContent(message, isMe, partnerDisplayName, currentUserId, bubbleBrush, bubbleAlpha, viewModel, onReplyClick)
                         }
                         message.isFile -> {
-                            FileMessageContent(message, isMe, partnerDisplayName, currentUserId, finalBubbleColor, viewModel, onReplyClick, onRowClick)
+                            FileMessageContent(message, isMe, partnerDisplayName, currentUserId, bubbleBrush, bubbleAlpha, viewModel, onReplyClick, onRowClick)
                         }
                         message.callLogInfo != null -> {
                             CallLogMessageContent(message, isMe, partnerDisplayName, currentUserId, onReplyClick, onRowClick)
                         }
                         else -> {
-                            TextMessageContent(message, isMe, partnerDisplayName, currentUserId, finalBubbleColor, onReplyClick, onRowClick)
+                            TextMessageContent(message, isMe, partnerDisplayName, currentUserId, bubbleBrush, bubbleAlpha, onReplyClick, onRowClick)
                         }
                     }
 
@@ -1008,7 +1015,8 @@ private fun AudioMessageContent(
     isMe: Boolean,
     partnerDisplayName: String,
     currentUserId: String,
-    bubbleColor: Color,
+    bubbleBrush: Brush,
+    bubbleAlpha: Float,
     viewModel: ChatViewModel,
     onReplyClick: (MessageUiModel) -> Unit
 ) {
@@ -1029,7 +1037,8 @@ private fun AudioMessageContent(
             message = message,
             audioUrl = message.mediaUrl,
             isMe = isMe,
-            bubbleColor = bubbleColor,
+            bubbleBrush = bubbleBrush,
+            bubbleAlpha = bubbleAlpha,
             viewModel = viewModel
         )
     }
@@ -1041,7 +1050,8 @@ private fun FileMessageContent(
     isMe: Boolean,
     partnerDisplayName: String,
     currentUserId: String,
-    bubbleColor: Color,
+    bubbleBrush: Brush,
+    bubbleAlpha: Float,
     viewModel: ChatViewModel,
     onReplyClick: (MessageUiModel) -> Unit,
     onRowClick: (MessageUiModel) -> Unit
@@ -1069,7 +1079,7 @@ private fun FileMessageContent(
                     }
                 }
             )
-            .background(color = bubbleColor)
+            .background(brush = bubbleBrush, alpha = bubbleAlpha)
             .padding(horizontal = 12.dp, vertical = 10.dp)
     ) {
         Column {
@@ -1181,7 +1191,8 @@ private fun TextMessageContent(
     isMe: Boolean,
     partnerDisplayName: String,
     currentUserId: String,
-    bubbleColor: Color,
+    bubbleBrush: Brush,
+    bubbleAlpha: Float,
     onReplyClick: (MessageUiModel) -> Unit,
     onRowClick: (MessageUiModel) -> Unit
 ) {
@@ -1199,7 +1210,7 @@ private fun TextMessageContent(
                 onLongClick = { onReplyClick(message) },
                 onClick = { onRowClick(message) }
             )
-            .background(color = bubbleColor)
+            .background(brush = bubbleBrush, alpha = bubbleAlpha)
             .padding(horizontal = 12.dp, vertical = 8.dp)
     ) {
         Column {

@@ -22,6 +22,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -34,7 +35,8 @@ fun AudioMessageBubble(
     message: MessageUiModel,
     audioUrl: String,
     isMe: Boolean,
-    bubbleColor: Color,
+    bubbleBrush: Brush,
+    bubbleAlpha: Float = 1.0f,
     viewModel: ChatViewModel // 🎯 傳入 ViewModel
 ) {
     // 訂閱全域的播放狀態
@@ -57,7 +59,7 @@ fun AudioMessageBubble(
                     bottomEnd = if (isMe) 0.dp else 12.dp
                 )
             )
-            .background(bubbleColor)
+            .background(brush = bubbleBrush, alpha = bubbleAlpha)
             .padding(horizontal = 8.dp, vertical = 6.dp), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(4.dp)) {
         // 播放 / 暫停按鈕
         IconButton(

@@ -153,12 +153,7 @@ fun Loaded_Tg_Message(
                 },
                 modifier = Modifier
                     .background(
-                        color = MaterialTheme.colorScheme.primary, // ⭐ 調低透明度
-                        shape = RoundedCornerShape(0.dp)
-                    )
-                    .border(
-                        width = 0.5.dp,
-                        color = Color.White.copy(alpha = 0.4f),
+                        color = MaterialTheme.colorScheme.primary,
                         shape = RoundedCornerShape(0.dp)
                     )
             )

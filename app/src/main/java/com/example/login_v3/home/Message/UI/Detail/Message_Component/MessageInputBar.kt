@@ -56,27 +56,19 @@ fun MessageInputBar(
             .fillMaxWidth()
             .navigationBarsPadding() // 自動適應 Android 系統導覽列高度
             .padding(horizontal = 16.dp, vertical = 8.dp) // 懸浮的外邊距
+
+            //color
+            .background(
+                color = MaterialTheme.colorScheme.primary,
+                RoundedCornerShape(16.dp)
+            )
+            .border(
+                1.dp,
+                Color.White.copy(alpha = 0.3f),
+                RoundedCornerShape(16.dp)
+            )
     ) {
 
-        //glass effect
-        Box(
-            modifier = Modifier
-                .matchParentSize()
-                .blur(10.dp)
-        )
-        Box(
-            modifier = Modifier
-                .matchParentSize()
-                .background(
-                    color = MaterialTheme.colorScheme.primary,
-                    RoundedCornerShape(16.dp)
-                )
-                .border(
-                    1.dp,
-                    Color.White.copy(alpha = 0.3f),
-                    RoundedCornerShape(16.dp)
-                )
-        )
 
         Column(modifier = Modifier.fillMaxWidth()) {
 

@@ -181,7 +181,7 @@ fun HorizontalWheelPicker(
                 modifier = Modifier
                     .matchParentSize()
                     .background(
-                        color = MaterialTheme.colorScheme.primary,
+                        Color(0x14FFFFFF),
                         RoundedCornerShape(16.dp)
                     )
             )
