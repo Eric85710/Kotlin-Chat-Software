@@ -66,7 +66,6 @@ import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.navigation.NavController
 import coil.compose.AsyncImage
-import coil.compose.SubcomposeAsyncImage
 import com.example.login_v3.home.Message.UI.Detail.Message_Component.shimmer
 import com.example.login_v3.home.Message.UI.Detail.Message_Component.MessageActionMenuRow
 import com.example.login_v3.home.Message.UI.Detail.Message_Component.MessageEmojiBar
@@ -86,21 +85,13 @@ import androidx.compose.foundation.layout.statusBars // 如果要使用 statusBa
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material.icons.filled.ArrowDownward
-import androidx.compose.material.icons.filled.Build
 import androidx.compose.material.icons.filled.Call
 import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.filled.Close
-import androidx.compose.material.icons.filled.Info
 import androidx.compose.material.icons.filled.MoreVert
 import androidx.compose.material.icons.filled.PlayArrow
 import androidx.compose.runtime.snapshotFlow
 import androidx.core.content.ContextCompat
-import coil.ImageLoader
-import coil.compose.LocalImageLoader
-import coil.decode.GifDecoder
-import coil.decode.ImageDecoderDecoder
-import coil.decode.VideoFrameDecoder
-import com.example.login_v3.data.api.api_class.CallLogInfo
 import com.example.login_v3.home.Message.UI.Detail.Message_Component.AudioMessageBubble
 import com.example.login_v3.home.Message.UI.Detail.Message_Component.CallLogBubble
 import com.example.login_v3.home.Message.UI.Detail.Message_Component.ImageLightbox
@@ -653,6 +644,18 @@ fun MessageList(
                     }
                 }
             }
+    }
+
+    // 🎯 3. 自動滾動：當有新訊息時，如果是自己發送的，或是目前就在底部，則自動滾動到最新訊息
+    LaunchedEffect(visibleMessages.firstOrNull()?.id) {
+        val newestMessage = visibleMessages.firstOrNull()
+        if (newestMessage != null) {
+            val isMe = newestMessage.senderId == currentUserId
+            val isAtBottom = listState.firstVisibleItemIndex <= 1
+            if (isMe || isAtBottom) {
+                listState.animateScrollToItem(0)
+            }
+        }
     }
 
     LazyColumn(
