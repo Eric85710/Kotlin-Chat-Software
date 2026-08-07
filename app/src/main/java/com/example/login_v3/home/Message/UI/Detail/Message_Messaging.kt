@@ -85,11 +85,14 @@ import androidx.compose.foundation.layout.statusBars // 如果要使用 statusBa
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material.icons.filled.ArrowDownward
+import androidx.compose.material.icons.filled.Block
 import androidx.compose.material.icons.filled.Call
 import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.MoreVert
 import androidx.compose.material.icons.filled.PlayArrow
+import androidx.compose.material.icons.filled.Search
+import androidx.compose.material.icons.filled.Wallpaper
 import androidx.compose.runtime.snapshotFlow
 import androidx.core.content.ContextCompat
 import com.example.login_v3.home.Message.UI.Detail.Message_Component.AudioMessageBubble
@@ -110,6 +113,12 @@ sealed interface BottomBarState {
     data class ActionMenu(val message: MessageUiModel) : BottomBarState // 長按：動作選單
     data class EmojiMenu(val message: MessageUiModel) : BottomBarState  // 單擊：Emoji 工具列
     object AttachmentMenu : BottomBarState                       // 🎯 新增：附件選單
+}
+
+// 🎯 新增：Top Bar 狀態機
+sealed interface TopBarState {
+    object Regular : TopBarState        // 預設：姓名、頭像、通話、更多
+    object MoreOptions : TopBarState    // 點擊「更多」後：顯示功能工具列
 }
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -142,6 +151,9 @@ fun MessageMessaging(
 
     //inspect video
     var lightboxVideoUrl by remember { mutableStateOf<String?>(null) }
+
+    // 🎯 新增：Top Bar 的本地狀態
+    var topBarState by remember { mutableStateOf<TopBarState>(TopBarState.Regular) }
 
     // 🌟 核心：使用 derivedStateOf 統一控管狀態權限（長按優先權通常大於單擊）
     // 🎯 新增：用來控管非訊息觸發的底部狀態（例如：AttachmentMenu）
@@ -256,130 +268,224 @@ fun MessageMessaging(
 
                     val topBarShape = RoundedCornerShape(16.dp)
 
-                    Row(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .padding(horizontal = 4.dp)
-                        ,
-                        verticalAlignment = Alignment.CenterVertically,
-                        horizontalArrangement = Arrangement.Start
-                    ) {
-                        Spacer(modifier = Modifier.width(6.dp))
+                    // 👈 使用 AnimatedContent 讓 TopBar 切換更平滑
+                    AnimatedContent(
+                        targetState = topBarState,
+                        label = "TopBarSwitchAnimation"
+                    ) { currentState ->
+                        when (currentState) {
+                            TopBarState.Regular -> {
+                                Row(
+                                    modifier = Modifier
+                                        .fillMaxWidth()
+                                        .padding(horizontal = 4.dp),
+                                    verticalAlignment = Alignment.CenterVertically,
+                                    horizontalArrangement = Arrangement.Start
+                                ) {
+                                    Spacer(modifier = Modifier.width(6.dp))
 
-                        //name and avatar
-                        Box(
-                            modifier = Modifier
-                                .weight(0.68f)
-                                .sharedElement(
-                                    rememberSharedContentState(key = "container_$roomId"),
-                                    animatedVisibilityScope = animatedVisibilityScope
-                                )
-                                .clip(topBarShape)
-                                .background(
-                                    color = MaterialTheme.colorScheme.primary,
-                                    shape = topBarShape
-                                )
-                        ) {
-                            Row(
-                                verticalAlignment = Alignment.CenterVertically,
-                                modifier = Modifier
-                                    .fillMaxWidth()
-                                    .height(58.dp) // 58dp 就會是純內容的高度，內容就會完美垂直置中了！
-                                    .padding(horizontal = 12.dp)
-                            ) {
-                                val currentState = uiState
-                                if (currentState is MessagesUiState.Success) {
-                                    UserAvatar(
-                                        avatarUrl = currentState.partnerAvatarUrl,
-                                        modifier = Modifier.size(42.dp)
-                                    )
+                                    //name and avatar
+                                    Box(
+                                        modifier = Modifier
+                                            .weight(0.68f)
+                                            .sharedElement(
+                                                rememberSharedContentState(key = "container_$roomId"),
+                                                animatedVisibilityScope = animatedVisibilityScope
+                                            )
+                                            .clip(topBarShape)
+                                            .background(
+                                                color = MaterialTheme.colorScheme.primary,
+                                                shape = topBarShape
+                                            )
+                                    ) {
+                                        Row(
+                                            verticalAlignment = Alignment.CenterVertically,
+                                            modifier = Modifier
+                                                .fillMaxWidth()
+                                                .height(58.dp) // 58dp 就會是純內容的高度，內容就會完美垂直置中了！
+                                                .padding(horizontal = 12.dp)
+                                        ) {
+                                            val uiStateVal = uiState
+                                            if (uiStateVal is MessagesUiState.Success) {
+                                                UserAvatar(
+                                                    avatarUrl = uiStateVal.partnerAvatarUrl,
+                                                    modifier = Modifier.size(42.dp)
+                                                )
+                                            }
+
+                                            Spacer(modifier = Modifier.width(12.dp))
+
+                                            Text(
+                                                text = topBarTitle,
+                                                style = MaterialTheme.typography.titleMedium,
+                                                fontSize = 24.sp,
+                                                fontWeight = FontWeight.Bold,
+                                                color = MaterialTheme.colorScheme.onBackground,
+                                                maxLines = 1,
+                                                overflow = TextOverflow.Ellipsis,
+                                                modifier = Modifier.weight(1f)
+                                            )
+
+
+                                            if (uiStateVal is MessagesUiState.Success) {
+                                                // 拿掉原本只判斷 ONLINE 的 if，讓所有狀態（除了 UNKNOWN）都能顯示
+                                                UserStatusDot(
+                                                    status = uiStateVal.partnerStatus,
+                                                    size = 14.dp // 建議統一成 14.dp，包含白色外圈的視覺效果最好
+                                                )
+                                            }
+
+                                            Spacer(modifier = Modifier.width(12.dp))
+                                        }
+                                    }
+
+                                    Spacer(modifier = Modifier.width(8.dp))
+
+                                    //voice call button
+                                    Box(
+                                        contentAlignment = Alignment.Center,
+                                        modifier = Modifier
+                                            .weight(0.16f)
+                                            .height(58.dp)
+                                            .background(
+                                                color = MaterialTheme.colorScheme.primary,
+                                                shape = topBarShape
+                                            )
+                                    ) {
+                                        IconButton(
+                                            onClick = {
+                                                // 這裡觸發語音通話的邏輯，例如：viewModel.startVoiceCall(roomId)
+                                            },
+                                            modifier = Modifier
+                                                .size(48.dp) // 給予標準的點擊區域大小
+                                        ) {
+                                            Icon(
+                                                imageVector = Icons.Default.Call, // 👈 這裡使用 Material Design 的預設電話圖標，也可以換成 Icons.Rounded.Phone
+                                                contentDescription = "語音通話",
+                                                tint = Color.White, // 👈 顏色可以根據你的漸層背景調整，如果是亮色背景可改用 MaterialTheme.colorScheme.onBackground
+                                                modifier = Modifier.size(28.dp) // Icon 實際的大小
+                                            )
+                                        }
+                                    }
+
+                                    Spacer(modifier = Modifier.width(8.dp))
+
+                                    //more option button
+                                    Box(
+                                        contentAlignment = Alignment.Center,
+                                        modifier = Modifier
+                                            .weight(0.16f)
+                                            .height(58.dp)
+                                            .background(
+                                                color = MaterialTheme.colorScheme.primary,
+                                                shape = topBarShape
+                                            )
+                                    ) {
+                                        IconButton(
+                                            onClick = {
+                                                topBarState = TopBarState.MoreOptions
+                                            },
+                                            modifier = Modifier
+                                                .size(48.dp) // 給予標準的點擊區域大小
+                                        ) {
+                                            Icon(
+                                                imageVector = Icons.Default.MoreVert,
+                                                contentDescription = "更多選項",
+                                                tint = Color.White,
+                                                modifier = Modifier.size(28.dp)
+                                            )
+                                        }
+                                    }
+
+                                    Spacer(modifier = Modifier.width(6.dp))
                                 }
+                            }
 
-                                Spacer(modifier = Modifier.width(12.dp))
+                            TopBarState.MoreOptions -> {
+                                // 🎯 當切換到「更多選項」時顯示的 TopBar
+                                Row(
+                                    modifier = Modifier
+                                        .fillMaxWidth()
+                                        .padding(horizontal = 4.dp),
+                                    verticalAlignment = Alignment.CenterVertically,
+                                    horizontalArrangement = Arrangement.Start
+                                ) {
+                                    Spacer(modifier = Modifier.width(6.dp))
 
-                                Text(
-                                    text = topBarTitle,
-                                    style = MaterialTheme.typography.titleMedium,
-                                    fontSize = 24.sp,
-                                    fontWeight = FontWeight.Bold,
-                                    color = MaterialTheme.colorScheme.onBackground,
-                                    maxLines = 1,
-                                    overflow = TextOverflow.Ellipsis,
-                                    modifier = Modifier.weight(1f)
-                                )
+                                    // 關閉按鈕，點擊回到 Regular 狀態
+                                    Box(
+                                        contentAlignment = Alignment.Center,
+                                        modifier = Modifier
+                                            .size(58.dp)
+                                            .background(
+                                                color = MaterialTheme.colorScheme.primary,
+                                                shape = topBarShape
+                                            )
+                                    ) {
+                                        IconButton(onClick = { topBarState = TopBarState.Regular }) {
+                                            Icon(
+                                                imageVector = Icons.Default.Close,
+                                                contentDescription = "關閉更多選項",
+                                                tint = Color.White,
+                                                modifier = Modifier.size(28.dp)
+                                            )
+                                        }
+                                    }
 
+                                    Spacer(modifier = Modifier.width(8.dp))
 
-                                if (currentState is MessagesUiState.Success) {
-                                    // 拿掉原本只判斷 ONLINE 的 if，讓所有狀態（除了 UNKNOWN）都能顯示
-                                    UserStatusDot(
-                                        status = currentState.partnerStatus,
-                                        size = 14.dp // 建議統一成 14.dp，包含白色外圈的視覺效果最好
-                                    )
+                                    // 更多選項的內容（這裡可以放置搜尋、靜音、成員清單等功能）
+                                    Box(
+                                        modifier = Modifier
+                                            .weight(1f)
+                                            .height(58.dp)
+                                            .background(
+                                                color = MaterialTheme.colorScheme.primary,
+                                                shape = topBarShape
+                                            ),
+                                        contentAlignment = Alignment.Center
+                                    ) {
+                                        Row(
+                                            verticalAlignment = Alignment.CenterVertically,
+                                            horizontalArrangement = Arrangement.SpaceEvenly,
+                                            modifier = Modifier.fillMaxWidth()
+                                        ) {
+                                            // 搜尋訊息
+                                            IconButton(onClick = { /* TODO */ }) {
+                                                Icon(
+                                                    imageVector = Icons.Default.Search,
+                                                    contentDescription = "搜尋訊息",
+                                                    tint = Color.White,
+                                                    modifier = Modifier.size(26.dp)
+                                                )
+                                            }
+
+                                            // 更換壁紙
+                                            IconButton(onClick = { /* TODO */ }) {
+                                                Icon(
+                                                    imageVector = Icons.Default.Wallpaper,
+                                                    contentDescription = "更換壁紙",
+                                                    tint = Color.White,
+                                                    modifier = Modifier.size(26.dp)
+                                                )
+                                            }
+
+                                            // 封鎖用戶
+                                            IconButton(onClick = { /* TODO */ }) {
+                                                Icon(
+                                                    imageVector = Icons.Default.Block,
+                                                    contentDescription = "封鎖用戶",
+                                                    tint = Color.White,
+                                                    modifier = Modifier.size(26.dp)
+                                                )
+                                            }
+                                        }
+                                    }
+
+                                    Spacer(modifier = Modifier.width(6.dp))
                                 }
-
-                                Spacer(modifier = Modifier.width(12.dp))
                             }
                         }
-
-                        Spacer(modifier = Modifier.width(8.dp))
-
-                        //voice call button
-                        Box(
-                            contentAlignment = Alignment.Center,
-                            modifier = Modifier
-                                .weight(0.16f)
-                                .height(58.dp)
-                                .background(
-                                    color = MaterialTheme.colorScheme.primary,
-                                    shape = topBarShape
-                                )
-                        ) {
-                            IconButton(
-                                onClick = {
-                                    // 這裡觸發語音通話的邏輯，例如：viewModel.startVoiceCall(roomId)
-                                },
-                                modifier = Modifier
-                                    .size(48.dp) // 給予標準的點擊區域大小
-                            ) {
-                                Icon(
-                                    imageVector = Icons.Default.Call, // 👈 這裡使用 Material Design 的預設電話圖標，也可以換成 Icons.Rounded.Phone
-                                    contentDescription = "語音通話",
-                                    tint = Color.White, // 👈 顏色可以根據你的漸層背景調整，如果是亮色背景可改用 MaterialTheme.colorScheme.onBackground
-                                    modifier = Modifier.size(28.dp) // Icon 實際的大小
-                                )
-                            }
-                        }
-
-                        Spacer(modifier = Modifier.width(8.dp))
-
-                        //more option button
-                        Box(
-                            contentAlignment = Alignment.Center,
-                            modifier = Modifier
-                                .weight(0.16f)
-                                .height(58.dp)
-                                .background(
-                                    color = MaterialTheme.colorScheme.primary,
-                                    shape = topBarShape
-                                )
-                        ) {
-                            IconButton(
-                                onClick = {
-                                    // 這裡觸發語音通話的邏輯，例如：viewModel.startVoiceCall(roomId)
-                                },
-                                modifier = Modifier
-                                    .size(48.dp) // 給予標準的點擊區域大小
-                            ) {
-                                Icon(
-                                    imageVector = Icons.Default.MoreVert, // 👈 這裡使用 Material Design 的預設電話圖標，也可以換成 Icons.Rounded.Phone
-                                    contentDescription = "語音通話",
-                                    tint = Color.White, // 👈 顏色可以根據你的漸層背景調整，如果是亮色背景可改用 MaterialTheme.colorScheme.onBackground
-                                    modifier = Modifier.size(28.dp) // Icon 實際的大小
-                                )
-                            }
-                        }
-
-                        Spacer(modifier = Modifier.width(6.dp))
                     }
 
                     Spacer(modifier = Modifier.height(6.dp))
