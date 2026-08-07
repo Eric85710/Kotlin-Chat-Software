@@ -197,8 +197,6 @@ fun MessageInputBar(
                 }
             }
 
-            Spacer(modifier = Modifier.height(4.dp)) // 🎯 提供預覽列與輸入框之間的間距
-
             // 2. 實際的輸入工具列
             Row(
                 modifier = Modifier
