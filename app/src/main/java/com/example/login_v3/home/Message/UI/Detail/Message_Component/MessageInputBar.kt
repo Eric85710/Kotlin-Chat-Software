@@ -15,12 +15,16 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.BasicTextField
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.AddCircle
 import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.filled.Close
+import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material.icons.filled.Photo
 import androidx.compose.material.icons.filled.Send
 import androidx.compose.material3.CircularProgressIndicator
@@ -38,6 +42,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.blur
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import com.example.login_v3.home.Message.UI.Detail.MessageUiModel
@@ -87,17 +92,30 @@ fun MessageInputBar(
 
         Column(modifier = Modifier.fillMaxWidth()) {
 
-            // 1. 回覆預覽列 (加入頂部圓角修飾)
+            // 1. 回覆預覽列 (現代化樣式 + 圓角與間距)
             AnimatedVisibility(visible = replyingMessage != null) {
                 if (replyingMessage != null) {
                     Row(
                         modifier = Modifier
                             .fillMaxWidth()
-                            .background(Color(0xFFF8F9FA)) // 更輕盈的底色
-                            .padding(horizontal = 16.dp, vertical = 8.dp),
-                        verticalAlignment = Alignment.CenterVertically,
-                        horizontalArrangement = Arrangement.SpaceBetween
+                            .padding(start = 8.dp, end = 8.dp, top = 8.dp) // 🎯 與邊框保持間距
+                            .background(
+                                color = Color.White.copy(alpha = 0.92f),
+                                shape = RoundedCornerShape(12.dp) // 🎯 圓角
+                            )
+                            .padding(horizontal = 12.dp, vertical = 8.dp),
+                        verticalAlignment = Alignment.CenterVertically
                     ) {
+                        // 左側綠色裝飾條
+                        Box(
+                            modifier = Modifier
+                                .width(3.dp)
+                                .height(16.dp)
+                                .background(Color(0xFF4CAF50), RoundedCornerShape(2.dp))
+                        )
+
+                        Spacer(modifier = Modifier.width(10.dp))
+
                         Column(modifier = Modifier.weight(1f)) {
                             Text(
                                 text = replyingMessage.content,
@@ -111,45 +129,75 @@ fun MessageInputBar(
                             Icon(
                                 imageVector = Icons.Default.Close,
                                 contentDescription = "取消回覆",
-                                tint = Color.Gray
+                                tint = Color.Gray.copy(alpha = 0.7f),
+                                modifier = Modifier.size(16.dp)
                             )
                         }
                     }
                 }
             }
 
-            // 🎯 1.5 編輯預覽列
+            // 🎯 1.5 編輯預覽列 (現代化樣式 + 圓角與間距)
             AnimatedVisibility(visible = editingMessage != null) {
                 if (editingMessage != null) {
                     Row(
                         modifier = Modifier
                             .fillMaxWidth()
-                            .background(Color(0xFFFFF3E0)) // 編輯模式用淡橘色區分
-                            .padding(horizontal = 16.dp, vertical = 8.dp),
-                        verticalAlignment = Alignment.CenterVertically,
-                        horizontalArrangement = Arrangement.SpaceBetween
-                    ) {
-                        Column(modifier = Modifier.weight(1f)) {
-                            Text(
-                                text = "編輯訊息",
-                                style = MaterialTheme.typography.labelMedium,
-                                color = Color(0xFFE65100),
-                                fontWeight = androidx.compose.ui.text.font.FontWeight.Bold
+                            .padding(start = 8.dp, end = 8.dp, top = 8.dp) // 🎯 與邊框保持間距
+                            .background(
+                                color = Color.White.copy(alpha = 0.92f),
+                                shape = RoundedCornerShape(12.dp) // 🎯 圓角
                             )
-                        }
-                        IconButton(onClick = {
-                            onCancelEdit()
-                            textState = "" // 取消編輯時清空
-                        }, modifier = Modifier.size(24.dp)) {
+                            .padding(horizontal = 12.dp, vertical = 8.dp),
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        // 左側橘色裝飾條，提升現代感
+                        Box(
+                            modifier = Modifier
+                                .width(3.dp)
+                                .height(16.dp)
+                                .background(Color(0xFFDA7029), RoundedCornerShape(2.dp))
+                        )
+
+                        Spacer(modifier = Modifier.width(10.dp))
+
+                        Icon(
+                            imageVector = Icons.Default.Edit,
+                            contentDescription = null,
+                            tint = Color(0xFFDA7029),
+                            modifier = Modifier.size(16.dp)
+                        )
+
+                        Spacer(modifier = Modifier.width(8.dp))
+
+                        Text(
+                            text = "正在編輯訊息",
+                            style = MaterialTheme.typography.labelMedium.copy(
+                                fontWeight = FontWeight.Bold,
+                                color = Color(0xFFDA7029)
+                            ),
+                            modifier = Modifier.weight(1f)
+                        )
+
+                        IconButton(
+                            onClick = {
+                                onCancelEdit()
+                                textState = ""
+                            },
+                            modifier = Modifier.size(24.dp)
+                        ) {
                             Icon(
                                 imageVector = Icons.Default.Close,
                                 contentDescription = "取消編輯",
-                                tint = Color.Gray
+                                tint = Color.Gray.copy(alpha = 0.7f),
+                                modifier = Modifier.size(16.dp)
                             )
                         }
                     }
                 }
             }
+
+            Spacer(modifier = Modifier.height(4.dp)) // 🎯 提供預覽列與輸入框之間的間距
 
             // 2. 實際的輸入工具列
             Row(
@@ -174,12 +222,12 @@ fun MessageInputBar(
                     modifier = Modifier
                         .weight(1f)
                         .padding(horizontal = 8.dp),
-                    textStyle = MaterialTheme.typography.bodyLarge,
+                    textStyle = MaterialTheme.typography.bodyLarge.copy(color = Color.White),
                     decorationBox = { innerTextField ->
                         if (textState.isEmpty()) {
                             Text(
                                 text = if (editingMessage != null) "編輯訊息..." else "請輸入訊息...",
-                                color = Color.LightGray
+                                color = Color.White.copy(alpha = 0.6f)
                             )
                         }
                         innerTextField()
