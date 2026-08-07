@@ -218,6 +218,17 @@ data class MessageReactionUsersResponse(
     @Json(name = "users") val users: List<String>
 )
 
+//edit message
+@JsonClass(generateAdapter = true)
+data class EditMessageRequest(
+    @Json(name = "content") val content: String
+)
+
+@JsonClass(generateAdapter = true)
+data class EditMessageResponse(
+    @Json(name = "ok") val ok: Boolean
+)
+
 
 
 

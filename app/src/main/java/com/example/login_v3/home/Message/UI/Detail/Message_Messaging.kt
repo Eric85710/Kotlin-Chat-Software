@@ -113,6 +113,7 @@ sealed interface BottomBarState {
     data class ActionMenu(val message: MessageUiModel) : BottomBarState // 長按：動作選單
     data class EmojiMenu(val message: MessageUiModel) : BottomBarState  // 單擊：Emoji 工具列
     object AttachmentMenu : BottomBarState                       // 🎯 新增：附件選單
+    data class Edit(val message: MessageUiModel) : BottomBarState       // 🎯 新增：編輯模式
 }
 
 // 🎯 新增：Top Bar 狀態機
@@ -155,6 +156,8 @@ fun MessageMessaging(
     // 🎯 新增：Top Bar 的本地狀態
     var topBarState by remember { mutableStateOf<TopBarState>(TopBarState.Regular) }
 
+    val editingMessage by viewModel.editingMessage.collectAsStateWithLifecycle()
+
     // 🌟 核心：使用 derivedStateOf 統一控管狀態權限（長按優先權通常大於單擊）
     // 🎯 新增：用來控管非訊息觸發的底部狀態（例如：AttachmentMenu）
     var localBottomBarState by remember { mutableStateOf<BottomBarState?>(null) }
@@ -163,6 +166,7 @@ fun MessageMessaging(
             when {
                 actionMessage != null -> BottomBarState.ActionMenu(actionMessage!!)
                 emojiTargetMessage != null -> BottomBarState.EmojiMenu(emojiTargetMessage!!)
+                editingMessage != null -> BottomBarState.Edit(editingMessage!!) // 🎯 編輯模式優先
                 localBottomBarState != null -> localBottomBarState!! // 🎯 如果有本地狀態，則採用它
                 else -> BottomBarState.Input
             }
@@ -519,6 +523,21 @@ fun MessageMessaging(
                             )
                         }
 
+                        is BottomBarState.Edit -> {
+                            MessageInputBar(
+                                isLoading = sendStatus is SendMessageState.Loading,
+                                replyingMessage = null, // 編輯時不顯示回覆
+                                editingMessage = currentState.message,
+                                onCancelReply = {},
+                                onCancelEdit = { viewModel.clearEditingMessage() },
+                                onSendClick = {},
+                                onEditSaveClick = { content ->
+                                    viewModel.editMessage(roomId, currentState.message.id, content)
+                                },
+                                onAttachmentClick = {} // 編輯模式不給上傳附件
+                            )
+                        }
+
                         is BottomBarState.ActionMenu -> {
                             val currentActionMessage = currentState.message
                             val currentUserId = (uiState as? MessagesUiState.Success)?.currentUserId
@@ -530,6 +549,10 @@ fun MessageMessaging(
                                 onCancel = { viewModel.clearActionMessage() },
                                 onReplyClick = { msg ->
                                     viewModel.setReplyingMessage(msg)
+                                    viewModel.clearActionMessage()
+                                },
+                                onEditClick = { msg ->
+                                    viewModel.setEditingMessage(msg)
                                     viewModel.clearActionMessage()
                                 },
                                 onDeleteClick = { msg ->
@@ -1331,6 +1354,17 @@ private fun TextMessageContent(
                 text = message.content,
                 style = MaterialTheme.typography.bodyMedium.copy(fontSize = 16.sp)
             )
+
+            if (message.isEdited) {
+                Text(
+                    text = "(已編輯)",
+                    style = MaterialTheme.typography.labelSmall.copy(
+                        fontSize = 10.sp,
+                        color = Color.Gray.copy(alpha = 0.7f)
+                    ),
+                    modifier = Modifier.align(Alignment.End).padding(top = 2.dp)
+                )
+            }
         }
     }
 }

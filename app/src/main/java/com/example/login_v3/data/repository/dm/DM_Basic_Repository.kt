@@ -9,6 +9,7 @@ import android.provider.OpenableColumns
 import android.util.Log
 import com.example.login_v3.data.api.TecnologiaApi
 import com.example.login_v3.data.api.api_class.ChatRoom
+import com.example.login_v3.data.api.api_class.EditMessageRequest
 import com.example.login_v3.data.api.api_class.Message
 import com.example.login_v3.data.api.api_class.MessageResponse
 import com.example.login_v3.data.api.api_class.Reaction
@@ -564,6 +565,45 @@ class ChatRoomsRepository @Inject constructor(
             }
         } catch (e: Exception) {
             // 網路斷線、Timeout 或伺服器崩潰：一樣把備份資料塞回去，讓 UI 訊息彈回來
+            backupEntity?.let { messageDao.insertOrUpdate(it) }
+            Result.failure(e)
+        }
+    }
+
+    // 編輯訊息（樂觀更新版本）
+    suspend fun editMessage(roomId: String, messageId: String, content: String): Result<Unit> {
+        // 1. 先從本地撈出原本的訊息作為備份
+        val backupEntity = try {
+            messageDao.getMessageById(messageId)
+        } catch (e: Exception) {
+            null
+        }
+
+        // 2. 樂觀更新：立刻在本地修改內容
+        if (backupEntity != null) {
+            try {
+                val updatedEntity = backupEntity.copy(
+                    content = content,
+                    isEdited = true
+                )
+                messageDao.insertOrUpdate(updatedEntity)
+            } catch (e: Exception) {
+                return Result.failure(e)
+            }
+        }
+
+        // 3. 呼叫 API
+        return try {
+            val response = api.editMessage(roomId, messageId, EditMessageRequest(content))
+            if (response.isSuccessful && response.body()?.ok == true) {
+                Result.success(Unit)
+            } else {
+                // 失敗則回滾
+                backupEntity?.let { messageDao.insertOrUpdate(it) }
+                Result.failure(Exception("編輯失敗"))
+            }
+        } catch (e: Exception) {
+            // 異常則回滾
             backupEntity?.let { messageDao.insertOrUpdate(it) }
             Result.failure(e)
         }

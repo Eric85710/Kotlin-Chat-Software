@@ -167,4 +167,12 @@ interface TecnologiaApi {
         @Path("room_id") roomId: String,
         @Path("msg_id") msgId: String
     ): Response<Unit>
+
+    //edit message
+    @PATCH("api/dm/{room_id}/messages/{msg_id}")
+    suspend fun editMessage(
+        @Path("room_id") roomId: String,
+        @Path("msg_id") msgId: String,
+        @Body request: EditMessageRequest
+    ): Response<EditMessageResponse>
 }

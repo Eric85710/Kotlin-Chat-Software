@@ -178,6 +178,11 @@ class ChatViewModel @Inject constructor(
     fun setActionMessage(message: MessageUiModel?) { _actionMessage.value = message }
     fun clearActionMessage() { _actionMessage.value = null }
 
+    private val _editingMessage = MutableStateFlow<MessageUiModel?>(null)
+    val editingMessage: StateFlow<MessageUiModel?> = _editingMessage.asStateFlow()
+    fun setEditingMessage(message: MessageUiModel?) { _editingMessage.value = message }
+    fun clearEditingMessage() { _editingMessage.value = null }
+
     private val _replyingMessage = MutableStateFlow<MessageUiModel?>(null)
     val replyingMessage: StateFlow<MessageUiModel?> = _replyingMessage.asStateFlow()
     fun setReplyingMessage(message: MessageUiModel?) { _replyingMessage.value = message }
@@ -319,6 +324,25 @@ class ChatViewModel @Inject constructor(
 
                 // 3. 🌟 失敗處理：因為 Repository 把訊息彈回來了，我們可以讓 UI 知道
                 // 這裡可以透過監聽 deleteMessageState 的 Error，在 Activity/Fragment/Compose 彈出 Toast 提示：「刪除失敗，請檢查網路」
+            }
+        }
+    }
+
+    fun editMessage(roomId: String, messageId: String, content: String) {
+        if (content.trim().isBlank()) return
+
+        viewModelScope.launch {
+            _sendMessageState.value = SendMessageState.Loading
+            
+            val result = repository.editMessage(roomId, messageId, content)
+            
+            _editingMessage.value = null
+            
+            result.onSuccess {
+                _sendMessageState.value = SendMessageState.Success
+            }.onFailure { error ->
+                Log.e("ChatViewModel", "Edit message failed", error)
+                _sendMessageState.value = SendMessageState.Error(error.message ?: "編輯訊息失敗")
             }
         }
     }

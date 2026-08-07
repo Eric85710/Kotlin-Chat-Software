@@ -19,6 +19,7 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.BasicTextField
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.AddCircle
+import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.Photo
 import androidx.compose.material.icons.filled.Send
@@ -28,6 +29,7 @@ import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect // 🎯 新增
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -44,11 +46,24 @@ import com.example.login_v3.home.Message.UI.Detail.MessageUiModel
 fun MessageInputBar(
     isLoading: Boolean,
     replyingMessage: MessageUiModel?,
+    editingMessage: MessageUiModel? = null, // 🎯 新增
     onCancelReply: () -> Unit,
+    onCancelEdit: () -> Unit = {},          // 🎯 新增
     onSendClick: (String) -> Unit,
+    onEditSaveClick: (String) -> Unit = {}, // 🎯 新增
     onAttachmentClick: () -> Unit
 ) {
     var textState by remember { mutableStateOf("") }
+
+    // 🎯 當進入編輯模式時，自動填入原本的內容
+    LaunchedEffect(editingMessage) {
+        if (editingMessage != null) {
+            textState = editingMessage.content
+        } else {
+            // 如果從編輯模式退出且不是因為發送成功，可能需要清空？
+            // 但通常 clearEditingMessage 會觸發這裡
+        }
+    }
 
     // 💡 外層包裹一層 Box，並加上 padding 與 navigationBarsPadding，確保懸浮且不被系統列擋住
     Box(
@@ -103,6 +118,39 @@ fun MessageInputBar(
                 }
             }
 
+            // 🎯 1.5 編輯預覽列
+            AnimatedVisibility(visible = editingMessage != null) {
+                if (editingMessage != null) {
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .background(Color(0xFFFFF3E0)) // 編輯模式用淡橘色區分
+                            .padding(horizontal = 16.dp, vertical = 8.dp),
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.SpaceBetween
+                    ) {
+                        Column(modifier = Modifier.weight(1f)) {
+                            Text(
+                                text = "編輯訊息",
+                                style = MaterialTheme.typography.labelMedium,
+                                color = Color(0xFFE65100),
+                                fontWeight = androidx.compose.ui.text.font.FontWeight.Bold
+                            )
+                        }
+                        IconButton(onClick = {
+                            onCancelEdit()
+                            textState = "" // 取消編輯時清空
+                        }, modifier = Modifier.size(24.dp)) {
+                            Icon(
+                                imageVector = Icons.Default.Close,
+                                contentDescription = "取消編輯",
+                                tint = Color.Gray
+                            )
+                        }
+                    }
+                }
+            }
+
             // 2. 實際的輸入工具列
             Row(
                 modifier = Modifier
@@ -129,7 +177,10 @@ fun MessageInputBar(
                     textStyle = MaterialTheme.typography.bodyLarge,
                     decorationBox = { innerTextField ->
                         if (textState.isEmpty()) {
-                            Text("請輸入訊息...", color = Color.LightGray)
+                            Text(
+                                text = if (editingMessage != null) "編輯訊息..." else "請輸入訊息...",
+                                color = Color.LightGray
+                            )
                         }
                         innerTextField()
                     }
@@ -139,7 +190,11 @@ fun MessageInputBar(
                 IconButton(
                     onClick = {
                         if (textState.isNotBlank() && !isLoading) {
-                            onSendClick(textState)
+                            if (editingMessage != null) {
+                                onEditSaveClick(textState)
+                            } else {
+                                onSendClick(textState)
+                            }
                             textState = ""
                         }
                     },
@@ -150,9 +205,10 @@ fun MessageInputBar(
                     } else {
                         // 加上小背景讓送出按鈕更有重點
                         val iconColor = if (textState.isNotBlank()) Color(0xFFDA7029) else Color.LightGray
+                        val icon = if (editingMessage != null) Icons.Default.Check else Icons.Default.Send
                         Icon(
-                            imageVector = Icons.Default.Send,
-                            contentDescription = "送出",
+                            imageVector = icon,
+                            contentDescription = if (editingMessage != null) "儲存編輯" else "送出",
                             tint = iconColor
                         )
                     }

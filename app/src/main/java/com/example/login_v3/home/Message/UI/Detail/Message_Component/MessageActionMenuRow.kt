@@ -19,6 +19,7 @@ import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.ContentCopy
 import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.Reply
+import androidx.compose.material.icons.filled.Edit // 🎯 新增
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
@@ -41,9 +42,11 @@ fun MessageActionMenuRow(
     onCancel: () -> Unit,
     onReplyClick: (MessageUiModel) -> Unit, // 👈 修正：這裡只需要定義型態
     onDeleteClick: (MessageUiModel) -> Unit,
+    onEditClick: (MessageUiModel) -> Unit, // 🎯 新增
     isOwnMessage: Boolean,
     modifier: Modifier = Modifier
 ) {
+    // ... (rest of the function)
     // 💡 取得系統剪貼簿，用來實作「複製文字」功能
     val clipboardManager = LocalClipboardManager.current
 
@@ -116,7 +119,16 @@ fun MessageActionMenuRow(
                     }
                 )
 
-                // 3. 刪除：只有在自己的訊息時才顯示 👈
+                // 3. 編輯：只有在自己的文字訊息時顯示 🎯
+                if (isOwnMessage && !isImage) {
+                    ChatMenuButton(
+                        imageVector = Icons.Default.Edit,
+                        label = "編輯",
+                        onClick = { onEditClick(message) }
+                    )
+                }
+
+                // 4. 刪除：只有在自己的訊息時才顯示 👈
                 if (isOwnMessage) {
                     ChatMenuButton(
                         imageVector = Icons.Default.Delete,
