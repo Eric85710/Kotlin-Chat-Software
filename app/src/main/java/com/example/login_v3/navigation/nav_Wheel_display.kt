@@ -53,6 +53,10 @@ import kotlinx.coroutines.yield
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.ui.hapticfeedback.HapticFeedbackType
+import androidx.compose.ui.platform.LocalHapticFeedback
+import androidx.compose.foundation.interaction.collectIsDraggedAsState
+import androidx.compose.runtime.rememberUpdatedState
 import androidx.navigation.NavHostController
 
 
@@ -133,13 +137,32 @@ fun HorizontalWheelPicker(
 ) {
     val listState = rememberLazyListState()
     val flingBehavior = rememberSnapFlingBehavior(listState)
-    val isInteracting by remember { derivedStateOf { listState.isScrollInProgress } }
+    val haptic = LocalHapticFeedback.current
+
+    // 🎯 核心修正：使用 rememberUpdatedState 確保 LaunchedEffect 閉包內能讀取到最新的 currentScreen
+    val currentScreenState by rememberUpdatedState(currentScreen)
+
+    // 監控使用者是否正在觸摸或捲動，避免自動校正與使用者操作衝突
+    val isDragged by listState.interactionSource.collectIsDraggedAsState()
+    val isInteracting = isDragged || listState.isScrollInProgress
 
     // 🎯 核心修正：當螢幕被左右滑動時，同步讓 Wheel 捲動到對應位置
     LaunchedEffect(currentScreen) {
-        if (!isInteracting) { // 只有在使用者沒在撥動 Wheel 時才自動捲動，避免互搶控制權
-            val targetIndex = items.indexOfFirst { it.screen == currentScreen }
-            if (targetIndex != -1) {
+        // 只有在使用者沒在撥動 Wheel 且不在捲動中時才自動捲動，避免互搶控制權導致「卡住」
+        val targetIndex = items.indexOfFirst { it.screen == currentScreen }
+        if (targetIndex != -1 && !listState.isScrollInProgress && !isDragged) {
+            val layoutInfo = listState.layoutInfo
+            if (layoutInfo.visibleItemsInfo.isNotEmpty()) {
+                val viewportCenter = (layoutInfo.viewportStartOffset + layoutInfo.viewportEndOffset) / 2
+                val currentCenterIndex = layoutInfo.visibleItemsInfo.minByOrNull {
+                    kotlin.math.abs((it.offset + it.size / 2) - viewportCenter)
+                }?.index
+
+                if (currentCenterIndex != targetIndex) {
+                    listState.animateScrollToItem(targetIndex)
+                }
+            } else {
+                // 如果佈局還沒好，就直接執行一次
                 listState.animateScrollToItem(targetIndex)
             }
         }
@@ -164,14 +187,13 @@ fun HorizontalWheelPicker(
             }
         }
 
-        // 中央指示線（不變）
+        // 中央指示線（玻璃效果）
         Box(
             modifier = Modifier
                 .align(Alignment.Center)
                 .width(itemWidth)
                 .fillMaxHeight()
         ) {
-            //glass effect
             Box(
                 modifier = Modifier
                     .matchParentSize()
@@ -188,7 +210,7 @@ fun HorizontalWheelPicker(
         }
     }
 
-    // 🎯 性能優化：只有當「中心項」真正改變時，才觸發更新
+    // 🎯 性能與流暢度優化：監控中心項變化並觸發震動與回傳
     LaunchedEffect(listState) {
         snapshotFlow {
             val layoutInfo = listState.layoutInfo
@@ -196,19 +218,24 @@ fun HorizontalWheelPicker(
             if (visibleItems.isEmpty()) return@snapshotFlow -1
 
             val viewportCenter = (layoutInfo.viewportStartOffset + layoutInfo.viewportEndOffset) / 2
-            
+
             // 找到離中心最近的 Item
             val closest = visibleItems.minByOrNull { vi ->
                 kotlin.math.abs((vi.offset + vi.size / 2) - viewportCenter)
             } ?: visibleItems.first()
-            
-            closest.key as Int
+
+            closest.index // 使用 index 作為識別
         }
             .filter { it != -1 }
-            .distinctUntilChanged() // 關鍵：只有 Index 改變才往下走
-            .collectLatest { selectedIndex ->
-                yield() // 給予 UI 線程呼吸空間，防止快速滑動時卡頓
-                onValueChange(items[selectedIndex])
+            .distinctUntilChanged()
+            .collect { selectedIndex ->
+                // 震動反饋 (移除 yield 以保證響應即時)
+                haptic.performHapticFeedback(HapticFeedbackType.TextHandleMove)
+
+                // 只有當選中項真的與當前狀態不同時才通知外部，避免重複循環觸發
+                if (items[selectedIndex].screen != currentScreenState) {
+                    onValueChange(items[selectedIndex])
+                }
             }
     }
 
