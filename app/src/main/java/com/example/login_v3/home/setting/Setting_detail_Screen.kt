@@ -113,7 +113,8 @@ fun SharedTransitionScope.setting_detail_Screen(
                 text = title,
                 fontSize = 38.sp,
                 fontWeight = FontWeight.Bold,
-                style = MaterialTheme.typography.titleLarge
+                style = MaterialTheme.typography.titleLarge,
+                color = MaterialTheme.colorScheme.onBackground,
             )
         }
 
