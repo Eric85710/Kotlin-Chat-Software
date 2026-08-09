@@ -19,7 +19,7 @@ import com.example.login_v3.data.local.entities.RoomLocalEntity
         RoomLocalEntity::class,
         BlockedUserLocalEntity::class
     ],
-    version = 2,
+    version = 3,
     exportSchema = false
 )
 @TypeConverters(RoomConverters::class)

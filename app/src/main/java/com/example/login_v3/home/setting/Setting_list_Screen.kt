@@ -159,6 +159,7 @@ fun SharedTransitionScope.setting_list_Screen(
                                 style = MaterialTheme.typography.titleMedium,
                                 fontSize = 24.sp,
                                 fontWeight = FontWeight.Bold,
+                                color = MaterialTheme.colorScheme.onBackground,
                                 modifier = Modifier
                                     .sharedElement(
                                         sharedContentState = titleState,
@@ -173,7 +174,7 @@ fun SharedTransitionScope.setting_list_Screen(
                             item.description?.let {
                                 Text(text = it,
                                     style = MaterialTheme.typography.bodySmall,
-                                    color = Color.White
+                                    color = MaterialTheme.colorScheme.onSecondary
                                 )
                             }
                         }

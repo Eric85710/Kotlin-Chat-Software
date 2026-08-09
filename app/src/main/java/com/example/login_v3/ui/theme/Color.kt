@@ -19,6 +19,9 @@ val DarkGlass = Color(0x14000000)
 val WhiteText = Color(0xFFFFFFFF)
 val DarkText = Color(0xFF000000)
 
+val sub_WhiteText = Color(0xFFD0D0D0)
+val sub_DarkText = Color(0xFFD0D0D0)
+
 //default background
 
 val White_default = Color(0xFF2C2C2C)

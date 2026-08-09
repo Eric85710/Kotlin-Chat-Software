@@ -121,8 +121,8 @@ class ChatRoomsRepository @Inject constructor(
                             aspectRatio = payload.attachment?.let { if (it.width > 0 && it.height > 0) it.width.toFloat() / it.height.toFloat() else null }
                         )
 
-                        // 3. 寫入本地資料庫
-                        messageDao.insertOrUpdate(entity)
+                        // 3. 寫入本地資料庫 (同樣使用保留本地標記的版本)
+                        messageDao.insertOrUpdateListPreservingLocalData(listOf(entity))
                         Log.d("ChatRoomsRepository", "WebSocket 訊息成功寫入資料庫: ${entity.content}")
 
                     } else if (event?.type == "dm:typing") {
@@ -192,6 +192,8 @@ class ChatRoomsRepository @Inject constructor(
                     attachment = entity.attachment
                 ).apply {
                     aspectRatio = entity.aspectRatio
+                    isDownloaded = entity.isDownloaded // 👈 新增
+                    localPath = entity.localPath       // 👈 新增
                 }
             }
 
@@ -244,9 +246,8 @@ class ChatRoomsRepository @Inject constructor(
                         )
                     }
 
-                    // 3. 寫入資料庫
-                    // 因為你寫了 OnConflictStrategy.REPLACE，歷史訊息會被乖乖追加進去，不會影響現有訊息！
-                    messageDao.insertOrUpdateList(entities)
+                    // 3. 寫入資料庫 (使用優化過的版本，保留本地下載狀態)
+                    messageDao.insertOrUpdateListPreservingLocalData(entities)
 
                     // 🎯 4. 關鍵：把整個 body 回傳回去（包含 nextCursor 和 hasMore）
                     // 這樣 ViewModel 才能知道下一次往上滑時，要帶哪一個 cursor！
@@ -363,6 +364,18 @@ class ChatRoomsRepository @Inject constructor(
             }
         } catch (e: Exception) {
             Result.failure(e)
+        }
+    }
+
+    suspend fun getLatestMessageId(roomId: String): String? {
+        Log.d("ChatDebug", "💾 [Repository] 正在查詢本地最新訊息 ID... roomId: $roomId")
+        return try {
+            val id = messageDao.getLatestMessageId(roomId)
+            Log.d("ChatDebug", "💾 [Repository] 本地最新 ID: $id")
+            id
+        } catch (e: Exception) {
+            Log.e("ChatDebug", "❌ [Repository] 查詢最新 ID 失敗", e)
+            null
         }
     }
 
@@ -613,7 +626,7 @@ class ChatRoomsRepository @Inject constructor(
 
     //download file
     private val httpClient = OkHttpClient()
-    fun downloadFileFromUrlFlow(fileUrl: String, fileName: String): Flow<Result<Float>> = flow {
+    fun downloadFileFromUrlFlow(messageId: String, fileUrl: String, fileName: String): Flow<Result<Float>> = flow {
         // 🎯 1. 檢查並自動拼接完整的 Base URL
         val finalUrl = if (fileUrl.startsWith("http://") || fileUrl.startsWith("https://")) {
             fileUrl
@@ -651,8 +664,9 @@ class ChatRoomsRepository @Inject constructor(
             }
 
             val totalBytes = body.contentLength()
-            // 🎯 修正後的寫法：直接存入手機系統的公共 Download 資料夾
-            val targetDirectory = Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_DOWNLOADS)
+            // 🎯 修正後的寫法：存入 app 專屬資料夾，避免被使用者手動刪除或污染 Download 資料夾
+            // 如果希望使用者也能看到，可以維持 Environment.DIRECTORY_DOWNLOADS
+            val targetDirectory = context.getExternalFilesDir(Environment.DIRECTORY_PICTURES) ?: context.filesDir
             val targetFile = File(targetDirectory, fileName)
 
             var bytesCopied = 0L
@@ -674,6 +688,10 @@ class ChatRoomsRepository @Inject constructor(
                     }
                 }
             }
+
+            // 🎯 關鍵：下載成功後更新資料庫狀態
+            messageDao.updateDownloadStatus(messageId, true, targetFile.absolutePath)
+            Log.d("ChatDebug", "✅ 檔案下載完成且已更新資料庫: ${targetFile.absolutePath}")
 
             emit(Result.success(1.0f))
 

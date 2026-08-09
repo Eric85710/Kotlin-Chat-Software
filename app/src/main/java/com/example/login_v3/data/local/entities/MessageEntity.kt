@@ -21,5 +21,7 @@ data class MessageEntity(
     val status: MessageStatus,
     val reactions: List<Reaction>?,
     val attachment: Attachment? = null,
-    val aspectRatio: Float? = null
+    val aspectRatio: Float? = null,
+    val isDownloaded: Boolean = false, // 👈 新增：標記媒體/訊息是否已下載到本地
+    val localPath: String? = null      // 👈 新增：儲存本地檔案路徑
 )

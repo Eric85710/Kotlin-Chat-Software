@@ -25,9 +25,32 @@ interface MessageDao {
     @Query("DELETE FROM messages WHERE id = :id")
     suspend fun deleteById(id: String)
 
+    @Query("SELECT id FROM messages WHERE chatRoomId = :roomId ORDER BY createdAt DESC LIMIT 1")
+    suspend fun getLatestMessageId(roomId: String): String?
+
     @Transaction
     suspend fun replaceTempMessageWithSuccess(tempId: String, successEntity: MessageEntity) {
         deleteById(tempId)
         insertOrUpdate(successEntity)
     }
+
+    @Transaction
+    suspend fun insertOrUpdateListPreservingLocalData(messages: List<MessageEntity>) {
+        messages.forEach { msg ->
+            val existing = getMessageById(msg.id)
+            if (existing != null) {
+                // 🎯 核心：保留本地已下載的標記與路徑，其餘由網路資料覆蓋
+                val updated = msg.copy(
+                    isDownloaded = existing.isDownloaded,
+                    localPath = existing.localPath
+                )
+                insertOrUpdate(updated)
+            } else {
+                insertOrUpdate(msg)
+            }
+        }
+    }
+
+    @Query("UPDATE messages SET isDownloaded = :isDownloaded, localPath = :localPath WHERE id = :messageId")
+    suspend fun updateDownloadStatus(messageId: String, isDownloaded: Boolean, localPath: String?)
 }

@@ -202,17 +202,45 @@ class ChatViewModel @Inject constructor(
     }
 
     private fun initChat(roomId: String) {
+        Log.d("ChatDebug", "🛠️ [ViewModel] initChat 開始 | roomId: $roomId")
         viewModelScope.launch {
             // 啟動 Session
-            try { repository.startChatSession(roomId) } catch (e: Exception) { Log.e("ChatViewModel", "WS Error", e) }
+            try { 
+                Log.d("ChatDebug", "🌐 [ViewModel] 嘗試啟動 WebSocket Session...")
+                repository.startChatSession(roomId) 
+            } catch (e: Exception) { 
+                Log.e("ChatDebug", "❌ [ViewModel] WS Error", e) 
+            }
 
-            // 背景同步
-            repository.refreshChatMessages(roomId, cursor = null, limit = 20)
-                .onSuccess { response ->
-                    nextCursor = response.nextCursor
-                    hasMore = response.hasMore
+            // 🎯 核心優化：Delta-Sync 邏輯
+            try {
+                Log.d("ChatDebug", "🔍 [ViewModel] 正在檢查本地資料一致性...")
+                val currentRoom = repository.getChatRoomFlow(roomId).first()
+                val localLatestId = repository.getLatestMessageId(roomId)
+                val serverLatestId = currentRoom?.lastMessage?.id
+
+                Log.d("ChatDebug", "📊 [ViewModel] 比較結果 - LocalLatest: $localLatestId | ServerLatest: $serverLatestId")
+
+                if (localLatestId == null || localLatestId != serverLatestId) {
+                    Log.d("ChatDebug", "🔄 [ViewModel] 資料不一致，發起增量同步...")
+                    // 背景同步
+                    repository.refreshChatMessages(roomId, cursor = null, limit = 20)
+                        .onSuccess { response ->
+                            nextCursor = response.nextCursor
+                            hasMore = response.hasMore
+                            Log.d("ChatDebug", "✅ [ViewModel] 同步成功 | nextCursor: $nextCursor")
+                            repository.markAsRead(roomId)
+                        }
+                        .onFailure { e ->
+                            Log.e("ChatDebug", "❌ [ViewModel] 同步失敗: ${e.message}")
+                        }
+                } else {
+                    Log.d("ChatDebug", "✅ [ViewModel] 資料已是最新，跳過 refresh")
                     repository.markAsRead(roomId)
                 }
+            } catch (e: Exception) {
+                Log.e("ChatDebug", "❌ [ViewModel] initChat 執行過程發生異常", e)
+            }
         }
     }
 
@@ -536,8 +564,8 @@ class ChatViewModel @Inject constructor(
         viewModelScope.launch {
             fileDownloadStates[messageId] = DownloadStatus.Downloading(0f)
 
-            // 呼叫剛剛改好的 URL 版 Flow
-            repository.downloadFileFromUrlFlow(fileUrl, displayFileName)
+            // 呼叫剛剛改好的 URL 版 Flow，傳入 messageId
+            repository.downloadFileFromUrlFlow(messageId, fileUrl, displayFileName)
                 .collect { progressResult ->
                     progressResult.onSuccess { progress ->
                         if (progress >= 1.0f) {

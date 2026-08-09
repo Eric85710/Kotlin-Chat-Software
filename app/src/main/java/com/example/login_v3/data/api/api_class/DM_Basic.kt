@@ -124,7 +124,13 @@ data class Message(
     var aspectRatio: Float? = null,
 
     @kotlin.jvm.Transient
-    var callLogInfo: CallLogInfo? = null
+    var callLogInfo: CallLogInfo? = null,
+
+    @kotlin.jvm.Transient
+    var isDownloaded: Boolean = false,
+
+    @kotlin.jvm.Transient
+    var localPath: String? = null
 ) {
     init {
         if (type == "system" || type.startsWith("call")) {

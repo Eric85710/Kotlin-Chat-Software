@@ -29,7 +29,9 @@ data class MessageUiModel(
     val isFile: Boolean,
     val mediaUrl: String,
     val thumbnailUrl: String? = null,
-    val aspectRatio: Float? = null
+    val aspectRatio: Float? = null,
+    val isDownloaded: Boolean = false, // 👈 新增
+    val localPath: String? = null      // 👈 新增
 )
 
 fun Message.toUiModel(): MessageUiModel {
@@ -41,6 +43,13 @@ fun Message.toUiModel(): MessageUiModel {
     val finalThumbnailUrl = attachment?.thumbnailUrl?.let { raw ->
         if (raw.startsWith("http")) raw
         else "$baseUrl${if (raw.startsWith("/")) "" else "/"}$raw"
+    }
+
+    // 🎯 核心邏輯：如果已經下載完成，且本地路徑存在，則 mediaUrl 優先指向本地檔案
+    val finalMediaUrl = if (isDownloaded && !localPath.isNullOrBlank()) {
+        "file://$localPath"
+    } else {
+        mediaUrl
     }
 
     return MessageUiModel(
@@ -62,8 +71,10 @@ fun Message.toUiModel(): MessageUiModel {
         isVideo = isVideo,
         isAudio = isAudio,
         isFile = isFile,
-        mediaUrl = mediaUrl,
+        mediaUrl = finalMediaUrl, // 👈 使用判斷後的 URL
         thumbnailUrl = finalThumbnailUrl,
-        aspectRatio = finalAspectRatio
+        aspectRatio = finalAspectRatio,
+        isDownloaded = isDownloaded,
+        localPath = localPath
     )
 }
