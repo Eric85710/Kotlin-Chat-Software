@@ -31,12 +31,14 @@ class TokenManager @Inject constructor(
 
     // 儲存資料（維持原樣，這是安全的）
     suspend fun saveAuthData(userId: String, accessToken: String, refreshToken: String, expiresInSec: Int) {
+        android.util.Log.d("TokenManager", "儲存 Token - User: $userId, AccessToken: ${accessToken.take(10)}..., RefreshToken: ${refreshToken.take(10)}...")
         dataStore.edit { preferences ->
             preferences[accessTokenKey(userId)] = accessToken
             preferences[refreshTokenKey(userId)] = refreshToken
 
             val expiresAt = System.currentTimeMillis() + (expiresInSec * 1000L)
             preferences[expiresAtKey(userId)] = expiresAt
+            android.util.Log.d("TokenManager", "Token 將於 ${(expiresInSec / 60)} 分鐘後過期 (timestamp: $expiresAt)")
 
             preferences[CURRENT_USER_ID] = userId
 

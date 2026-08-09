@@ -22,10 +22,10 @@ data class RefreshRequest(
 )
 @JsonClass(generateAdapter = true)
 data class RefreshResponse(
-    val access_token: String,
-    val expires_in: Int,
-    val refresh_token: String,
-    val token: String? = null // 💡 設為可空並給預設值，防止後端沒吐時崩潰
+    val access_token: String? = null,
+    val expires_in: Int? = null,
+    val refresh_token: String? = null,
+    val token: String? = null // 💡 有些後端會直接吐 token 欄位
 )
 
 interface TecnologiaApi {

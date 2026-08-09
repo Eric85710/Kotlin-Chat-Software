@@ -56,6 +56,8 @@ object NetworkModule {
                 tokenManager.currentAccessToken.firstOrNull()
             }
 
+            android.util.Log.d("AuthDebug", "Interceptor - 路徑: $path, Token是否存在: ${!token.isNullOrEmpty()}")
+
             val requestBuilder = originalRequest.newBuilder()
             if (!token.isNullOrEmpty()) {
                 requestBuilder.addHeader("Authorization", "Bearer $token")
