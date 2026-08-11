@@ -519,7 +519,8 @@ fun MessageMessaging(
                                         // 2. 沒權限，叫起多重權限請求視窗（傳入 requiredPermissions 陣列）
                                         mainPermissionLauncher.launch(requiredPermissions)
                                     }
-                                }
+                                },
+                                onMediaReceived = { uri -> viewModel.uploadAttachment(roomId, uri) }
                             )
                         }
 

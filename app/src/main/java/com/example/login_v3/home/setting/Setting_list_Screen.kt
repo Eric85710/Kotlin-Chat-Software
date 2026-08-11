@@ -153,9 +153,10 @@ fun SharedTransitionScope.setting_list_Screen(
 
 
                         Spacer(modifier = Modifier.width(8.dp))
+
                         Column {
                             Text(
-                                text = " ${item.title}",
+                                text = "${item.title}",
                                 style = MaterialTheme.typography.titleMedium,
                                 fontSize = 24.sp,
                                 fontWeight = FontWeight.Bold,
